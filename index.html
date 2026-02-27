@@ -150,11 +150,191 @@ select option { background: var(--surface2); }
 .tarif-grid-section h4 { font-family: Syne; font-size: 0.95rem; color: var(--accent); margin: 0 0 10px 0; padding-bottom: 6px; border-bottom: 1px solid rgba(76,175,80,0.25); }
 
 .info-box { background: #1a2a1a; border: 1px solid #2a4a2a; border-radius: 8px; padding: 12px 16px; font-size: 0.85rem; color: #aaccaa; margin-bottom: 16px; line-height: 1.6; }
+
+/* ===== ARCHIVES FILTRES ===== */
+.arch-type-btn {
+  padding: 10px 20px; border-radius: 10px; border: 2px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.arch-type-btn.active {
+  border-color: var(--accent); color: var(--accent); background: rgba(245,166,35,0.1);
+}
+.arch-month-btn {
+  padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.arch-month-btn.active {
+  border-color: var(--accent); color: var(--accent); background: rgba(245,166,35,0.08);
+}
+.arch-day-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 22px 0 10px; padding-bottom: 8px;
+  border-bottom: 2px solid var(--border);
+}
+.arch-day-header .day-label {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text);
+}
+.arch-day-header .day-dl-btn {
+  padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted); font-size: 0.78rem;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.arch-day-header .day-dl-btn:hover { border-color: var(--green); color: var(--green); }
+.arch-fact-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 14px 16px; margin-bottom: 8px; display: flex;
+  align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.arch-fact-card:hover { border-color: #3d4f70; }
+.arch-fact-info { flex: 1; min-width: 0; }
+.arch-fact-info .fact-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.88rem; color: var(--muted); }
+.arch-fact-info .fact-client { font-weight: 600; font-size: 0.95rem; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arch-fact-info .fact-type { font-size: 0.8rem; color: var(--muted); }
+.arch-fact-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--accent); white-space: nowrap; }
+.arch-fact-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .info-box a { color: var(--accent); }
 
 #toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #0f1117; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 999; pointer-events: none; }
 #toast.show { transform: translateY(0); opacity: 1; }
 #toast.err { background: var(--red); color: #fff; }
+
+/* ===== MOBILE / IPHONE ===== */
+@media (max-width: 768px) {
+
+  /* Navigation en bas type app */
+  header {
+    height: 56px;
+    padding: 0 12px;
+  }
+  .logo { font-size: 1rem; }
+  .logo img { max-height: 40px !important; }
+  nav {
+    display: none; /* cachée en haut */
+  }
+
+  /* Barre de navigation fixe en bas */
+  #mobile-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 150;
+    padding: 0;
+    height: 62px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #mobile-nav button {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 8px 4px;
+    transition: all 0.2s;
+    border-top: 2px solid transparent;
+  }
+  #mobile-nav button .nav-icon { font-size: 1.3rem; line-height: 1; }
+  #mobile-nav button.active { color: var(--accent); border-top-color: var(--accent); }
+
+  main {
+    padding: 16px 12px 80px 12px; /* espace pour nav bas */
+    max-width: 100%;
+  }
+
+  /* Section headers */
+  .section-header { margin-bottom: 16px; }
+  h2 { font-size: 1.25rem; }
+
+  /* Stats grid 2x2 sur mobile */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card { padding: 14px 12px; }
+  .stat-val { font-size: 1.4rem; }
+  .stat-label { font-size: 0.72rem; }
+
+  /* Cards RDV plus compactes et touch-friendly */
+  .card { padding: 14px; margin-bottom: 10px; }
+  .rdv-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .rdv-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .rdv-actions .btn { flex: 1; justify-content: center; min-height: 42px; font-size: 0.82rem; }
+
+  /* Boutons plus grands pour le touch */
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 36px; padding: 6px 10px; }
+
+  /* Archives : on cache le tableau et on affiche des cards */
+  .archive-table { display: none; }
+  .archive-cards { display: block !important; }
+  .arch-fact-card { flex-direction: column; align-items: flex-start; }
+  .arch-fact-actions { width: 100%; }
+  .arch-fact-actions .btn { flex: 1; justify-content: center; }
+  .arch-day-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .day-dl-btn { width: 100%; justify-content: center; padding: 10px 14px; }
+
+  /* Modales plein écran sur iPhone */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal {
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
+    width: 100%;
+    max-width: 100%;
+    padding: 20px 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .modal-header { margin-bottom: 16px; }
+  .modal-header h3 { font-size: 1.1rem; }
+
+  /* Formulaires pleine largeur */
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
+  .form-group.full { grid-column: 1; }
+  input, select, textarea { font-size: 1rem; padding: 12px 14px; } /* évite le zoom iOS */
+
+  /* Facture dans la modale */
+  .facture-wrap { padding: 16px 12px; }
+  .f-header { flex-direction: column; gap: 12px; }
+  .f-parties { grid-template-columns: 1fr; gap: 10px; }
+  .f-company { text-align: left; }
+  .f-table th, .f-table td { padding: 8px; font-size: 0.8rem; }
+  .f-total-ttc { font-size: 1rem; }
+
+  /* Canvas signature plus petit */
+  #sigCanvas { width: 100% !important; height: 90px !important; }
+
+  /* Toast en bas centré sur mobile */
+  #toast { left: 16px; right: 16px; bottom: 76px; text-align: center; }
+
+  /* Cascade buttons plus grands */
+  .cascade-btn { padding: 10px 16px; font-size: 0.9rem; min-height: 40px; }
+}
+
+@media (min-width: 769px) {
+  #mobile-nav { display: none; }
+}
 </style>
 </head>
 <body>
@@ -201,6 +381,17 @@ select option { background: var(--surface2); }
 
   <div class="page" id="page-archives">
     <div class="section-header"><h2>Factures archivées</h2></div>
+
+    <!-- Filtre Type client -->
+    <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+      <button class="arch-type-btn active" onclick="setArchiveType('Particulier')" id="atype-part">🏠 Particuliers</button>
+      <button class="arch-type-btn" onclick="setArchiveType('Voie publique')" id="atype-vp">🌳 Mairies / Voie publique</button>
+    </div>
+
+    <!-- Sélecteur de mois -->
+    <div id="archive-months" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px"></div>
+
+    <!-- Liste filtrée -->
     <div id="archive-list"></div>
   </div>
 
@@ -253,6 +444,22 @@ select option { background: var(--surface2); }
   </div>
 
 </main>
+
+<!-- Navigation mobile en bas -->
+<div id="mobile-nav" style="display:none">
+  <button class="active" onclick="goTo('dashboard')" id="mnav-dashboard">
+    <span class="nav-icon">🏠</span>Accueil
+  </button>
+  <button onclick="goTo('rdvs')" id="mnav-rdvs">
+    <span class="nav-icon">📅</span>RDV
+  </button>
+  <button onclick="goTo('archives')" id="mnav-archives">
+    <span class="nav-icon">🗂️</span>Factures
+  </button>
+  <button onclick="goTo('settings')" id="mnav-settings">
+    <span class="nav-icon">⚙️</span>Paramètres
+  </button>
+</div>
 
 <div class="modal-overlay" id="modal-rdv">
   <div class="modal">
@@ -429,6 +636,8 @@ function detecterMairie(adresse) {
 var editingId = null;
 var currentRdvId = null;
 var currentFactureId = null;
+var archiveType = 'Particulier';
+var archiveMonth = null;
 var isDrawing = false;
 var lastX = 0;
 var lastY = 0;
@@ -447,6 +656,11 @@ function goTo(page) {
   var pages = ['dashboard','rdvs','archives','settings'];
   var idx = pages.indexOf(page);
   if (idx >= 0) document.querySelectorAll('nav button')[idx].classList.add('active');
+  // Sync mobile nav
+  pages.forEach(function(p) {
+    var btn = document.getElementById('mnav-' + p);
+    if (btn) btn.classList.toggle('active', p === page);
+  });
   if (page === 'dashboard') renderDashboard();
   if (page === 'rdvs') renderRdvs();
   if (page === 'archives') renderArchives();
@@ -1126,38 +1340,250 @@ function printFacture() {
 }
 
 // ARCHIVES
+function setArchiveType(type) {
+  archiveType = type;
+  archiveMonth = null;
+  document.getElementById('atype-part').classList.toggle('active', type === 'Particulier');
+  document.getElementById('atype-vp').classList.toggle('active', type === 'Voie publique');
+  renderArchives();
+}
+
+function setArchiveMonth(ym) {
+  archiveMonth = ym;
+  renderArchives();
+}
+
+// Utilitaire : jour en français
+function jourFR(date) {
+  var jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  var mois = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  return jours[date.getDay()] + ' ' + date.getDate() + ' ' + mois[date.getMonth()] + ' ' + date.getFullYear();
+}
+
+function moisFR(ym) {
+  var mois = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  var parts = ym.split('-');
+  return mois[parseInt(parts[1],10)-1] + ' ' + parts[0];
+}
+
 function renderArchives() {
-  var sorted = factures.slice().sort(function(a,b) { return b.date.localeCompare(a.date); });
   var el = document.getElementById('archive-list');
-  if (sorted.length === 0) {
+  var monthsEl = document.getElementById('archive-months');
+
+  if (factures.length === 0) {
+    monthsEl.innerHTML = '';
     el.innerHTML = '<div class="empty"><div class="empty-icon">🗂️</div><p>Aucune facture archivée</p></div>';
     return;
   }
-  var rows = sorted.map(function(f) {
-    var d = new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR');
-    var mailBtn = (f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && f.clientType !== 'Voie publique')
-      ? '<button class="btn btn-ghost btn-sm" onclick="sendMailById(\'' + f.id + '\')">📧</button>'
-      : '';
-    // Récupérer le RDV lié pour la photo
-    var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
-    var photoBtn = rdvLie && rdvLie.photoUrl
-      ? '<a href="' + rdvLie.photoUrl + '" target="_blank" class="btn btn-ghost btn-sm" title="Voir photo nid">📸</a>'
-      : '';
-    return '<tr>'
-      + '<td><strong>' + escHtml(f.num) + '</strong></td>'
-      + '<td>' + d + '</td>'
-      + '<td>' + escHtml(f.nom) + '</td>'
-      + '<td>' + escHtml(f.type) + '</td>'
-      + '<td><strong>' + f.prix.toFixed(2) + ' €</strong></td>'
-      + '<td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">'
-      + '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + f.id + '\')">👁 Voir</button>'
-      + '<button class="btn btn-ghost btn-sm" onclick="voirEtImprimer(\'' + f.id + '\')">🖨️</button>'
-      + mailBtn
-      + photoBtn
-      + '</td>'
-      + '</tr>';
+
+  // Filtrer par type de client
+  var filtered = factures.filter(function(f) {
+    if (archiveType === 'Voie publique') return f.clientType === '' || f.clientType === 'Voie publique';
+    return f.clientType === 'Particulier';
+  });
+
+  // Construire la liste des mois disponibles (ordre antéchronologique)
+  var monthSet = {};
+  filtered.forEach(function(f) {
+    var ym = f.date.substring(0,7);
+    monthSet[ym] = (monthSet[ym] || 0) + 1;
+  });
+  var months = Object.keys(monthSet).sort().reverse();
+
+  // Auto-sélectionner le mois le plus récent si aucun sélectionné ou plus dispo
+  if (!archiveMonth || months.indexOf(archiveMonth) === -1) {
+    archiveMonth = months[0] || null;
+  }
+
+  // Afficher les boutons mois
+  if (months.length === 0) {
+    monthsEl.innerHTML = '<span style="color:var(--muted);font-size:0.85rem">Aucune facture pour ce type de client</span>';
+    el.innerHTML = '';
+    return;
+  }
+  monthsEl.innerHTML = months.map(function(ym) {
+    var active = (ym === archiveMonth) ? ' active' : '';
+    return '<button class="arch-month-btn' + active + '" onclick="setArchiveMonth(\'' + ym + '\')">'
+      + moisFR(ym) + ' <span style="font-size:0.72rem;opacity:0.7">(' + monthSet[ym] + ')</span></button>';
   }).join('');
-  el.innerHTML = '<div class="card" style="padding:0;overflow:hidden"><table class="archive-table"><thead><tr><th>N°</th><th>Date</th><th>Client</th><th>Intervention</th><th>Montant</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+  // Factures du mois sélectionné, triées chronologiquement
+  var inMonth = filtered.filter(function(f) { return f.date.substring(0,7) === archiveMonth; });
+  inMonth.sort(function(a,b) { return a.date.localeCompare(b.date) || a.num.localeCompare(b.num); });
+
+  if (inMonth.length === 0) { el.innerHTML = '<div class="empty"><p>Aucune facture ce mois</p></div>'; return; }
+
+  // Grouper par jour
+  var days = {};
+  var dayOrder = [];
+  inMonth.forEach(function(f) {
+    var d = f.date;
+    if (!days[d]) { days[d] = []; dayOrder.push(d); }
+    days[d].push(f);
+  });
+
+  var html = '';
+  dayOrder.forEach(function(d) {
+    var dateObj = new Date(d + 'T12:00:00');
+    var label = jourFR(dateObj);
+    var dayFacts = days[d];
+
+    html += '<div class="arch-day-header">';
+    html += '<div class="day-label">📅 ' + label + ' <span style="font-size:0.78rem;font-weight:400;color:var(--muted)">(' + dayFacts.length + ' facture' + (dayFacts.length>1?'s':'') + ')</span></div>';
+    html += '<button class="day-dl-btn" onclick="telechargerJournee(\'' + d + '\')" title="Télécharger toute la journée">⬇️ Télécharger la journée</button>';
+    html += '</div>';
+
+    dayFacts.forEach(function(f) {
+      var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
+      var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
+      var mailBtn = (f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && f.clientType !== 'Voie publique')
+        ? '<button class="btn btn-ghost btn-sm" onclick="sendMailById(\'' + f.id + '\')">📧</button>' : '';
+
+      html += '<div class="arch-fact-card">';
+      html += '<div class="arch-fact-info">';
+      html += '<div class="fact-num">' + escHtml(f.num) + '</div>';
+      html += '<div class="fact-client">' + escHtml(f.nom) + '</div>';
+      html += '<div class="fact-type">' + escHtml(f.type) + '</div>';
+      html += '</div>';
+      html += '<div class="arch-fact-price">' + (f.prix||0).toFixed(2) + ' €</div>';
+      html += '<div class="arch-fact-actions">';
+      html += '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + f.id + '\')">👁 Voir</button>';
+      html += '<button class="btn btn-ghost btn-sm" onclick="voirEtImprimer(\'' + f.id + '\')">🖨️</button>';
+      if (photoUrl) html += '<a href="' + photoUrl + '" target="_blank" class="btn btn-ghost btn-sm">📸</a>';
+      html += '<button class="btn btn-ghost btn-sm" onclick="telechargerFacture(\'' + f.id + '\')" title="Télécharger facture + photo">⬇️</button>';
+      html += mailBtn;
+      html += '</div>';
+      html += '</div>';
+    });
+  });
+
+  el.innerHTML = html;
+}
+
+// ===== TÉLÉCHARGEMENT =====
+
+// Génère le HTML d'une facture pour téléchargement (avec styles inline pour PDF standalone)
+function genFactureHtmlStandalone(f) {
+  var printStyles = 'body{font-family:Arial,sans-serif;margin:0;padding:20px;background:#fff;color:#111}'
+    + '.facture-wrap{max-width:700px;margin:auto}'
+    + '.f-title{font-size:2rem;color:#f5a623;font-weight:800;margin-bottom:4px}'
+    + '.f-header{display:flex;justify-content:space-between;margin-bottom:24px;align-items:flex-start}'
+    + '.f-meta{font-size:.85rem;color:#555;line-height:1.7}'
+    + '.f-parties{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}'
+    + '.f-party{background:#f7f7f7;border-radius:8px;padding:14px}'
+    + '.f-party h4{font-size:.72rem;text-transform:uppercase;color:#888;margin-bottom:8px}'
+    + '.f-party p{font-size:.88rem;line-height:1.6}'
+    + '.f-table{width:100%;border-collapse:collapse;margin-bottom:18px}'
+    + '.f-table th{background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:.83rem}'
+    + '.f-table td{padding:10px 12px;border-bottom:1px solid #eee;font-size:.88rem}'
+    + '.f-total{text-align:right;margin-bottom:16px}'
+    + '.f-total-ttc{font-size:1.2rem;font-weight:700;color:#111;margin-top:6px}'
+    + '.f-mention{font-size:.75rem;color:#888;border-top:1px solid #eee;padding-top:10px;margin-top:10px}'
+    + '.f-sig img{max-width:100%;border:1px solid #ddd;border-radius:6px}';
+
+  var data = {
+    num: f.num,
+    dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
+    nom: f.nom, adresse: f.adresse, tel: f.tel, email: f.email || '',
+    type: f.type, prixHT: f.prixHT, notes: f.notes || '',
+    signature: f.signature || '', clientType: f.clientType || '',
+    insecte: f.insecte || ''
+  };
+  var bodyHtml = buildFactureHtml(data, false, false);
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture ' + f.num + '</title>'
+    + '<style>' + printStyles + '</style></head><body>' + bodyHtml + '</body></html>';
+}
+
+// Télécharge un seul fichier texte/HTML
+function dlFile(filename, content, mime) {
+  var blob = new Blob([content], { type: mime || 'text/html' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function() { URL.revokeObjectURL(url); document.body.removeChild(a); }, 500);
+}
+
+// Télécharge l'image d'une URL via fetch (proxy CORS) — fallback lien direct
+function dlPhoto(url, filename, cb) {
+  fetch(url)
+    .then(function(r) { return r.blob(); })
+    .then(function(blob) {
+      var objUrl = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = objUrl; a.download = filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(function() { URL.revokeObjectURL(objUrl); document.body.removeChild(a); if(cb) cb(); }, 500);
+    })
+    .catch(function() {
+      // Si CORS bloque, ouvre dans un nouvel onglet
+      window.open(url, '_blank');
+      if(cb) cb();
+    });
+}
+
+// Télécharger facture individuelle + sa photo
+function telechargerFacture(factureId) {
+  var f = findById(factures, factureId);
+  if (!f) return;
+  var rdvLie = rdvs.find(function(r) { return r.factureId === factureId; });
+  var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
+
+  // 1. Télécharger la facture HTML
+  var html = genFactureHtmlStandalone(f);
+  dlFile('Facture_' + f.num + '_' + escFilename(f.nom) + '.html', html, 'text/html');
+
+  // 2. Télécharger la photo si elle existe (avec délai pour ne pas bloquer)
+  if (photoUrl) {
+    setTimeout(function() {
+      var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
+      dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
+    }, 600);
+    showToast('⬇️ Facture + photo en cours...');
+  } else {
+    showToast('⬇️ Facture téléchargée (pas de photo)');
+  }
+}
+
+// Télécharger toute une journée (factures + photos, dans l'ordre)
+function telechargerJournee(dateStr) {
+  var inDay = factures.filter(function(f) {
+    return f.date === dateStr && (archiveType === 'Voie publique' ? (f.clientType === '' || f.clientType === 'Voie publique') : f.clientType === 'Particulier');
+  });
+  inDay.sort(function(a,b) { return a.num.localeCompare(b.num); });
+
+  if (inDay.length === 0) { showToast('Aucune facture ce jour', true); return; }
+
+  showToast('⬇️ Téléchargement de ' + inDay.length + ' facture(s)...');
+
+  var idx = 0;
+  function next() {
+    if (idx >= inDay.length) { showToast('✅ Journée téléchargée !'); return; }
+    var f = inDay[idx]; idx++;
+    var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
+    var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
+
+    // Facture
+    var html = genFactureHtmlStandalone(f);
+    dlFile('Facture_' + f.num + '_' + escFilename(f.nom) + '.html', html, 'text/html');
+
+    // Photo puis passer au suivant
+    if (photoUrl) {
+      setTimeout(function() {
+        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
+        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, function() {
+          setTimeout(next, 400);
+        });
+      }, 600);
+    } else {
+      setTimeout(next, 800);
+    }
+  }
+  next();
+}
+
+function escFilename(str) {
+  return String(str||'').replace(/[^a-zA-Z0-9\u00C0-\u024F\-_]/g, '_').substring(0, 30);
 }
 
 function voirEtImprimer(id) {
