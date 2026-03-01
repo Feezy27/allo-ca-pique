@@ -348,6 +348,7 @@ select option { background: var(--surface2); }
     <button onclick="goTo('rdvs')">Rendez-vous</button>
     <button onclick="goTo('archives')">Factures</button>
     <button onclick="goTo('settings')">Paramètres</button>
+    <button onclick="doLogout()" title="Se déconnecter" style="color:var(--red)">⏏ Déco</button>
   </nav>
 </header>
 
@@ -428,6 +429,16 @@ select option { background: var(--surface2); }
     </div>
 
     <div class="card" style="margin-top:16px">
+      <h3 style="font-family:Syne;margin-bottom:8px">🔗 Connexion Supabase</h3>
+      <div class="info-box">Pour changer de compte Supabase ou reconfigurer la synchronisation.</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Project URL</label><input id="s-sb-url" type="text" placeholder="https://xxxx.supabase.co"></div>
+        <div class="form-group"><label>Anon Key</label><input id="s-sb-key" type="text" placeholder="eyJhbGci..."></div>
+      </div>
+      <button class="btn btn-ghost" style="margin-top:12px" onclick="updateSupabaseConfig()">🔄 Mettre à jour la config</button>
+    </div>
+
+    <div class="card" style="margin-top:16px">
       <h3 style="font-family:Syne;margin-bottom:8px">📸 Photos des interventions (Cloudinary)</h3>
       <div class="info-box">Créez un compte gratuit sur <strong>cloudinary.com</strong>, puis créez un <strong>Upload Preset</strong> non signé. Renseignez votre <strong>Cloud Name</strong> et le nom du preset ci-dessous.</div>
       <div class="form-grid">
@@ -457,7 +468,10 @@ select option { background: var(--surface2); }
     <span class="nav-icon">🗂️</span>Factures
   </button>
   <button onclick="goTo('settings')" id="mnav-settings">
-    <span class="nav-icon">⚙️</span>Paramètres
+    <span class="nav-icon">⚙️</span>Params
+  </button>
+  <button onclick="doLogout()" style="color:var(--red)">
+    <span class="nav-icon">⏏</span>Déco
   </button>
 </div>
 
@@ -574,10 +588,76 @@ select option { background: var(--surface2); }
 
 <div id="toast"></div>
 
+<!-- ===== ECRAN LOGIN ===== -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:400px">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-family:Syne;font-weight:800;font-size:1.8rem;color:var(--accent);margin-bottom:8px">🐝 Allo ça pique</div>
+      <div style="color:var(--muted);font-size:0.9rem">Connectez-vous pour accéder à vos données</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px">
+      <div id="login-error" style="display:none;background:rgba(255,77,109,0.12);border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:0.85rem;margin-bottom:16px"></div>
+      <div id="login-mode-tabs" style="display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <button onclick="switchLoginMode('login')" id="tab-login" style="flex:1;padding:10px;border:none;background:var(--accent);color:#0f1117;font-family:DM Sans;font-weight:600;font-size:0.9rem;cursor:pointer">Connexion</button>
+        <button onclick="switchLoginMode('signup')" id="tab-signup" style="flex:1;padding:10px;border:none;background:transparent;color:var(--muted);font-family:DM Sans;font-weight:500;font-size:0.9rem;cursor:pointer">Créer un compte</button>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Adresse email</label>
+        <input id="login-email" type="email" placeholder="vous@exemple.fr" autocomplete="email">
+      </div>
+      <div class="form-group" style="margin-bottom:20px">
+        <label>Mot de passe</label>
+        <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button onclick="doLogin()" id="login-btn" class="btn btn-primary" style="width:100%;justify-content:center;font-size:1rem;padding:13px">
+        Se connecter
+      </button>
+      <div id="login-forgot" style="text-align:center;margin-top:12px">
+        <button onclick="doForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:0.82rem;cursor:pointer;text-decoration:underline">Mot de passe oublié ?</button>
+      </div>
+    </div>
+    <div id="supabase-config-hint" style="display:none;margin-top:16px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:12px;padding:16px">
+      <div style="font-family:Syne;font-weight:700;margin-bottom:8px;color:var(--accent)">⚙️ Configuration Supabase requise</div>
+      <div style="font-size:0.83rem;color:#ccc;line-height:1.6;margin-bottom:12px">
+        Pour activer la synchronisation multi-appareils, collez vos clés Supabase ci-dessous.<br>
+        <a href="https://supabase.com" target="_blank" style="color:var(--accent)">Créez un projet gratuit sur supabase.com</a>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>Project URL</label>
+        <input id="cfg-url" type="text" placeholder="https://xxxx.supabase.co">
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Anon Key</label>
+        <input id="cfg-key" type="text" placeholder="eyJhbGci...">
+      </div>
+      <button onclick="saveSupabaseConfig()" class="btn btn-primary" style="width:100%;justify-content:center">Enregistrer et continuer</button>
+    </div>
+  </div>
+</div>
+
+
+
 <script>
-var rdvs = JSON.parse(localStorage.getItem('nid_rdvs') || '[]');
-var factures = JSON.parse(localStorage.getItem('nid_factures') || '[]');
-var settings = JSON.parse(localStorage.getItem('nid_settings') || '{}');
+// ===== SUPABASE CONFIG & AUTH =====
+var SUPABASE_URL = localStorage.getItem('nid_sb_url') || '';
+var SUPABASE_KEY = localStorage.getItem('nid_sb_key') || '';
+var supabaseClient = null;
+var currentUser = null;
+
+function initSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return false;
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+    });
+    return true;
+  } catch(e) { console.error('Supabase init error:', e); return false; }
+}
+
+// ===== DATA (initialisé vide, chargé depuis Supabase après login) =====
+var rdvs = [];
+var factures = [];
+var settings = {};
 // Nouvelle structure : grille de tarifs par combinaison
 // tarifs = { insecte_emplacement: prix, ... }
 // Insectes : frelon-asiatique, frelon-europeen, guepe, abeille, ne-sais-pas
@@ -604,7 +684,7 @@ INSECTES.forEach(function(ins) {
     TARIFS_DEFAULT[ins.id + '_' + emp.id] = prix;
   });
 });
-var tarifs = JSON.parse(localStorage.getItem('nid_tarifs_v3') || JSON.stringify(TARIFS_DEFAULT));
+var tarifs = JSON.parse(JSON.stringify(TARIFS_DEFAULT)); // sera écrasé depuis Supabase après login
 
 // ---- BASE DES MAIRIES ----
 // Format : { détection: ['le havre', ...], nom: 'Mairie du Havre', adresse: '...', ville: '...', cp: '...', tel: '...' }
@@ -642,11 +722,39 @@ var isDrawing = false;
 var lastX = 0;
 var lastY = 0;
 
-function save() {
-  localStorage.setItem('nid_rdvs', JSON.stringify(rdvs));
-  localStorage.setItem('nid_factures', JSON.stringify(factures));
-  localStorage.setItem('nid_settings', JSON.stringify(settings));
-  localStorage.setItem('nid_tarifs_v3', JSON.stringify(tarifs));
+// ===== SAVE / LOAD SUPABASE =====
+async function save() {
+  if (!supabaseClient || !currentUser) return;
+  var uid = currentUser.id;
+  try {
+    await supabaseClient.from('user_data').upsert({
+      user_id: uid,
+      rdvs: rdvs,
+      factures: factures,
+      settings: settings,
+      tarifs: tarifs,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  } catch(e) { console.error('Save error:', e); }
+}
+
+async function loadUserData() {
+  if (!supabaseClient || !currentUser) return;
+  try {
+    var res = await supabaseClient.from('user_data').select('*').eq('user_id', currentUser.id).single();
+    if (res.data) {
+      rdvs = res.data.rdvs || [];
+      factures = res.data.factures || [];
+      settings = res.data.settings || {};
+      tarifs = res.data.tarifs || JSON.parse(JSON.stringify(TARIFS_DEFAULT));
+    } else {
+      // Premier login : données vides
+      rdvs = []; factures = []; settings = { nom: 'Allo ça pique' }; tarifs = JSON.parse(JSON.stringify(TARIFS_DEFAULT));
+    }
+  } catch(e) {
+    console.error('Load error:', e);
+    rdvs = []; factures = []; settings = {}; tarifs = JSON.parse(JSON.stringify(TARIFS_DEFAULT));
+  }
 }
 
 function goTo(page) {
@@ -1605,6 +1713,9 @@ function renderSettings() {
   document.getElementById('s-ejs-tpl').value = settings.ejsTpl || '';
   document.getElementById('s-cloudinary-cloud').value = settings.cloudinaryCloud || '';
   document.getElementById('s-cloudinary-preset').value = settings.cloudinaryPreset || '';
+  // Supabase config
+  document.getElementById('s-sb-url').value = localStorage.getItem('nid_sb_url') || '';
+  document.getElementById('s-sb-key').value = localStorage.getItem('nid_sb_key') || '';
   renderTarifGrid();
 }
 
@@ -1664,22 +1775,169 @@ function findById(arr, id) {
   return arr.find(function(x) { return x.id === id; }) || null;
 }
 
+function updateSupabaseConfig() {
+  var url = document.getElementById('s-sb-url').value.trim();
+  var key = document.getElementById('s-sb-key').value.trim();
+  if (!url || !key) { showToast('Les deux champs Supabase sont requis', true); return; }
+  localStorage.setItem('nid_sb_url', url);
+  localStorage.setItem('nid_sb_key', key);
+  SUPABASE_URL = url; SUPABASE_KEY = key;
+  if (initSupabase()) { showToast('Config Supabase mise à jour !'); }
+  else { showToast('Erreur — vérifiez vos clés', true); }
+}
+
 function initEmailJS() {
   if (settings.ejsPub) {
     try { emailjs.init({ publicKey: settings.ejsPub }); } catch(e) { console.warn('EmailJS:', e); }
   }
 }
 
-// INIT
-initEmailJS();
-renderDashboard();
-if (!settings.nom) {
-  settings.nom = 'Allo ça pique';
-  setTimeout(function() {
-    goTo('settings');
-    showToast('👋 Vérifiez vos infos dans Paramètres avant de commencer !');
-  }, 600);
+// ===== AUTH FUNCTIONS =====
+function showLoginScreen(showConfig) {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('header').style.display = 'none';
+  document.querySelector('main').style.display = 'none';
+  document.getElementById('mobile-nav').style.display = 'none';
+  if (showConfig) {
+    document.getElementById('supabase-config-hint').style.display = 'block';
+    var saved = localStorage.getItem('nid_sb_url') || '';
+    var savedKey = localStorage.getItem('nid_sb_key') || '';
+    if (saved) document.getElementById('cfg-url').value = saved;
+    if (savedKey) document.getElementById('cfg-key').value = savedKey;
+  }
 }
+
+function hideLoginScreen() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.querySelector('header').style.display = '';
+  document.querySelector('main').style.display = '';
+  // Mobile nav affiché par CSS media query
+}
+
+function switchLoginMode(mode) {
+  var isLogin = mode === 'login';
+  document.getElementById('tab-login').style.background = isLogin ? 'var(--accent)' : 'transparent';
+  document.getElementById('tab-login').style.color = isLogin ? '#0f1117' : 'var(--muted)';
+  document.getElementById('tab-signup').style.background = isLogin ? 'transparent' : 'var(--accent)';
+  document.getElementById('tab-signup').style.color = isLogin ? 'var(--muted)' : '#0f1117';
+  document.getElementById('login-btn').textContent = isLogin ? 'Se connecter' : 'Créer mon compte';
+  document.getElementById('login-btn').setAttribute('onclick', isLogin ? 'doLogin()' : 'doSignup()');
+  document.getElementById('login-forgot').style.display = isLogin ? '' : 'none';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function setLoginLoading(loading) {
+  var btn = document.getElementById('login-btn');
+  btn.disabled = loading;
+  if (loading) btn.textContent = '⏳ Chargement...';
+}
+
+function showLoginError(msg) {
+  var el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setLoginLoading(false);
+}
+
+async function doLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  var pwd = document.getElementById('login-password').value;
+  if (!email || !pwd) { showLoginError('Email et mot de passe requis'); return; }
+  if (!supabaseClient) { showLoginError('Configuration Supabase manquante — voir ci-dessous'); document.getElementById('supabase-config-hint').style.display='block'; return; }
+  setLoginLoading(true);
+  document.getElementById('login-error').style.display = 'none';
+  var res = await supabaseClient.auth.signInWithPassword({ email: email, password: pwd });
+  if (res.error) { showLoginError(res.error.message); return; }
+  currentUser = res.data.user;
+  await afterLogin();
+}
+
+async function doSignup() {
+  var email = document.getElementById('login-email').value.trim();
+  var pwd = document.getElementById('login-password').value;
+  if (!email || !pwd) { showLoginError('Email et mot de passe requis'); return; }
+  if (pwd.length < 6) { showLoginError('Le mot de passe doit faire au moins 6 caractères'); return; }
+  if (!supabaseClient) { showLoginError('Configuration Supabase manquante — voir ci-dessous'); document.getElementById('supabase-config-hint').style.display='block'; return; }
+  setLoginLoading(true);
+  document.getElementById('login-error').style.display = 'none';
+  var res = await supabaseClient.auth.signUp({ email: email, password: pwd });
+  if (res.error) { showLoginError(res.error.message); return; }
+  if (res.data.user && !res.data.session) {
+    setLoginLoading(false);
+    showLoginError('✅ Compte créé ! Vérifiez votre email pour confirmer votre compte, puis connectez-vous.');
+    switchLoginMode('login');
+    return;
+  }
+  currentUser = res.data.user;
+  await afterLogin();
+}
+
+async function doForgotPassword() {
+  var email = document.getElementById('login-email').value.trim();
+  if (!email) { showLoginError("Entrez votre email d'abord"); return; }
+  await supabaseClient.auth.resetPasswordForEmail(email);
+  showLoginError('✅ Email de réinitialisation envoyé si ce compte existe.');
+}
+
+async function doLogout() {
+  if (!supabaseClient) return;
+  await supabaseClient.auth.signOut();
+  currentUser = null;
+  rdvs = []; factures = []; settings = {}; tarifs = JSON.parse(JSON.stringify(TARIFS_DEFAULT));
+  showLoginScreen(false);
+  showToast('Déconnecté');
+}
+
+async function afterLogin() {
+  showToast('⏳ Chargement des données...');
+  await loadUserData();
+  hideLoginScreen();
+  initEmailJS();
+  renderDashboard();
+  if (!settings.nom) {
+    settings.nom = 'Allo ça pique';
+    setTimeout(function() {
+      goTo('settings');
+      showToast('👋 Bienvenue ! Vérifiez vos infos dans Paramètres.');
+    }, 600);
+  } else {
+    showToast('✅ Connecté — données chargées !');
+  }
+}
+
+function saveSupabaseConfig() {
+  var url = document.getElementById('cfg-url').value.trim();
+  var key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { alert("Les deux champs sont requis"); return; }
+  localStorage.setItem('nid_sb_url', url);
+  localStorage.setItem('nid_sb_key', key);
+  SUPABASE_URL = url; SUPABASE_KEY = key;
+  if (initSupabase()) {
+    document.getElementById('supabase-config-hint').style.display = 'none';
+    showLoginError('✅ Configuration sauvegardée ! Vous pouvez maintenant vous connecter.');
+  } else {
+    alert("Erreur lors de l'initialisation Supabase — vérifiez vos clés.");
+  }
+}
+
+// ===== INIT =====
+initSupabase();
+
+(async function() {
+  if (!supabaseClient) {
+    // Pas de config Supabase → afficher l'écran de config
+    showLoginScreen(true);
+    return;
+  }
+  // Vérifier s'il y a une session active
+  var sessionRes = await supabaseClient.auth.getSession();
+  if (sessionRes.data && sessionRes.data.session) {
+    currentUser = sessionRes.data.session.user;
+    await afterLogin();
+  } else {
+    showLoginScreen(false);
+  }
+})();
 </script>
 </body>
 </html>
