@@ -6,6 +6,7 @@
 <title>Allo ça pique — Gestion Interventions</title>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -125,6 +126,78 @@ select option { background: var(--surface2); }
 .f-sig { margin-top: 18px; border: 2px dashed #ddd; border-radius: 8px; padding: 10px; }
 .f-sig p { font-size: 0.8rem; color: #888; margin-bottom: 6px; }
 #sigCanvas { border: 1px solid #ccc; border-radius: 6px; cursor: crosshair; touch-action: none; display: block; max-width: 100%; }
+
+/* Modale plein écran signature mobile */
+#sig-fullscreen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  z-index: 1000;
+  flex-direction: column;
+}
+#sig-fullscreen.open { display: flex; }
+#sig-fs-header {
+  background: #0f1117;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+#sig-fs-header h3 {
+  font-family: Syne, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #f5a623;
+  margin: 0;
+}
+#sig-fs-hint {
+  font-size: 0.78rem;
+  color: #888;
+  text-align: center;
+  padding: 8px 16px 4px;
+  flex-shrink: 0;
+}
+#sig-fs-canvas-wrap {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  padding: 12px;
+  min-height: 0;
+}
+#sigCanvasFS {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  cursor: crosshair;
+  touch-action: none;
+  display: block;
+  background: #fff;
+}
+#sigCanvasFS.has-sig { border-color: #2dd4a0; border-style: solid; }
+#sig-fs-actions {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: #f7f7f7;
+  flex-shrink: 0;
+}
+#sig-fs-actions button {
+  flex: 1;
+  padding: 14px 10px;
+  border-radius: 12px;
+  border: none;
+  font-family: DM Sans, sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.sig-btn-cancel { background: #eee; color: #555; }
+.sig-btn-clear { background: #ffe5ea; color: #ff4d6d; }
+.sig-btn-ok { background: #2dd4a0; color: #0f1117; }
 
 .maps-link { display: inline-flex; align-items: center; gap: 4px; font-size: 0.82rem; color: var(--accent); text-decoration: none; margin-top: 4px; }
 .maps-link:hover { text-decoration: underline; }
@@ -322,8 +395,9 @@ select option { background: var(--surface2); }
   .f-table th, .f-table td { padding: 8px; font-size: 0.8rem; }
   .f-total-ttc { font-size: 1rem; }
 
-  /* Canvas signature plus petit */
-  #sigCanvas { width: 100% !important; height: 90px !important; }
+  /* Canvas signature inline : petit sur mobile, on invite à ouvrir le plein écran */
+  #sigCanvas { width: 100% !important; height: 70px !important; }
+  .sig-tap-hint { display: block !important; }
 
   /* Toast en bas centré sur mobile */
   #toast { left: 16px; right: 16px; bottom: 76px; text-align: center; }
@@ -426,16 +500,6 @@ select option { background: var(--surface2); }
         <div class="form-group"><label>Service ID</label><input id="s-ejs-svc" type="text" placeholder="service_xxxxxxx"></div>
         <div class="form-group full"><label>Template ID</label><input id="s-ejs-tpl" type="text" placeholder="template_xxxxxxx"></div>
       </div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <h3 style="font-family:Syne;margin-bottom:8px">🔗 Connexion Supabase</h3>
-      <div class="info-box">Pour changer de compte Supabase ou reconfigurer la synchronisation.</div>
-      <div class="form-grid">
-        <div class="form-group"><label>Project URL</label><input id="s-sb-url" type="text" placeholder="https://xxxx.supabase.co"></div>
-        <div class="form-group"><label>Anon Key</label><input id="s-sb-key" type="text" placeholder="eyJhbGci..."></div>
-      </div>
-      <button class="btn btn-ghost" style="margin-top:12px" onclick="updateSupabaseConfig()">🔄 Mettre à jour la config</button>
     </div>
 
     <div class="card" style="margin-top:16px">
@@ -588,6 +652,24 @@ select option { background: var(--surface2); }
 
 <div id="toast"></div>
 
+<!-- ===== SIGNATURE PLEIN ÉCRAN (mobile) ===== -->
+<div id="sig-fullscreen">
+  <div id="sig-fs-header">
+    <h3>✍️ Signature du client</h3>
+    <span style="font-size:0.78rem;color:#aaa">Tracez votre signature</span>
+  </div>
+  <div id="sig-fs-hint">Signez dans la zone ci-dessous avec votre doigt</div>
+  <div id="sig-fs-canvas-wrap">
+    <canvas id="sigCanvasFS"></canvas>
+  </div>
+  <div id="sig-fs-actions">
+    <button class="sig-btn-cancel" onclick="closeSigFullscreen(false)">↩ Retour</button>
+    <button class="sig-btn-clear" onclick="clearSigFS()">🗑 Effacer</button>
+    <button class="sig-btn-ok" onclick="closeSigFullscreen(true)">✓ Valider</button>
+  </div>
+</div>
+
+
 <!-- ===== ECRAN LOGIN ===== -->
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="width:100%;max-width:400px">
@@ -616,22 +698,7 @@ select option { background: var(--surface2); }
         <button onclick="doForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:0.82rem;cursor:pointer;text-decoration:underline">Mot de passe oublié ?</button>
       </div>
     </div>
-    <div id="supabase-config-hint" style="display:none;margin-top:16px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:12px;padding:16px">
-      <div style="font-family:Syne;font-weight:700;margin-bottom:8px;color:var(--accent)">⚙️ Configuration Supabase requise</div>
-      <div style="font-size:0.83rem;color:#ccc;line-height:1.6;margin-bottom:12px">
-        Pour activer la synchronisation multi-appareils, collez vos clés Supabase ci-dessous.<br>
-        <a href="https://supabase.com" target="_blank" style="color:var(--accent)">Créez un projet gratuit sur supabase.com</a>
-      </div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label>Project URL</label>
-        <input id="cfg-url" type="text" placeholder="https://xxxx.supabase.co">
-      </div>
-      <div class="form-group" style="margin-bottom:14px">
-        <label>Anon Key</label>
-        <input id="cfg-key" type="text" placeholder="eyJhbGci...">
-      </div>
-      <button onclick="saveSupabaseConfig()" class="btn btn-primary" style="width:100%;justify-content:center">Enregistrer et continuer</button>
-    </div>
+<div id="supabase-config-hint" style="display:none"></div>
   </div>
 </div>
 
@@ -639,19 +706,29 @@ select option { background: var(--surface2); }
 
 <script>
 // ===== SUPABASE CONFIG & AUTH =====
-var SUPABASE_URL = localStorage.getItem('nid_sb_url') || '';
-var SUPABASE_KEY = localStorage.getItem('nid_sb_key') || '';
+var SUPABASE_URL = 'https://mmvefugdmwkgwoidfxzd.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_AYBei05XX4IEbW0ii3i5hQ_QQhLJ_J3';
 var supabaseClient = null;
 var currentUser = null;
 
 function initSupabase() {
   if (!SUPABASE_URL || !SUPABASE_KEY) return false;
   try {
+    // Compatible avec les nouvelles clés sb_publishable_ et les anciennes eyJhbGci
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        flowType: 'pkce'
+      }
     });
+    console.log('Supabase initialisé avec succès');
     return true;
-  } catch(e) { console.error('Supabase init error:', e); return false; }
+  } catch(e) {
+    console.error('Supabase init error:', e);
+    return false;
+  }
 }
 
 // ===== DATA (initialisé vide, chargé depuis Supabase après login) =====
@@ -1122,8 +1199,11 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
 
   if (withSigCanvas) {
     h += '<div class="f-sig"><p>Signature du client :</p>';
-    h += '<canvas id="sigCanvas" width="560" height="110"></canvas>';
-    h += '<div style="margin-top:8px"><button onclick="clearSig()" style="font-size:0.8rem;padding:4px 10px;background:#eee;border:none;border-radius:4px;cursor:pointer">Effacer signature</button></div>';
+    h += '<canvas id="sigCanvas" width="560" height="110" onclick="openSigFullscreen()" style="cursor:pointer" title="Cliquez pour signer en plein écran"></canvas>';
+    h += '<div style="margin-top:8px;display:flex;gap:8px;align-items:center">';
+    h += '<button onclick="clearSig()" style="font-size:0.8rem;padding:4px 10px;background:#eee;border:none;border-radius:4px;cursor:pointer">Effacer</button>';
+    h += '<button onclick="openSigFullscreen()" class="sig-tap-hint" style="display:none;font-size:0.82rem;padding:6px 14px;background:#f5a623;color:#0f1117;border:none;border-radius:8px;font-weight:600;cursor:pointer">✍️ Signer (plein écran)</button>';
+    h += '</div>';
     h += '</div>';
     if (withEmailInput) {
       h += '<div style="margin-top:14px">';
@@ -1332,36 +1412,113 @@ function sendMailForFacture(f) {
 }
 
 // SIGNATURE
-function initSig() {
-  var canvas = document.getElementById('sigCanvas');
-  if (!canvas) return;
+function makeCanvasDrawable(canvas, onDraw) {
   var ctx = canvas.getContext('2d');
   ctx.strokeStyle = '#111';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = window.innerWidth < 769 ? 3 : 2;
   ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  var drawing = false, lx = 0, ly = 0;
   function getPos(e) {
     var rect = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rect.width;
+    var scaleY = canvas.height / rect.height;
     var src = e.touches ? e.touches[0] : e;
-    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
   }
   canvas.onmousedown = canvas.ontouchstart = function(e) {
     e.preventDefault();
-    isDrawing = true;
-    var p = getPos(e); lastX = p.x; lastY = p.y;
+    drawing = true;
+    var p = getPos(e); lx = p.x; ly = p.y;
   };
   canvas.onmousemove = canvas.ontouchmove = function(e) {
     e.preventDefault();
-    if (!isDrawing) return;
+    if (!drawing) return;
     var p = getPos(e);
-    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
-    lastX = p.x; lastY = p.y;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lx = p.x; ly = p.y;
+    if (onDraw) onDraw();
   };
-  canvas.onmouseup = canvas.onmouseleave = canvas.ontouchend = function() { isDrawing = false; };
+  canvas.onmouseup = canvas.onmouseleave = canvas.ontouchend = function() { drawing = false; };
+}
+
+function initSig() {
+  var canvas = document.getElementById('sigCanvas');
+  if (!canvas) return;
+  makeCanvasDrawable(canvas, null);
+  // Sur mobile, le canvas inline ouvre le plein écran au tap
+  if (window.innerWidth < 769) {
+    canvas.onclick = function(e) { e.preventDefault(); openSigFullscreen(); };
+    canvas.style.cursor = 'pointer';
+  }
 }
 
 function clearSig() {
   var c = document.getElementById('sigCanvas');
   if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+
+// === SIGNATURE PLEIN ÉCRAN (mobile) ===
+var sigFSDrawn = false;
+
+function openSigFullscreen() {
+  var el = document.getElementById('sig-fullscreen');
+  if (!el) return;
+  el.classList.add('open');
+  // Bloquer le scroll
+  document.body.style.overflow = 'hidden';
+  // Init le canvas plein écran
+  var fsCanvas = document.getElementById('sigCanvasFS');
+  var wrap = document.getElementById('sig-fs-canvas-wrap');
+  // Taille réelle
+  fsCanvas.width = wrap.clientWidth - 24;
+  fsCanvas.height = wrap.clientHeight - 24;
+  fsCanvas.classList.remove('has-sig');
+  sigFSDrawn = false;
+  // Copier la sig existante si elle existe
+  var inlineCanvas = document.getElementById('sigCanvas');
+  if (inlineCanvas) {
+    var ctx = fsCanvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, fsCanvas.width, fsCanvas.height);
+    // Vérifier si le canvas inline a un dessin
+    var iCtx = inlineCanvas.getContext('2d');
+    var data = iCtx.getImageData(0, 0, inlineCanvas.width, inlineCanvas.height).data;
+    var hasDrawing = false;
+    for (var i = 3; i < data.length; i += 4) { if (data[i] > 0) { hasDrawing = true; break; } }
+    if (hasDrawing) {
+      ctx.drawImage(inlineCanvas, 0, 0, fsCanvas.width, fsCanvas.height);
+      fsCanvas.classList.add('has-sig');
+      sigFSDrawn = true;
+    }
+  }
+  makeCanvasDrawable(fsCanvas, function() {
+    sigFSDrawn = true;
+    fsCanvas.classList.add('has-sig');
+  });
+}
+
+function clearSigFS() {
+  var c = document.getElementById('sigCanvasFS');
+  if (!c) return;
+  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  c.classList.remove('has-sig');
+  sigFSDrawn = false;
+}
+
+function closeSigFullscreen(validate) {
+  var el = document.getElementById('sig-fullscreen');
+  if (el) el.classList.remove('open');
+  document.body.style.overflow = '';
+  if (!validate) return;
+  // Copier la signature du canvas FS vers le canvas inline
+  var fsCanvas = document.getElementById('sigCanvasFS');
+  var inlineCanvas = document.getElementById('sigCanvas');
+  if (!fsCanvas || !inlineCanvas) return;
+  var ctx = inlineCanvas.getContext('2d');
+  ctx.clearRect(0, 0, inlineCanvas.width, inlineCanvas.height);
+  ctx.drawImage(fsCanvas, 0, 0, inlineCanvas.width, inlineCanvas.height);
+  showToast('✅ Signature enregistrée');
 }
 
 // PHOTO CLOUDINARY
