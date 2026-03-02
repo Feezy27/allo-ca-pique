@@ -123,6 +123,19 @@ select option { background: var(--surface2); }
 .f-total-line { font-size: 0.88rem; color: #555; margin-bottom: 3px; }
 .f-total-ttc { font-size: 1.2rem; font-weight: 700; color: #111; margin-top: 6px; }
 .f-mention { font-size: 0.75rem; color: #888; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
+
+/* Boutons mode de paiement */
+.paiement-btns { display: flex; gap: 10px; margin: 16px 0 4px; flex-wrap: wrap; }
+.paiement-btn {
+  flex: 1; min-width: 90px; padding: 12px 8px;
+  border-radius: 10px; border: 2px solid var(--border);
+  background: var(--surface2); color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; text-align: center;
+}
+.paiement-btn:hover { border-color: var(--accent); color: var(--accent); }
+.paiement-btn.active { border-color: var(--accent); background: rgba(245,166,35,0.12); color: var(--accent); }
+.paiement-required { font-size: 0.78rem; color: var(--red); margin-top: 4px; display: none; }
 .f-sig { margin-top: 18px; border: 2px dashed #ddd; border-radius: 8px; padding: 10px; }
 .f-sig p { font-size: 0.8rem; color: #888; margin-bottom: 6px; }
 #sigCanvas { border: 1px solid #ccc; border-radius: 6px; cursor: crosshair; touch-action: none; display: block; max-width: 100%; }
@@ -641,7 +654,17 @@ select option { background: var(--surface2); }
       <button class="close-btn" onclick="closeModal('modal-facture')">✕</button>
     </div>
     <div id="facture-content"></div>
-    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;flex-wrap:wrap">
+    <!-- Choix mode de paiement (visible uniquement avant validation) -->
+    <div id="paiement-section" style="display:none;margin-top:20px">
+      <div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mode de paiement</div>
+      <div class="paiement-btns">
+        <button class="paiement-btn" id="pay-virement" onclick="choisirPaiement('virement')">🏦 Virement</button>
+        <button class="paiement-btn" id="pay-cheque"   onclick="choisirPaiement('cheque')">📝 Chèque</button>
+        <button class="paiement-btn" id="pay-espece"   onclick="choisirPaiement('espece')">💵 Espèces</button>
+      </div>
+      <div class="paiement-required" id="paiement-required">⚠️ Veuillez choisir un mode de paiement avant de valider</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap">
       <button class="btn btn-ghost" onclick="closeModal('modal-facture')">Fermer</button>
       <button class="btn btn-ghost" onclick="printFacture()">🖨️ Imprimer / PDF</button>
       <button id="btn-mail" class="btn btn-ghost" style="display:none" onclick="sendMailCurrent()">📧 Envoyer par mail</button>
@@ -795,6 +818,7 @@ var currentRdvId = null;
 var currentFactureId = null;
 var archiveType = 'Particulier';
 var archiveMonth = null;
+var modePaiement = null; // 'virement' | 'cheque' | 'espece'
 var isDrawing = false;
 var lastX = 0;
 var lastY = 0;
@@ -1195,7 +1219,13 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
 
   h += '<div class="f-total">';
   h += '<div class="f-total-ttc">Total client : ' + total.toFixed(2) + ' €</div></div>';
-  h += '<div class="f-mention">' + escHtml(s.mention || 'TVA non applicable, art. 293B du CGI') + '<br>Paiement à réception de facture.</div>';
+  // Libellé mode de paiement
+  var paiementLabels = { virement: '🏦 Virement bancaire', cheque: '📝 Chèque', espece: '💵 Espèces' };
+  var paiementLabel = data.paiement ? paiementLabels[data.paiement] || '' : '';
+  var paiementLine = paiementLabel
+    ? '<br><span style="font-weight:700;color:#333">Mode de paiement : ' + paiementLabel + '</span>'
+    : '<br>Paiement à réception de facture.';
+  h += '<div class="f-mention">' + escHtml(s.mention || 'TVA non applicable, art. 293B du CGI') + paiementLine + '</div>';
 
   if (withSigCanvas) {
     h += '<div class="f-sig"><p>Signature du client :</p>';
@@ -1262,6 +1292,13 @@ function ouvrirFacture(rdvId) {
   document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, r.clientType !== 'Voie publique');
   document.getElementById('btn-valider').style.display = 'inline-flex';
   document.getElementById('btn-mail').style.display = 'none';
+  // Réinitialiser le mode de paiement
+  modePaiement = null;
+  document.getElementById('paiement-section').style.display = 'block';
+  document.getElementById('paiement-required').style.display = 'none';
+  ['virement','cheque','espece'].forEach(function(m) {
+    document.getElementById('pay-' + m).classList.remove('active');
+  });
   document.getElementById('modal-facture').classList.add('open');
   setTimeout(initSig, 120);
 }
@@ -1278,17 +1315,44 @@ function voirFacture(factureId) {
     nom: f.nom, adresse: f.adresse, tel: f.tel, email: f.email || '',
     type: f.type, prixHT: f.prixHT, notes: f.notes || '',
     signature: f.signature || '', clientType: f.clientType || '',
-    insecte: f.insecte || ''
+    insecte: f.insecte || '', paiement: f.paiement || ''
   }, false, false);
-  document.getElementById('btn-valider').style.display = 'none';
+    document.getElementById('btn-valider').style.display = 'none';
+  document.getElementById('paiement-section').style.display = 'none';
   var canMail = f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && f.clientType !== 'Voie publique';
   document.getElementById('btn-mail').style.display = canMail ? 'inline-flex' : 'none';
   document.getElementById('modal-facture').classList.add('open');
 }
 
+function choisirPaiement(mode) {
+  modePaiement = mode;
+  ['virement','cheque','espece'].forEach(function(m) {
+    document.getElementById('pay-' + m).classList.toggle('active', m === mode);
+  });
+  document.getElementById('paiement-required').style.display = 'none';
+  // Mettre à jour dynamiquement l'affichage sur la facture
+  var labels = { virement: '🏦 Virement bancaire', cheque: '📝 Chèque', espece: '💵 Espèces' };
+  var mention = document.querySelector('.f-mention');
+  if (mention) {
+    // Supprimer l'ancienne ligne de paiement si elle existe
+    var existing = mention.querySelector('.paiement-line');
+    if (existing) existing.remove();
+    var span = document.createElement('span');
+    span.className = 'paiement-line';
+    span.innerHTML = '<br><strong style="color:#333">Mode de paiement : ' + labels[mode] + '</strong>';
+    mention.appendChild(span);
+  }
+}
+
 function validerFacture() {
   var r = findById(rdvs, currentRdvId);
   if (!r) return;
+  // Vérifier qu'un mode de paiement a été choisi
+  if (!modePaiement) {
+    document.getElementById('paiement-required').style.display = 'block';
+    document.getElementById('paiement-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   var canvas = document.getElementById('sigCanvas');
   var sig = canvas ? canvas.toDataURL() : '';
   var emailClient = '';
@@ -1313,7 +1377,8 @@ function validerFacture() {
     clientType: data.clientType,
     insecte: r.insecte || '',
     date: new Date().toISOString().split('T')[0],
-    signature: sig
+    signature: sig,
+    paiement: modePaiement
   };
   factures.push(f);
   var idx = rdvs.findIndex(function(x) { return x.id === currentRdvId; });
