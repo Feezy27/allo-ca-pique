@@ -223,10 +223,11 @@ select option { background: var(--surface2); }
 .maps-link { display: inline-flex; align-items: center; gap: 4px; font-size: 0.82rem; color: var(--accent); text-decoration: none; margin-top: 4px; }
 /* Saisie heure — input tel natif */
 #r-heure-tel {
-  width: 90px; padding: 9px 12px; border: 1px solid var(--border);
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border);
   border-radius: var(--r); background: var(--card); color: var(--text);
   font-size: 1rem; font-family: 'DM Sans', sans-serif;
-  text-align: center; letter-spacing: .08em;
+  text-align: left; letter-spacing: .08em;
+  box-sizing: border-box;
 }
 .maps-link:hover { text-decoration: underline; }
 
@@ -1237,11 +1238,11 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   // Table 2 colonnes : gauche=logo+nom, droite=FACTURE+num+date
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr>';
   // Colonne gauche
-  h += '<td style="vertical-align:top;padding:0;">';
+  h += '<td style="vertical-align:middle;padding:0;">';
   h += '<div style="display:flex;align-items:center;gap:12px;"><img src="' + LOGO_B64 + '" style="height:48px;width:auto;display:block;"><span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#111;line-height:1;">' + escHtml(s.nom||'Allo ça pique') + '</span></div>';
   h += '</td>';
   // Colonne droite
-  h += '<td style="vertical-align:top;text-align:right;padding:0;">';
+  h += '<td style="vertical-align:middle;text-align:right;padding:0;">';
   h += '<div style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#111;line-height:1.1;">FACTURE</div>';
   h += '<div style="font-size:0.85rem;color:#555;line-height:1.7;margin-top:4px;"><strong style="color:#111;">N°</strong> ' + data.num + '<br><strong style="color:#111;">Date :</strong> ' + data.dateStr + '</div>';
   h += '</td>';
@@ -1448,7 +1449,8 @@ function validerFacture() {
 
   var prixHT = r.prix;
   var num = 'F' + new Date().getFullYear() + '-' + String(factures.length + 1).padStart(3, '0');
-  var data = buildDataFacture(r, num, new Date().toISOString().split('T')[0]);
+  var rdvDateStr = r.date ? new Date(r.date + 'T12:00:00').toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
+  var data = buildDataFacture(r, num, rdvDateStr);
 
   var f = {
     id: String(Date.now()),
