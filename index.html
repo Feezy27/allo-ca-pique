@@ -479,6 +479,11 @@ select option { background: var(--surface2); }
       <h2>Rendez-vous</h2>
       <button class="btn btn-primary" onclick="openNewRdv()">+ Nouveau RDV</button>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <label style="font-size:0.85rem;color:var(--muted);font-weight:600;">Filtrer par date :</label>
+      <input type="date" id="rdv-filter-date" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--card);color:var(--text);font-size:0.9rem;" onchange="renderRdvs()">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rdv-filter-date').value='';renderRdvs()">✕ Tous</button>
+    </div>
     <div id="rdv-list"></div>
   </div>
 
@@ -583,7 +588,7 @@ select option { background: var(--surface2); }
         <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">📍 Ouvrir dans Google Maps</a>
       </div>
       <div class="form-group"><label>Date *</label><input id="r-date" type="date"></div>
-      <div class="form-group">
+      <div class="form-group full">
         <label>Heure</label>
         <input type="tel" id="r-heure-tel" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="onHeureInput(this)">
         <input type="hidden" id="r-heure">
@@ -934,12 +939,23 @@ function renderDashboard() {
 
 // RDV LIST
 function renderRdvs() {
-  var sorted = rdvs.slice().sort(function(a,b) { return b.date.localeCompare(a.date); });
+  var filterEl = document.getElementById('rdv-filter-date');
+  var filterDate = filterEl ? filterEl.value : '';
+  var list = rdvs.slice();
+  if (filterDate) list = list.filter(function(r) { return r.date === filterDate; });
+  // Tri chronologique : date ASC puis heure ASC (sans heure → dernier)
+  list.sort(function(a,b) {
+    var dc = (a.date||'').localeCompare(b.date||'');
+    if (dc !== 0) return dc;
+    return ((a.heure||'99:99').localeCompare(b.heure||'99:99'));
+  });
   var el = document.getElementById('rdv-list');
-  if (sorted.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucun RDV — créez-en un !</p></div>';
+  if (list.length === 0) {
+    el.innerHTML = filterDate
+      ? '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucun RDV ce jour</p></div>'
+      : '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucun RDV — créez-en un !</p></div>';
   } else {
-    el.innerHTML = sorted.map(makeRdvCard).join('');
+    el.innerHTML = list.map(makeRdvCard).join('');
   }
 }
 
@@ -1222,7 +1238,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr>';
   // Colonne gauche
   h += '<td style="vertical-align:top;padding:0;">';
-  h += '<div style="display:flex;align-items:center;gap:12px;"><img src="' + LOGO_B64 + '" style="height:48px;width:auto;display:block;"><span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.5rem;color:#111;line-height:1;">' + escHtml(s.nom||'Allo ça pique') + '</span></div>';
+  h += '<div style="display:flex;align-items:center;gap:12px;"><img src="' + LOGO_B64 + '" style="height:48px;width:auto;display:block;"><span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#111;line-height:1;">' + escHtml(s.nom||'Allo ça pique') + '</span></div>';
   h += '</td>';
   // Colonne droite
   h += '<td style="vertical-align:top;text-align:right;padding:0;">';
@@ -1234,7 +1250,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   // ---- PARTIES : prestataire + client ----
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr>';
   // Prestataire
-  h += '<td style="width:50%;vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
+  h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
   h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Prestataire</div>';
   h += '<div style="font-size:0.88rem;line-height:1.7;">';
   h += '<strong>' + escHtml(s.nom||'') + '</strong><br>';
@@ -1245,9 +1261,9 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += 'SIRET : ' + escHtml(s.siret||'');
   h += '</div></td>';
   // Séparateur
-  h += '<td style="width:24px;"></td>';
+  h += '<td style="width:28px;min-width:28px;"></td>';
   // Client
-  h += '<td style="width:50%;vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
+  h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
   h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Client</div>';
   h += '<div style="font-size:0.88rem;line-height:1.7;">';
   h += '<strong>' + escHtml(data.nom) + '</strong>';
@@ -1447,7 +1463,7 @@ function validerFacture() {
     notes: data.notes,
     clientType: data.clientType,
     insecte: r.insecte || '',
-    date: new Date().toISOString().split('T')[0],
+    date: r.date || new Date().toISOString().split('T')[0],
     signature: sig,
     paiement: modePaiement
   };
