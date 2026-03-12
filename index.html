@@ -221,33 +221,13 @@ select option { background: var(--surface2); }
 .sig-btn-ok { background: #2dd4a0; color: #0f1117; }
 
 .maps-link { display: inline-flex; align-items: center; gap: 4px; font-size: 0.82rem; color: var(--accent); text-decoration: none; margin-top: 4px; }
-/* Saisie heure — clavier numérique custom */
-.time-kb-wrap { position: relative; }
-.time-kb-display {
-  display: flex; align-items: center; gap: 2px;
-  padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--r);
-  background: var(--card); cursor: pointer; user-select: none;
-  font-size: 1.5rem; font-family: 'DM Sans', sans-serif; font-weight: 700;
-  letter-spacing: .05em; color: var(--text);
+/* Saisie heure — input tel natif */
+#r-heure-tel {
+  width: 90px; padding: 9px 12px; border: 1px solid var(--border);
+  border-radius: var(--r); background: var(--card); color: var(--text);
+  font-size: 1rem; font-family: 'DM Sans', sans-serif;
+  text-align: center; letter-spacing: .08em;
 }
-.time-kb-display.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(245,166,35,.18); }
-.time-kb-digit { color: var(--text); min-width: 18px; text-align: center; }
-.time-kb-digit.empty { color: var(--muted); }
-.time-kb-colon { color: var(--muted); margin: 0 2px; }
-.time-kb-clear { margin-left: auto; font-size: 0.9rem; color: var(--muted); padding: 2px 4px; cursor: pointer; }
-.time-kb-keys {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-  background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
-  padding: 12px; margin-top: 6px;
-}
-.time-kb-btn {
-  padding: 14px 0; font-size: 1.2rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
-  border: none; border-radius: 10px; background: var(--bg); color: var(--text);
-  cursor: pointer; transition: background .12s;
-}
-.time-kb-btn:active { background: var(--border); }
-.time-kb-erase { background: rgba(255,77,109,.1); color: var(--red); }
-.time-kb-ok { background: var(--accent); color: #0f1117; }
 .maps-link:hover { text-decoration: underline; }
 
 .tarif-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -605,26 +585,7 @@ select option { background: var(--surface2); }
       <div class="form-group"><label>Date *</label><input id="r-date" type="date"></div>
       <div class="form-group">
         <label>Heure</label>
-        <div class="time-kb-wrap" id="custom-time-wrap">
-          <div class="time-kb-display" id="time-kb-display" onclick="toggleTimeKb()">
-            <span id="time-kb-h1" class="time-kb-digit">_</span><span id="time-kb-h2" class="time-kb-digit">_</span><span class="time-kb-colon">:</span><span id="time-kb-m1" class="time-kb-digit">_</span><span id="time-kb-m2" class="time-kb-digit">_</span>
-            <span class="time-kb-clear" id="time-kb-clear" onclick="event.stopPropagation();clearTimeKb()">✕</span>
-          </div>
-          <div class="time-kb-keys" id="time-kb-keys" style="display:none;">
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('1')">1</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('2')">2</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('3')">3</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('4')">4</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('5')">5</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('6')">6</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('7')">7</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('8')">8</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('9')">9</button>
-            <button type="button" class="time-kb-btn time-kb-erase" onclick="timeKbPress('back')">⌫</button>
-            <button type="button" class="time-kb-btn" onclick="timeKbPress('0')">0</button>
-            <button type="button" class="time-kb-btn time-kb-ok" onclick="closeTimeKb()">OK</button>
-          </div>
-        </div>
+        <input type="tel" id="r-heure-tel" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="onHeureInput(this)">
         <input type="hidden" id="r-heure">
       </div>
       <div class="form-group full" id="rdv-intervention-bloc">
@@ -1690,110 +1651,27 @@ function makeCanvasDrawable(canvas, onDraw) {
   canvas.onmouseup = canvas.onmouseleave = canvas.ontouchend = function() { drawing = false; };
 }
 
-// ===== SAISIE HEURE — CLAVIER NUMÉRIQUE CUSTOM =====
-// digits : tableau de 4 chiffres saisis [H1, H2, M1, M2]
-var _timeDigits = ['', '', '', ''];
-
-function _timeRenderDisplay() {
-  var ids = ['time-kb-h1', 'time-kb-h2', 'time-kb-m1', 'time-kb-m2'];
-  for (var i = 0; i < 4; i++) {
-    var el = document.getElementById(ids[i]);
-    if (!el) continue;
-    if (_timeDigits[i] === '') {
-      el.textContent = '_';
-      el.classList.add('empty');
-    } else {
-      el.textContent = _timeDigits[i];
-      el.classList.remove('empty');
-    }
-  }
-  // Mettre à jour le champ caché si les 4 chiffres sont remplis
+// ===== SAISIE HEURE — INPUT TEL NATIF =====
+function onHeureInput(el) {
+  // Garder uniquement chiffres, insérer le : automatiquement après 2 chiffres
+  var raw = el.value.replace(/[^0-9]/g, '').slice(0, 4);
+  var formatted = raw.length > 2 ? raw.slice(0, 2) + ':' + raw.slice(2) : raw;
+  el.value = formatted;
   var hidden = document.getElementById('r-heure');
-  if (hidden) {
-    var h1 = _timeDigits[0], h2 = _timeDigits[1];
-    var m1 = _timeDigits[2], m2 = _timeDigits[3];
-    if (h1 !== '' && h2 !== '' && m1 !== '' && m2 !== '') {
-      hidden.value = h1 + h2 + ':' + m1 + m2;
-    } else {
-      hidden.value = '';
-    }
-  }
-}
-
-function timeKbPress(key) {
-  if (key === 'back') {
-    // Effacer le dernier chiffre saisi
-    for (var i = 3; i >= 0; i--) {
-      if (_timeDigits[i] !== '') { _timeDigits[i] = ''; break; }
-    }
-    _timeRenderDisplay();
-    return;
-  }
-  // Trouver la première case vide
-  var pos = -1;
-  for (var j = 0; j < 4; j++) {
-    if (_timeDigits[j] === '') { pos = j; break; }
-  }
-  if (pos === -1) return; // déjà complet
-
-  // Validation en temps réel
-  var digit = key;
-  if (pos === 0) {
-    // H1 : 0-2 seulement
-    if (parseInt(digit) > 2) return;
-  }
-  if (pos === 1) {
-    // H2 : si H1=2, max 3
-    if (_timeDigits[0] === '2' && parseInt(digit) > 3) return;
-  }
-  if (pos === 2) {
-    // M1 : 0-5 seulement
-    if (parseInt(digit) > 5) return;
-  }
-  _timeDigits[pos] = digit;
-  _timeRenderDisplay();
-}
-
-function toggleTimeKb() {
-  var kb = document.getElementById('time-kb-keys');
-  var disp = document.getElementById('time-kb-display');
-  if (!kb) return;
-  var open = kb.style.display !== 'none';
-  kb.style.display = open ? 'none' : 'grid';
-  if (disp) disp.classList.toggle('active', !open);
-}
-
-function closeTimeKb() {
-  var kb = document.getElementById('time-kb-keys');
-  var disp = document.getElementById('time-kb-display');
-  if (kb) kb.style.display = 'none';
-  if (disp) disp.classList.remove('active');
-}
-
-function clearTimeKb() {
-  _timeDigits = ['', '', '', ''];
-  _timeRenderDisplay();
-  var hidden = document.getElementById('r-heure');
-  if (hidden) hidden.value = '';
+  if (hidden) hidden.value = formatted.length === 5 ? formatted : '';
 }
 
 function initTimePicker() {
-  _timeDigits = ['', '', '', ''];
-  _timeRenderDisplay();
-  closeTimeKb();
+  var tel = document.getElementById('r-heure-tel');
+  var hidden = document.getElementById('r-heure');
+  if (tel) tel.value = '';
+  if (hidden) hidden.value = '';
 }
 
 function setTimePickerValue(val) {
-  _timeDigits = ['', '', '', ''];
-  if (val && val.length === 5 && val[2] === ':') {
-    _timeDigits[0] = val[0];
-    _timeDigits[1] = val[1];
-    _timeDigits[2] = val[3];
-    _timeDigits[3] = val[4];
-  }
-  _timeRenderDisplay();
-  closeTimeKb();
+  var tel = document.getElementById('r-heure-tel');
   var hidden = document.getElementById('r-heure');
+  if (tel) tel.value = val || '';
   if (hidden) hidden.value = val || '';
 }
 
