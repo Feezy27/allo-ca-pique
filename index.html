@@ -1222,12 +1222,11 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr>';
   // Colonne gauche
   h += '<td style="vertical-align:top;padding:0;">';
-  h += '<img src="' + LOGO_B64 + '" style="height:48px;width:auto;display:block;margin-bottom:6px;">';
-  h += '<div style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.1rem;color:#f5a623;">' + escHtml(s.nom||'Allo ça pique') + '</div>';
+  h += '<div style="display:flex;align-items:center;gap:12px;"><img src="' + LOGO_B64 + '" style="height:48px;width:auto;display:block;"><span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.5rem;color:#111;line-height:1;">' + escHtml(s.nom||'Allo ça pique') + '</span></div>';
   h += '</td>';
   // Colonne droite
   h += '<td style="vertical-align:top;text-align:right;padding:0;">';
-  h += '<div style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#f5a623;line-height:1.1;">FACTURE</div>';
+  h += '<div style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#111;line-height:1.1;">FACTURE</div>';
   h += '<div style="font-size:0.85rem;color:#555;line-height:1.7;margin-top:4px;"><strong style="color:#111;">N°</strong> ' + data.num + '<br><strong style="color:#111;">Date :</strong> ' + data.dateStr + '</div>';
   h += '</td>';
   h += '</tr></table>';
@@ -1246,7 +1245,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += 'SIRET : ' + escHtml(s.siret||'');
   h += '</div></td>';
   // Séparateur
-  h += '<td style="width:20px;"></td>';
+  h += '<td style="width:24px;"></td>';
   // Client
   h += '<td style="width:50%;vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
   h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Client</div>';
@@ -1279,10 +1278,10 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
     h += '<div style="font-weight:700;font-size:0.93rem;color:#b36b00;margin-bottom:10px">Aide départementale — Frelon asiatique</div>';
     h += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
     h += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
-    h += '<tr><td style="padding:4px 0;color:#c0392b">Aide département (− 30%)</td><td style="text-align:right;font-weight:700;color:#c0392b">− ' + aideAmt.toFixed(2) + ' €</td></tr>';
-    h += '<tr style="border-top:2px solid #f5a623"><td style="padding:8px 0 4px;font-weight:700;font-size:1rem;color:#111">Reste à charge client</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#2d7d46;padding:8px 0 4px">' + netApresAide.toFixed(2) + ' €</td></tr>';
+    h += '<tr><td style="padding:4px 0;color:#111">Aide département (− 30%)</td><td style="text-align:right;font-weight:700;color:#111">− ' + aideAmt.toFixed(2) + ' €</td></tr>';
+    h += '<tr style="border-top:2px solid #f5a623"><td style="padding:8px 0 4px;font-weight:700;font-size:1rem;color:#111">Reste à charge client</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#111;padding:8px 0 4px">' + netApresAide.toFixed(2) + ' €</td></tr>';
     h += '</table>';
-    h += '<div style="font-size:0.75rem;color:#888;margin-top:8px;line-height:1.5">Le prestataire récupère 30 % auprès du Département. Le client règle uniquement le montant « Reste à charge ».</div>';
+    h += '<div style="font-size:0.75rem;color:#888;margin-top:8px;line-height:1.5">Le département participe à hauteur de 30 %. Le client règle uniquement le montant « Reste à charge ».</div>';
     h += '</div>';
   }
 
