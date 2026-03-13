@@ -330,7 +330,7 @@ select option { background: var(--surface2); }
     border-top: 1px solid var(--border);
     z-index: 150;
     padding: 0;
-    height: 62px;
+    height: 76px;
     padding-bottom: env(safe-area-inset-bottom);
   }
   #mobile-nav button {
@@ -339,23 +339,23 @@ select option { background: var(--surface2); }
     border: none;
     color: var(--muted);
     font-family: 'DM Sans', sans-serif;
-    font-size: 0.62rem;
+    font-size: 0.72rem;
     font-weight: 500;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     cursor: pointer;
-    padding: 8px 4px;
+    padding: 10px 4px;
     transition: all 0.2s;
     border-top: 2px solid transparent;
   }
-  #mobile-nav button .nav-icon { font-size: 1.3rem; line-height: 1; }
+  #mobile-nav button .nav-icon { font-size: 1.6rem; line-height: 1; }
   #mobile-nav button.active { color: var(--accent); border-top-color: var(--accent); }
 
   main {
-    padding: 16px 12px 80px 12px; /* espace pour nav bas */
+    padding: 16px 12px 96px 12px; /* espace pour nav bas */
     max-width: 100%;
   }
 
@@ -552,6 +552,11 @@ select option { background: var(--surface2); }
       <div class="form-grid">
         <div class="form-group"><label>Cloud Name</label><input id="s-cloudinary-cloud" type="text" placeholder="mon-cloud-name"></div>
         <div class="form-group"><label>Upload Preset</label><input id="s-cloudinary-preset" type="text" placeholder="unsigned_preset"></div>
+
+      <h3 style="margin:20px 0 10px;font-size:1rem;color:var(--accent)">📋 Bons de commande</h3>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">Ces bons de commande apparaîtront sur la facture sous le numéro.</div>
+      <div class="form-group"><label>Bon de commande — Montivilliers</label><input id="s-bdc-montivilliers" type="text" placeholder="N° BC Montivilliers..."></div>
+      <div class="form-group"><label>Bon de commande — Gonfreville</label><input id="s-bdc-gonfreville" type="text" placeholder="N° BC Gonfreville..."></div>
       </div>
     </div>
     <div class="card" style="margin-top:16px;display:none">
@@ -621,6 +626,8 @@ select option { background: var(--surface2); }
           <div class="cascade-options" id="opts-client">
             <button type="button" class="cascade-btn" onclick="selectClient('Particulier')">🏠 Particulier</button>
             <button type="button" class="cascade-btn" onclick="selectClient('Voie publique')">🌳 Voie publique</button>
+            <button type="button" class="cascade-btn" onclick="selectClient('Montivilliers')">🏙️ Montivilliers</button>
+            <button type="button" class="cascade-btn" onclick="selectClient('Gonfreville')">🏭 Gonfreville</button>
           </div>
         </div>
 
@@ -698,6 +705,15 @@ select option { background: var(--surface2); }
       <button class="close-btn" onclick="closeModal('modal-facture')">✕</button>
     </div>
     <div id="facture-content"></div>
+    <!-- Boutons aide frelon asiatique (affichés uniquement avant validation) -->
+    <div id="aide-section" style="display:none;margin-top:16px">
+      <div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Aide à la destruction (optionnel)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button id="aide-depart" class="paiement-btn" onclick="choisirAide('departement')" style="flex:1;min-width:120px">🏛️ Département</button>
+        <button id="aide-seine" class="paiement-btn" onclick="choisirAide('seine')" style="flex:1;min-width:140px">🌊 Seine Métropole</button>
+      </div>
+    </div>
+
     <!-- Choix mode de paiement (visible uniquement avant validation) -->
     <div id="paiement-section" style="display:none;margin-top:20px">
       <div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mode de paiement</div>
@@ -870,6 +886,7 @@ var currentFactureId = null;
 var archiveType = 'Particulier';
 var archiveMonth = null;
 var modePaiement = null; // 'virement' | 'cheque' | 'espece'
+var aideChoisie = null; // 'departement' | 'seine' | null
 var isDrawing = false;
 var lastX = 0;
 var lastY = 0;
@@ -1078,7 +1095,12 @@ function resetCascade() {
 function selectClient(val) {
   _cascade.client = val;
   // Highlight
-  document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){ b.classList.remove('selected'); if(b.textContent.trim().includes(val.split(' ')[0])) b.classList.add('selected'); });
+  document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){
+    b.classList.remove('selected');
+    // Comparer le onclick pour un matching exact
+    var onclick = b.getAttribute('onclick') || '';
+    if (onclick.indexOf("'" + val + "'") >= 0 || onclick.indexOf('"' + val + '"') >= 0) b.classList.add('selected');
+  });
   // Build insecte buttons
   var container = document.getElementById('opts-insecte');
   container.innerHTML = INSECTES.map(function(ins) {
@@ -1275,7 +1297,13 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   // Colonne droite
   h += '<td style="vertical-align:middle;text-align:right;padding:0;">';
   h += '<div style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#111;line-height:1.1;">FACTURE</div>';
-  h += '<div style="font-size:0.85rem;color:#555;line-height:1.7;margin-top:4px;"><strong style="color:#111;">N°</strong> ' + data.num + '<br><strong style="color:#111;">Date :</strong> ' + data.dateStr + '</div>';
+  var bdcLine = '';
+  if (data.clientType === 'Montivilliers' && s.bdcMontivilliers) {
+    bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(s.bdcMontivilliers);
+  } else if (data.clientType === 'Gonfreville' && s.bdcGonfreville) {
+    bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(s.bdcGonfreville);
+  }
+  h += '<div style="font-size:0.85rem;color:#555;line-height:1.7;margin-top:4px;"><strong style="color:#111;">N°</strong> ' + data.num + bdcLine + '<br><strong style="color:#111;">Date :</strong> ' + data.dateStr + '</div>';
   h += '</td>';
   h += '</tr></table>';
 
@@ -1315,10 +1343,8 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + escHtml(data.type) + (data.notes ? '<br><small style="color:#888">' + escHtml(data.notes) + '</small>' : '') + '</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">1</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + prixHT.toFixed(2) + ' €</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + prixHT.toFixed(2) + ' €</td></tr>';
   h += '</tbody></table>';
 
-  // Aide départementale frelon asiatique — particuliers uniquement
-  var isFA = (data.insecte === 'frelon-asiatique') || (data.type && data.type.toLowerCase().indexOf('frelon asiatique') >= 0);
-  var isParticulier = (data.clientType === 'Particulier');
-  if (isFA && isParticulier) {
+  // Aide manuelle : data.aide peut être 'departement', 'seine', ou null
+  if (data.aide === 'departement') {
     var aideAmt = prixHT * 0.30;
     var netApresAide = prixHT - aideAmt;
     total = netApresAide;
@@ -1326,10 +1352,23 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
     h += '<div style="font-weight:700;font-size:0.93rem;color:#b36b00;margin-bottom:10px">Aide départementale — Frelon asiatique</div>';
     h += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
     h += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
-    h += '<tr><td style="padding:4px 0;color:#111">Aide département (− 30%)</td><td style="text-align:right;font-weight:700;color:#111">− ' + aideAmt.toFixed(2) + ' €</td></tr>';
+    h += '<tr><td style="padding:4px 0;color:#111">Aide département (− 30 %)</td><td style="text-align:right;font-weight:700;color:#111">− ' + aideAmt.toFixed(2) + ' €</td></tr>';
     h += '<tr style="border-top:2px solid #f5a623"><td style="padding:8px 0 4px;font-weight:700;font-size:1rem;color:#111">Reste à charge client</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#111;padding:8px 0 4px">' + netApresAide.toFixed(2) + ' €</td></tr>';
     h += '</table>';
     h += '<div style="font-size:0.75rem;color:#888;margin-top:8px;line-height:1.5">Le département participe à hauteur de 30 %. Le client règle uniquement le montant « Reste à charge ».</div>';
+    h += '</div>';
+  } else if (data.aide === 'seine') {
+    var aideAmt2 = prixHT * 0.30;
+    var netApresAide2 = prixHT - aideAmt2;
+    total = netApresAide2;
+    h += '<div style="margin:16px 0;background:#f0f6ff;border:2px solid #3b82f6;border-radius:10px;padding:14px 18px">';
+    h += '<div style="font-weight:700;font-size:0.93rem;color:#1e40af;margin-bottom:10px">Aide Seine Métropole — Frelon asiatique</div>';
+    h += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
+    h += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
+    h += '<tr><td style="padding:4px 0;color:#111">Aide Seine Métropole (− 30 %)</td><td style="text-align:right;font-weight:700;color:#111">− ' + aideAmt2.toFixed(2) + ' €</td></tr>';
+    h += '<tr style="border-top:2px solid #3b82f6"><td style="padding:8px 0 4px;font-weight:700;font-size:1rem;color:#111">Reste à charge client</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#111;padding:8px 0 4px">' + netApresAide2.toFixed(2) + ' €</td></tr>';
+    h += '</table>';
+    h += '<div style="font-size:0.75rem;color:#888;margin-top:8px;line-height:1.5">La Seine Métropole participe à hauteur de 30 % pour la destruction du nid. Le client règle uniquement le montant « Reste à charge ».</div>';
     h += '</div>';
   }
 
@@ -1421,7 +1460,14 @@ function ouvrirFacture(rdvId) {
   document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, r.clientType !== 'Voie publique');
   document.getElementById('btn-valider').style.display = 'inline-flex';
   document.getElementById('btn-mail').style.display = 'none';
-  // Réinitialiser le mode de paiement
+  // Réinitialiser les aides et le mode de paiement
+  aideChoisie = null;
+  ['departement','seine'].forEach(function(a) {
+    var btn = document.getElementById('aide-' + (a === 'departement' ? 'depart' : 'seine'));
+    if (btn) btn.classList.remove('active');
+  });
+  var isFA = (r.insecte === 'frelon-asiatique');
+  document.getElementById('aide-section').style.display = isFA ? 'block' : 'none';
   modePaiement = null;
   document.getElementById('paiement-section').style.display = 'block';
   document.getElementById('paiement-required').style.display = 'none';
@@ -1443,6 +1489,7 @@ function voirFacture(factureId) {
     dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
     nom: f.nom, adresse: f.adresse, tel: f.tel, email: f.email || '',
     type: f.type, prixHT: f.prixHT, notes: f.notes || '',
+    aide: f.aide || null,
     signature: f.signature || '', clientType: f.clientType || '',
     insecte: f.insecte || '', paiement: f.paiement || ''
   }, false, false);
@@ -1454,6 +1501,22 @@ function voirFacture(factureId) {
   var canMail = f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && f.clientType !== 'Voie publique';
   document.getElementById('btn-mail').style.display = canMail ? 'inline-flex' : 'none';
   document.getElementById('modal-facture').classList.add('open');
+}
+
+function choisirAide(val) {
+  aideChoisie = (aideChoisie === val) ? null : val; // toggle
+  ['departement','seine'].forEach(function(a) {
+    var btn = document.getElementById('aide-' + (a === 'departement' ? 'depart' : 'seine'));
+    if (btn) btn.classList.toggle('active', aideChoisie === a);
+  });
+  // Reconstruire la facture avec ou sans aide
+  var rdv = currentRdvId ? rdvs.find(function(r) { return r.id === currentRdvId; }) : null;
+  if (rdv) {
+    var data = buildDataFacture(rdv, nextFactureNum(), new Date().toLocaleDateString('fr-FR'));
+    data.aide = aideChoisie;
+    document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, rdv.clientType !== 'Voie publique');
+    setTimeout(initSig, 80);
+  }
 }
 
 function choisirPaiement(mode) {
@@ -1499,7 +1562,13 @@ function validerFacture() {
   var num = nextFactureNum();
   var rdvDateStr = r.date ? new Date(r.date + 'T12:00:00').toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
   var data = buildDataFacture(r, num, rdvDateStr);
+  data.aide = aideChoisie || null;
 
+  // Calculer le prix réel selon l'aide choisie
+  var prixFinal = prixHT;
+  if (aideChoisie === 'departement' || aideChoisie === 'seine') {
+    prixFinal = prixHT * 0.70;
+  }
   var f = {
     id: String(Date.now()),
     num: num,
@@ -1509,13 +1578,14 @@ function validerFacture() {
     email: emailClient,
     type: data.type,
     prixHT: prixHT,
-    prix: prixHT,
+    prix: prixFinal,
     notes: data.notes,
     clientType: data.clientType,
     insecte: r.insecte || '',
     date: r.date || new Date().toISOString().split('T')[0],
     signature: sig,
-    paiement: modePaiement
+    paiement: modePaiement,
+    aide: aideChoisie || null
   };
   factures.push(f);
   var idx = rdvs.findIndex(function(x) { return x.id === currentRdvId; });
@@ -2218,6 +2288,8 @@ function renderSettings() {
   document.getElementById('s-ejs-tpl').value = settings.ejsTpl || '';
   document.getElementById('s-cloudinary-cloud').value = settings.cloudinaryCloud || '';
   document.getElementById('s-cloudinary-preset').value = settings.cloudinaryPreset || '';
+  document.getElementById('s-bdc-montivilliers').value = settings.bdcMontivilliers || '';
+  document.getElementById('s-bdc-gonfreville').value = settings.bdcGonfreville || '';
   // Supabase config (champs optionnels)
   var sbUrl = document.getElementById('s-sb-url');
   var sbKey = document.getElementById('s-sb-key');
@@ -2261,7 +2333,9 @@ function saveSettings() {
     ejsSvc: document.getElementById('s-ejs-svc').value.trim(),
     ejsTpl: document.getElementById('s-ejs-tpl').value.trim(),
     cloudinaryCloud: document.getElementById('s-cloudinary-cloud').value.trim(),
-    cloudinaryPreset: document.getElementById('s-cloudinary-preset').value.trim()
+    cloudinaryPreset: document.getElementById('s-cloudinary-preset').value.trim(),
+    bdcMontivilliers: document.getElementById('s-bdc-montivilliers').value.trim(),
+    bdcGonfreville: document.getElementById('s-bdc-gonfreville').value.trim()
   };
   // Sauvegarder la grille tarifaire
   tarifs = {};
@@ -2427,9 +2501,27 @@ async function doLogout() {
   showToast('Déconnecté');
 }
 
+function purgeOldRdvs() {
+  var today = new Date();
+  today.setHours(0, 0, 0, 0); // début du jour courant
+  var todayStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD"
+  var before = rdvs.length;
+  rdvs = rdvs.filter(function(r) {
+    // Garder si pas de date OU si date >= aujourd'hui
+    if (!r.date) return true;
+    return r.date >= todayStr;
+  });
+  if (rdvs.length < before) {
+    var nb = before - rdvs.length;
+    save();
+    console.log('Purge : ' + nb + ' RDV(s) passé(s) supprimé(s)');
+  }
+}
+
 async function afterLogin() {
   showToast('⏳ Chargement des données...');
   await loadUserData();
+  purgeOldRdvs();
   hideLoginScreen();
   initEmailJS();
   renderDashboard();
