@@ -545,6 +545,10 @@ select option { background: var(--surface2); }
         <div class="form-group"><label>Upload Preset</label><input id="s-cloudinary-preset" type="text" placeholder="unsigned_preset"></div>
       </div>
     </div>
+    <div class="card" style="margin-top:16px;display:none">
+      <input type="hidden" id="s-sb-url">
+      <input type="hidden" id="s-sb-key">
+    </div>
     <div class="card" style="margin-top:16px">
       <h3 style="font-family:Syne;margin-bottom:4px">💰 Grille tarifaire</h3>
       <p style="font-size:0.83rem;color:#aaa;margin:0 0 14px 0">Prix en € HT selon l'insecte et l'emplacement du nid. Ces prix s'appliquent automatiquement lors de la sélection.</p>
@@ -2153,9 +2157,11 @@ function renderSettings() {
   document.getElementById('s-ejs-tpl').value = settings.ejsTpl || '';
   document.getElementById('s-cloudinary-cloud').value = settings.cloudinaryCloud || '';
   document.getElementById('s-cloudinary-preset').value = settings.cloudinaryPreset || '';
-  // Supabase config
-  document.getElementById('s-sb-url').value = localStorage.getItem('nid_sb_url') || '';
-  document.getElementById('s-sb-key').value = localStorage.getItem('nid_sb_key') || '';
+  // Supabase config (champs optionnels)
+  var sbUrl = document.getElementById('s-sb-url');
+  var sbKey = document.getElementById('s-sb-key');
+  if (sbUrl) sbUrl.value = localStorage.getItem('nid_sb_url') || '';
+  if (sbKey) sbKey.value = localStorage.getItem('nid_sb_key') || '';
   renderTarifGrid();
 }
 
