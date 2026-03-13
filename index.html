@@ -557,6 +557,11 @@ select option { background: var(--surface2); }
       <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">Ces bons de commande apparaîtront sur la facture sous le numéro.</div>
       <div class="form-group"><label>Bon de commande — Montivilliers</label><input id="s-bdc-montivilliers" type="text" placeholder="N° BC Montivilliers..."></div>
       <div class="form-group"><label>Bon de commande — Gonfreville</label><input id="s-bdc-gonfreville" type="text" placeholder="N° BC Gonfreville..."></div>
+
+      <h3 style="margin:20px 0 10px;font-size:1rem;color:var(--accent)">🐝 Aides frelon asiatique</h3>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">Taux de prise en charge par organisme (en %). Par défaut : 30 %.</div>
+      <div class="form-group"><label>Aide Département (%)</label><input id="s-aide-depart-pct" type="number" min="0" max="100" step="1" placeholder="30"></div>
+      <div class="form-group"><label>Aide Seine Métropole (%)</label><input id="s-aide-seine-pct" type="number" min="0" max="100" step="1" placeholder="30"></div>
       </div>
     </div>
     <div class="card" style="margin-top:16px;display:none">
@@ -886,7 +891,7 @@ var currentFactureId = null;
 var archiveType = 'Particulier';
 var archiveMonth = null;
 var modePaiement = null; // 'virement' | 'cheque' | 'espece'
-var aideChoisie = null; // 'departement' | 'seine' | null
+var aideChoisie = []; // tableau : peut contenir 'departement' et/ou 'seine'
 var isDrawing = false;
 var lastX = 0;
 var lastY = 0;
@@ -1343,32 +1348,31 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + escHtml(data.type) + (data.notes ? '<br><small style="color:#888">' + escHtml(data.notes) + '</small>' : '') + '</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">1</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + prixHT.toFixed(2) + ' €</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + prixHT.toFixed(2) + ' €</td></tr>';
   h += '</tbody></table>';
 
-  // Aide manuelle : data.aide peut être 'departement', 'seine', ou null
-  if (data.aide === 'departement') {
-    var aideAmt = prixHT * 0.30;
-    var netApresAide = prixHT - aideAmt;
-    total = netApresAide;
+  // Bloc unique "Aides" — 1 ligne par aide cochée, cumulables
+  var aides = Array.isArray(data.aide) ? data.aide : (data.aide ? [data.aide] : []);
+  if (aides.length > 0) {
+    var pctDepart = (s.aideDepartPct !== undefined ? s.aideDepartPct : 30);
+    var pctSeine  = (s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30);
+    var aideAmtDepart = aides.indexOf('departement') >= 0 ? prixHT * pctDepart / 100 : 0;
+    var aideAmtSeine  = aides.indexOf('seine')       >= 0 ? prixHT * pctSeine  / 100 : 0;
+    var totalAideAmt  = aideAmtDepart + aideAmtSeine;
+    total = prixHT - totalAideAmt;
     h += '<div style="margin:16px 0;background:#fffbf0;border:2px solid #f5a623;border-radius:10px;padding:14px 18px">';
-    h += '<div style="font-weight:700;font-size:0.93rem;color:#b36b00;margin-bottom:10px">Aide départementale — Frelon asiatique</div>';
+    h += '<div style="font-weight:700;font-size:0.93rem;color:#b36b00;margin-bottom:10px">Aides à la destruction — Frelon asiatique</div>';
     h += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
     h += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
-    h += '<tr><td style="padding:4px 0;color:#111">Aide département (− 30 %)</td><td style="text-align:right;font-weight:700;color:#111">− ' + aideAmt.toFixed(2) + ' €</td></tr>';
-    h += '<tr style="border-top:2px solid #f5a623"><td style="padding:8px 0 4px;font-weight:700;font-size:1rem;color:#111">Reste à charge client</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#111;padding:8px 0 4px">' + netApresAide.toFixed(2) + ' €</td></tr>';
+    if (aides.indexOf('departement') >= 0) {
+      h += '<tr><td style="padding:4px 0;color:#333">Aide département (− ' + pctDepart + ' %)</td><td style="text-align:right;font-weight:600;color:#111">− ' + aideAmtDepart.toFixed(2) + ' €</td></tr>';
+    }
+    if (aides.indexOf('seine') >= 0) {
+      h += '<tr><td style="padding:4px 0;color:#333">Aide Seine Métropole (− ' + pctSeine + ' %)</td><td style="text-align:right;font-weight:600;color:#111">− ' + aideAmtSeine.toFixed(2) + ' €</td></tr>';
+    }
+    h += '<tr style="border-top:2px solid #f5a623"><td style="padding:8px 0 4px;font-weight:700;font-size:1rem;color:#111">Reste à charge client</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#111;padding:8px 0 4px">' + total.toFixed(2) + ' €</td></tr>';
     h += '</table>';
-    h += '<div style="font-size:0.75rem;color:#888;margin-top:8px;line-height:1.5">Le département participe à hauteur de 30 %. Le client règle uniquement le montant « Reste à charge ».</div>';
-    h += '</div>';
-  } else if (data.aide === 'seine') {
-    var aideAmt2 = prixHT * 0.30;
-    var netApresAide2 = prixHT - aideAmt2;
-    total = netApresAide2;
-    h += '<div style="margin:16px 0;background:#f0f6ff;border:2px solid #3b82f6;border-radius:10px;padding:14px 18px">';
-    h += '<div style="font-weight:700;font-size:0.93rem;color:#1e40af;margin-bottom:10px">Aide Seine Métropole — Frelon asiatique</div>';
-    h += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
-    h += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
-    h += '<tr><td style="padding:4px 0;color:#111">Aide Seine Métropole (− 30 %)</td><td style="text-align:right;font-weight:700;color:#111">− ' + aideAmt2.toFixed(2) + ' €</td></tr>';
-    h += '<tr style="border-top:2px solid #3b82f6"><td style="padding:8px 0 4px;font-weight:700;font-size:1rem;color:#111">Reste à charge client</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#111;padding:8px 0 4px">' + netApresAide2.toFixed(2) + ' €</td></tr>';
-    h += '</table>';
-    h += '<div style="font-size:0.75rem;color:#888;margin-top:8px;line-height:1.5">La Seine Métropole participe à hauteur de 30 % pour la destruction du nid. Le client règle uniquement le montant « Reste à charge ».</div>';
+    var mentionPct = [];
+    if (aides.indexOf('departement') >= 0) mentionPct.push('le Département (' + pctDepart + ' %)');
+    if (aides.indexOf('seine') >= 0) mentionPct.push('la Seine Métropole (' + pctSeine + ' %)');
+    h += '<div style="font-size:0.75rem;color:#888;margin-top:8px;line-height:1.5">Prise en charge assurée par ' + mentionPct.join(' et ') + '. Le client règle uniquement le montant « Reste à charge ».</div>';
     h += '</div>';
   }
 
@@ -1461,7 +1465,7 @@ function ouvrirFacture(rdvId) {
   document.getElementById('btn-valider').style.display = 'inline-flex';
   document.getElementById('btn-mail').style.display = 'none';
   // Réinitialiser les aides et le mode de paiement
-  aideChoisie = null;
+  aideChoisie = [];
   ['departement','seine'].forEach(function(a) {
     var btn = document.getElementById('aide-' + (a === 'departement' ? 'depart' : 'seine'));
     if (btn) btn.classList.remove('active');
@@ -1489,7 +1493,7 @@ function voirFacture(factureId) {
     dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
     nom: f.nom, adresse: f.adresse, tel: f.tel, email: f.email || '',
     type: f.type, prixHT: f.prixHT, notes: f.notes || '',
-    aide: f.aide || null,
+    aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
     signature: f.signature || '', clientType: f.clientType || '',
     insecte: f.insecte || '', paiement: f.paiement || ''
   }, false, false);
@@ -1504,16 +1508,17 @@ function voirFacture(factureId) {
 }
 
 function choisirAide(val) {
-  aideChoisie = (aideChoisie === val) ? null : val; // toggle
+  var idx = aideChoisie.indexOf(val);
+  if (idx >= 0) { aideChoisie.splice(idx, 1); } else { aideChoisie.push(val); }
   ['departement','seine'].forEach(function(a) {
     var btn = document.getElementById('aide-' + (a === 'departement' ? 'depart' : 'seine'));
-    if (btn) btn.classList.toggle('active', aideChoisie === a);
+    if (btn) btn.classList.toggle('active', aideChoisie.indexOf(a) >= 0);
   });
   // Reconstruire la facture avec ou sans aide
   var rdv = currentRdvId ? rdvs.find(function(r) { return r.id === currentRdvId; }) : null;
   if (rdv) {
     var data = buildDataFacture(rdv, nextFactureNum(), new Date().toLocaleDateString('fr-FR'));
-    data.aide = aideChoisie;
+    data.aide = aideChoisie.slice();
     document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, rdv.clientType !== 'Voie publique');
     setTimeout(initSig, 80);
   }
@@ -1562,13 +1567,15 @@ function validerFacture() {
   var num = nextFactureNum();
   var rdvDateStr = r.date ? new Date(r.date + 'T12:00:00').toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
   var data = buildDataFacture(r, num, rdvDateStr);
-  data.aide = aideChoisie || null;
+  data.aide = aideChoisie.slice();
 
-  // Calculer le prix réel selon l'aide choisie
-  var prixFinal = prixHT;
-  if (aideChoisie === 'departement' || aideChoisie === 'seine') {
-    prixFinal = prixHT * 0.70;
-  }
+  // Calculer le prix réel selon les aides cochées (30% par aide)
+  var pctD = (settings.aideDepartPct !== undefined ? settings.aideDepartPct : 30);
+  var pctS = (settings.aideSeinePct  !== undefined ? settings.aideSeinePct  : 30);
+  var totalAideAmt2 = 0;
+  if (aideChoisie.indexOf('departement') >= 0) totalAideAmt2 += prixHT * pctD / 100;
+  if (aideChoisie.indexOf('seine') >= 0) totalAideAmt2 += prixHT * pctS / 100;
+  var prixFinal = prixHT - totalAideAmt2;
   var f = {
     id: String(Date.now()),
     num: num,
@@ -1585,7 +1592,7 @@ function validerFacture() {
     date: r.date || new Date().toISOString().split('T')[0],
     signature: sig,
     paiement: modePaiement,
-    aide: aideChoisie || null
+    aide: aideChoisie.slice()
   };
   factures.push(f);
   var idx = rdvs.findIndex(function(x) { return x.id === currentRdvId; });
@@ -2290,6 +2297,8 @@ function renderSettings() {
   document.getElementById('s-cloudinary-preset').value = settings.cloudinaryPreset || '';
   document.getElementById('s-bdc-montivilliers').value = settings.bdcMontivilliers || '';
   document.getElementById('s-bdc-gonfreville').value = settings.bdcGonfreville || '';
+  document.getElementById('s-aide-depart-pct').value = settings.aideDepartPct !== undefined ? settings.aideDepartPct : 30;
+  document.getElementById('s-aide-seine-pct').value = settings.aideSeinePct !== undefined ? settings.aideSeinePct : 30;
   // Supabase config (champs optionnels)
   var sbUrl = document.getElementById('s-sb-url');
   var sbKey = document.getElementById('s-sb-key');
@@ -2335,7 +2344,9 @@ function saveSettings() {
     cloudinaryCloud: document.getElementById('s-cloudinary-cloud').value.trim(),
     cloudinaryPreset: document.getElementById('s-cloudinary-preset').value.trim(),
     bdcMontivilliers: document.getElementById('s-bdc-montivilliers').value.trim(),
-    bdcGonfreville: document.getElementById('s-bdc-gonfreville').value.trim()
+    bdcGonfreville: document.getElementById('s-bdc-gonfreville').value.trim(),
+    aideDepartPct: parseFloat(document.getElementById('s-aide-depart-pct').value) || 30,
+    aideSeinePct: parseFloat(document.getElementById('s-aide-seine-pct').value) || 30
   };
   // Sauvegarder la grille tarifaire
   tarifs = {};
