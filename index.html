@@ -79,6 +79,24 @@ select option { background: var(--surface2); }
 .badge-ok { background: #1a3d2b; color: var(--green); }
 
 .rdv-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* === AGENDA === */
+.agenda-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:8px; }
+.agenda-nav h3 { font-size:0.95rem; font-weight:700; color:var(--text); text-align:center; flex:1; }
+.agenda-week { display:grid; grid-template-columns: 44px repeat(7, 1fr); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; background:var(--surface); }
+.agenda-col-header { background:var(--surface2); border-bottom:2px solid var(--border); padding:6px 2px; text-align:center; font-size:0.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; cursor:pointer; transition:background 0.15s; }
+.agenda-col-header:hover { background:var(--border); }
+.agenda-col-header.today { color:var(--accent); border-bottom-color:var(--accent); }
+.agenda-col-header.has-rdv { color:var(--text); }
+.agenda-hour-label { font-size:0.65rem; color:var(--muted); text-align:right; padding-right:5px; line-height:1; display:flex; align-items:flex-start; justify-content:flex-end; border-right:1px solid var(--border); }
+.agenda-cell { border-left:1px solid var(--border); border-bottom:1px solid rgba(255,255,255,0.04); min-height:28px; position:relative; cursor:pointer; transition:background 0.1s; }
+.agenda-cell:hover { background:rgba(245,166,35,0.07); }
+.agenda-cell.today-col { background:rgba(245,166,35,0.04); }
+.agenda-rdv-chip { position:absolute; left:1px; right:1px; border-radius:4px; padding:2px 4px; font-size:0.62rem; font-weight:700; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; z-index:2; line-height:1.3; }
+.agenda-rdv-chip.facture { background:#1a3d2b; color:#2dd4a0; border-left:2px solid #2dd4a0; }
+.agenda-rdv-chip.pending { background:#2a2010; color:#f5a623; border-left:2px solid #f5a623; }
+.agenda-view-toggle { display:flex; gap:6px; margin-bottom:12px; }
+.agenda-view-toggle button { padding:5px 12px; font-size:0.78rem; }
 .rdv-info h3 { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem; margin-bottom: 4px; }
 .rdv-info p { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
 .rdv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -376,6 +394,9 @@ select option { background: var(--surface2); }
   /* Cards RDV plus compactes et touch-friendly */
   .card { padding: 14px; margin-bottom: 10px; }
   .rdv-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .agenda-week { overflow-x: auto; display: block; }
+  #agenda-week-grid { display: grid; grid-template-columns: 44px repeat(7, minmax(90px,1fr)); min-width: 680px; }
+  .agenda-rdv-chip { font-size: 0.58rem; }
   .rdv-actions {
     width: 100%;
     display: flex;
@@ -483,12 +504,33 @@ select option { background: var(--surface2); }
       <h2>Rendez-vous</h2>
       <button class="btn btn-primary" onclick="openNewRdv()">+ Nouveau RDV</button>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-      <label style="font-size:0.85rem;color:var(--muted);font-weight:600;">Filtrer par date :</label>
-      <input type="date" id="rdv-filter-date" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--card);color:var(--text);font-size:0.9rem;" onchange="renderRdvs()">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rdv-filter-date').value='';renderRdvs()">✕ Tous</button>
+
+    <!-- Toggle vue -->
+    <div class="agenda-view-toggle">
+      <button class="btn btn-ghost btn-sm" id="btn-vue-agenda" onclick="setVueRdv('agenda')">📅 Agenda</button>
+      <button class="btn btn-ghost btn-sm" id="btn-vue-liste" onclick="setVueRdv('liste')">☰ Liste</button>
     </div>
-    <div id="rdv-list"></div>
+
+    <!-- VUE AGENDA -->
+    <div id="vue-agenda">
+      <div class="agenda-nav">
+        <button class="btn btn-ghost btn-sm" onclick="agendaNavSemaine(-1)">‹</button>
+        <h3 id="agenda-titre"></h3>
+        <button class="btn btn-ghost btn-sm" onclick="agendaNavSemaine(0)" title="Aujourd'hui">●</button>
+        <button class="btn btn-ghost btn-sm" onclick="agendaNavSemaine(1)">›</button>
+      </div>
+      <div id="agenda-grid"></div>
+    </div>
+
+    <!-- VUE LISTE -->
+    <div id="vue-liste" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <label style="font-size:0.85rem;color:var(--muted);font-weight:600;">Filtrer par date :</label>
+        <input type="date" id="rdv-filter-date" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface2);color:var(--text);font-size:0.9rem;" onchange="renderRdvs()">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rdv-filter-date').value='';renderRdvs()">✕ Tous</button>
+      </div>
+      <div id="rdv-list"></div>
+    </div>
   </div>
 
 
@@ -889,6 +931,9 @@ var editingId = null;
 var currentRdvId = null;
 var currentFactureId = null;
 var archiveType = 'Particulier';
+var agendaWeekOffset = 0; // semaine courante = 0, -1 = semaine précédente…
+var vueRdv = 'agenda'; // 'agenda' | 'liste'
+var AGENDA_HEURES = [7,8,9,10,11,12,13,14,15,16,17,18,19,20]; // plages horaires affichées
 var archiveMonth = null;
 var modePaiement = null; // 'virement' | 'cheque' | 'espece'
 var aideChoisie = []; // tableau : peut contenir 'departement' et/ou 'seine'
@@ -955,7 +1000,7 @@ function goTo(page) {
   if (page === 'rdvs') {
     var f = document.getElementById('rdv-filter-date');
     if (f) f.value = '';
-    renderRdvs();
+    setVueRdv(vueRdv); // déclenche agenda ou liste selon l'état courant
   }
   if (page === 'archives') renderArchives();
   if (page === 'settings') renderSettings();
@@ -979,7 +1024,7 @@ function renderDashboard() {
   upcoming.sort(function(a,b) { return a.date.localeCompare(b.date); });
   document.getElementById('stat-rdv').textContent = upcoming.length;
   document.getElementById('stat-fact').textContent = factures.length;
-  var ca = factures.reduce(function(s,f) { return s + (f.prix || 0); }, 0);
+  var ca = factures.reduce(function(s,f) { return s + (f.prixHT || f.prix || 0); }, 0);
   document.getElementById('stat-ca').textContent = ca.toFixed(0) + ' €';
   var benef = ca * 0.74;
   document.getElementById('stat-benef').textContent = benef.toFixed(0) + ' €';
@@ -991,6 +1036,132 @@ function renderDashboard() {
   }
 }
 
+// ============================================================
+// AGENDA
+// ============================================================
+function setVueRdv(vue) {
+  vueRdv = vue;
+  document.getElementById('vue-agenda').style.display = vue === 'agenda' ? '' : 'none';
+  document.getElementById('vue-liste').style.display  = vue === 'liste'  ? '' : 'none';
+  document.getElementById('btn-vue-agenda').classList.toggle('active', vue === 'agenda');
+  document.getElementById('btn-vue-liste').classList.toggle('active',  vue === 'liste');
+  if (vue === 'agenda') renderAgenda();
+  else renderRdvs();
+}
+
+function agendaNavSemaine(delta) {
+  if (delta === 0) { agendaWeekOffset = 0; }
+  else { agendaWeekOffset += delta; }
+  renderAgenda();
+}
+
+function agendaLundiSemaine(offset) {
+  var d = new Date();
+  var day = d.getDay(); // 0=dim,1=lun…6=sam
+  var diffToMonday = (day === 0) ? -6 : 1 - day;
+  d.setDate(d.getDate() + diffToMonday + offset * 7);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function dateToStr(d) {
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd;
+}
+
+function renderAgenda() {
+  var JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  var MOIS  = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+  var lundi = agendaLundiSemaine(agendaWeekOffset);
+  var dimanche = new Date(lundi); dimanche.setDate(lundi.getDate() + 6);
+  var todayStr = dateToStr(new Date());
+
+  // Titre semaine
+  var titreEl = document.getElementById('agenda-titre');
+  if (titreEl) {
+    var debut = lundi.getDate() + ' ' + MOIS[lundi.getMonth()];
+    var fin   = dimanche.getDate() + ' ' + MOIS[dimanche.getMonth()] + ' ' + dimanche.getFullYear();
+    titreEl.textContent = debut + ' – ' + fin;
+  }
+
+  // RDV indexés par date
+  var rdvByDate = {};
+  rdvs.forEach(function(r) {
+    if (!r.date) return;
+    if (!rdvByDate[r.date]) rdvByDate[r.date] = [];
+    rdvByDate[r.date].push(r);
+  });
+
+  // Construction grille
+  var h = '';
+  // Ligne en-tête
+  h += '<div class="agenda-week" id="agenda-week-grid">';
+  h += '<div class="agenda-col-header" style="cursor:default"></div>'; // coin
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(lundi); d.setDate(lundi.getDate() + i);
+    var ds = dateToStr(d);
+    var cls = 'agenda-col-header';
+    if (ds === todayStr) cls += ' today';
+    if (rdvByDate[ds] && rdvByDate[ds].length) cls += ' has-rdv';
+    var rdvCount = (rdvByDate[ds] && rdvByDate[ds].length) ? '<span style="display:block;font-size:0.65rem;color:var(--accent)">' + rdvByDate[ds].length + ' RDV</span>' : '';
+    h += '<div class="' + cls + '" onclick="agendaClickDay(\'' + ds + '\')">' + JOURS[i] + '<br>' + d.getDate() + '/' + (d.getMonth()+1) + rdvCount + '</div>';
+  }
+
+  // Lignes heures
+  AGENDA_HEURES.forEach(function(heure) {
+    // Label heure
+    h += '<div class="agenda-hour-label" style="grid-row:auto">' + heure + 'h</div>';
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(lundi); d.setDate(lundi.getDate() + i);
+      var ds = dateToStr(d);
+      var cellCls = 'agenda-cell' + (ds === todayStr ? ' today-col' : '');
+      // RDV dans ce créneau
+      var chips = '';
+      if (rdvByDate[ds]) {
+        rdvByDate[ds].forEach(function(r) {
+          var rh = parseInt((r.heure || '').split(':')[0], 10);
+          if (rh === heure) {
+            var chipCls = 'agenda-rdv-chip ' + (r.factureId ? 'facture' : 'pending');
+            var label = escHtml(r.nom) + (r.heure ? ' ' + r.heure : '');
+            chips += '<div class="' + chipCls + '" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')" title="' + escHtml(r.nom) + ' — ' + escHtml(r.type||'') + '">' + label + '</div>';
+          }
+        });
+      }
+      // RDV sans heure : affichés dans la première cellule (7h) comme pastilles
+      if (heure === AGENDA_HEURES[0] && rdvByDate[ds]) {
+        rdvByDate[ds].forEach(function(r) {
+          if (!r.heure) {
+            var chipCls = 'agenda-rdv-chip ' + (r.factureId ? 'facture' : 'pending');
+            chips += '<div class="' + chipCls + '" style="opacity:0.7" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')" title="Heure non définie — ' + escHtml(r.nom) + '">? ' + escHtml(r.nom) + '</div>';
+          }
+        });
+      }
+      h += '<div class="' + cellCls + '" onclick="agendaClickCell(\'' + ds + '\',' + heure + ')">' + chips + '</div>';
+    }
+  });
+  h += '</div>';
+
+  document.getElementById('agenda-grid').innerHTML = h;
+}
+
+function agendaClickDay(dateStr) {
+  // Ouvre un nouveau RDV pré-rempli avec cette date
+  openNewRdv();
+  var el = document.getElementById('r-date');
+  if (el) el.value = dateStr;
+}
+
+function agendaClickCell(dateStr, heure) {
+  // Ouvre un nouveau RDV pré-rempli avec date + heure
+  openNewRdv();
+  var el = document.getElementById('r-date');
+  if (el) el.value = dateStr;
+  var heureStr = String(heure).padStart(2, '0') + ':00';
+  setTimePickerValue(heureStr);
+}
+
+// ============================================================
 // RDV LIST
 function renderRdvs() {
   var filterEl = document.getElementById('rdv-filter-date');
@@ -1268,7 +1439,7 @@ function saveRdv() {
   }
   save();
   closeModal('modal-rdv');
-  renderRdvs();
+  if (vueRdv === 'agenda') renderAgenda(); else renderRdvs();
   renderDashboard();
   showToast('RDV enregistré !');
 }
@@ -1277,7 +1448,7 @@ function supprimerRdv(id) {
   if (!confirm('Supprimer ce rendez-vous ?')) return;
   rdvs = rdvs.filter(function(r) { return r.id !== id; });
   save();
-  renderRdvs();
+  if (vueRdv === 'agenda') renderAgenda(); else renderRdvs();
   renderDashboard();
   showToast('RDV supprimé');
 }
