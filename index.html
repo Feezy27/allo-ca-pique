@@ -63,6 +63,25 @@ h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.6rem; color
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
 .form-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.input-date-native {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: block;
+  background: var(--surface2);
+  border: var(--border-w) solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  padding: 11px 14px;
+  line-height: 1.4;
+  min-height: 0;
+  height: auto;
+}
+.input-date-native:focus { outline: none; border-color: var(--accent); }
 .form-group.full { grid-column: 1 / -1; min-width: 0; overflow: hidden; }
 label { font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 input, select, textarea {
@@ -740,12 +759,9 @@ select option { background: var(--surface2); }
         <input id="r-adresse" type="text" placeholder="12 rue des Acacias, 31000 Toulouse" oninput="updateMapsLink()">
         <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">Ouvrir dans Google Maps</a>
       </div>
-      <div class="form-group full" style="min-width:0;overflow:hidden">
+      <div class="form-group full">
         <label>Date *</label>
-        <input type="tel" id="r-date-display" placeholder="JJ/MM/AAAA" maxlength="10" inputmode="numeric" autocomplete="off"
-          oninput="onDateInput(this)"
-          style="width:100%;max-width:100%;box-sizing:border-box;display:block">
-        <input type="hidden" id="r-date">
+        <input type="date" id="r-date" class="input-date-native">
       </div>
       <div class="form-group full">
         <label>Heure</label>
@@ -1323,7 +1339,7 @@ function agendaClickDay(dateStr) {
 function agendaClickCell(dateStr, heure) {
   openNewRdv();
   var el = document.getElementById('r-date');
-  if (el) { el.value = dateStr; setDateDisplayValue(dateStr); }
+  if (el) el.value = dateStr;
   var heureStr = String(heure).padStart(2, '0') + ':00';
   setTimePickerValue(heureStr);
   renderMiniAgenda();
@@ -1405,12 +1421,12 @@ function renderMiniAgenda() {
 
 function miniAgendaClickDay(dateStr) {
   var el = document.getElementById('r-date');
-  if (el) { el.value = dateStr; setDateDisplayValue(dateStr); }
+  if (el) el.value = dateStr;
 }
 
 function miniAgendaClickCell(dateStr, heure) {
   var el = document.getElementById('r-date');
-  if (el) { el.value = dateStr; setDateDisplayValue(dateStr); }
+  if (el) el.value = dateStr;
   var heureStr = String(heure).padStart(2, '0') + ':00';
   setTimePickerValue(heureStr);
 }
@@ -1475,10 +1491,8 @@ function openNewRdv() {
   document.getElementById('r-nom').value = '';
   document.getElementById('r-tel').value = '';
   document.getElementById('r-adresse').value = '';
-  var rdd = document.getElementById('r-date-display'); if (rdd) { rdd.value = ''; rdd.style.borderColor = ''; }
-  var todayStr = new Date().toISOString().split('T')[0];
-  document.getElementById('r-date').value = todayStr;
-  setDateDisplayValue(todayStr);
+
+  document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
   setTimePickerValue('');
   document.getElementById('r-email').value = '';
   document.getElementById('r-prix').value = '';
@@ -1500,7 +1514,6 @@ function editRdv(id) {
   document.getElementById('r-tel').value = r.tel;
   document.getElementById('r-adresse').value = r.adresse;
   document.getElementById('r-date').value = r.date;
-  setDateDisplayValue(r.date || '');
   setTimePickerValue(r.heure || '');
   document.getElementById('r-email').value = r.email || '';
   document.getElementById('r-prix').value = r.prix;
