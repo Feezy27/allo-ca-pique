@@ -740,7 +740,7 @@ select option { background: var(--surface2); }
         <input id="r-adresse" type="text" placeholder="12 rue des Acacias, 31000 Toulouse" oninput="updateMapsLink()">
         <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">Ouvrir dans Google Maps</a>
       </div>
-      <div class="form-group" style="min-width:0"><label>Date *</label><input id="r-date" type="date" style="width:100%;box-sizing:border-box"></div>
+      <div class="form-group full"><label>Date *</label><input id="r-date" type="date" style="width:100%;box-sizing:border-box"></div>
       <div class="form-group full">
         <label>Heure</label>
         <input type="tel" id="r-heure-tel" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="onHeureInput(this)">
@@ -1439,22 +1439,23 @@ function makeRdvCard(r) {
     : '<span class="badge badge-rdv">À venir</span>';
   var actionBtn = r.factureId
     ? '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + r.factureId + '\')">Facture</button>'
-    : '<button class="btn btn-primary btn-sm" onclick="ouvrirFacture(\'' + r.id + '\')"> Facturer</button>';
+    : '<button class="btn btn-primary btn-sm" onclick="ouvrirFacture(\'' + r.id + '\')">Facturer</button>';
   var photoBtn = '<button class="btn btn-ghost btn-sm" onclick="prendrePhoto(\'' + r.id + '\')" title="Photo du nid">'
-    + (r.photoUrl ? '' : '') + '</button>';
-  return '<div class="card"><div class="rdv-card">'
-    + '<div class="rdv-info">'
-    + '<h3>' + escHtml(r.nom) + ' ' + badge + '</h3>'
-    + '<p> ' + d + (r.heure ? ' • ' + r.heure : '') + ' &nbsp;|&nbsp;  ' + escHtml(r.tel) + '</p>'
-    + '<p> <a href="https://maps.google.com/?q=' + encodeURIComponent(r.adresse) + '" target="_blank" style="color:var(--accent);text-decoration:none">' + escHtml(r.adresse) + '</a></p>'
-    + '<p style="margin-top:4px"> ' + escHtml(r.type) + ' — <strong>' + parseFloat(r.prix).toFixed(2) + ' €</strong></p>'
-    + (r.notes ? '<p style="color:var(--muted);font-size:0.82rem;margin-top:4px">' + escHtml(r.notes) + '</p>' : '')
+    + (r.photoUrl ? '<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M12 12.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM5 7l1.5-2h11L19 7h3a1 1 0 011 1v12a1 1 0 01-1 1H2a1 1 0 01-1-1V8a1 1 0 011-1h3zm7 12a5 5 0 100-10 5 5 0 000 10z"/></svg> ✓' : '<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M12 12.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM5 7l1.5-2h11L19 7h3a1 1 0 011 1v12a1 1 0 01-1 1H2a1 1 0 01-1-1V8a1 1 0 011-1h3zm7 12a5 5 0 100-10 5 5 0 000 10z"/></svg>') + '</button>';
+  return '<div class="rdv-card-wrap">'
+    + '<div class="rdv-card-header">'
+    + '<h3>' + escHtml(r.nom) + '</h3>' + badge
     + '</div>'
-    + '<div class="rdv-actions">'
+    + '<div class="rdv-card-body">'
+    + '<p>' + d + (r.heure ? ' · ' + r.heure : '') + ' · ' + escHtml(r.tel) + '</p>'
+    + '<p><a href="https://maps.google.com/?q=' + encodeURIComponent(r.adresse) + '" target="_blank" style="color:var(--accent);text-decoration:none">' + escHtml(r.adresse) + '</a></p>'
+    + '<p style="margin-top:4px;color:var(--text)">' + escHtml(r.type) + ' — <strong>' + parseFloat(r.prix).toFixed(2) + ' €</strong></p>'
+    + (r.notes ? '<p style="color:var(--muted);font-size:0.85rem;margin-top:4px">' + escHtml(r.notes) + '</p>' : '')
+    + '<div class="rdv-actions" style="margin-top:10px">'
     + actionBtn
     + ' ' + photoBtn
-    + ' <button class="btn btn-ghost btn-sm" onclick="editRdv(\'' + r.id + '\')">✏️</button>'
-    + ' <button class="btn btn-danger btn-sm" onclick="supprimerRdv(\'' + r.id + '\')"></button>'
+    + ' <button class="btn btn-ghost btn-sm" onclick="editRdv(\'' + r.id + '\')" title="Modifier"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Modifier</button>'
+    + ' <button class="btn btn-danger btn-sm" onclick="supprimerRdv(\'' + r.id + '\')" title="Supprimer"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Suppr.</button>'
     + '</div></div></div>';
 }
 
@@ -2578,7 +2579,7 @@ function renderArchives() {
 
     html += '<div class="arch-day-header">';
     html += '<div class="day-label"> ' + label + ' <span style="font-size:0.78rem;font-weight:400;color:var(--muted)">(' + dayFacts.length + ' facture' + (dayFacts.length>1?'s':'') + ')</span></div>';
-    html += '<button class="day-dl-btn" onclick="telechargerJournee(\'' + d + '\')" title="Télécharger toute la journée">⬇️ Télécharger la journée</button>';
+    html += '<button class="day-dl-btn" onclick="telechargerJournee(\'' + d + '\')" title="Télécharger toute la journée"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Télécharger la journée</button>';
     html += '</div>';
 
     dayFacts.forEach(function(f) {
@@ -2598,13 +2599,13 @@ function renderArchives() {
       html += '</div>';
       html += '<div class="arch-fact-price">' + (f.prix||0).toFixed(2) + ' €</div>';
       html += '<div class="arch-fact-actions">';
-      html += '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + f.id + '\')">Voir</button>';
-      html += '<button class="btn btn-ghost btn-sm" onclick="voirEtImprimer(\'' + f.id + '\')">️</button>';
-      if (photoUrl) html += '<a href="' + photoUrl + '" target="_blank" class="btn btn-ghost btn-sm"></a>';
-      html += '<button class="btn btn-ghost btn-sm" onclick="telechargerFacture(\'' + f.id + '\')" title="Télécharger facture + photo">⬇️</button>';
+      html += '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + f.id + '\')" title="Voir"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg> Voir</button>';
+      html += '<button class="btn btn-ghost btn-sm" onclick="voirEtImprimer(\'' + f.id + '\')" title="Imprimer"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 8H5a3 3 0 00-3 3v6h4v4h12v-4h4v-6a3 3 0 00-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 110-2 1 1 0 010 2zm-1-9H6v4h12V3z"/></svg> Impr.</button>';
+      if (photoUrl) html += '<a href="' + photoUrl + '" target="_blank" class="btn btn-ghost btn-sm" title="Voir la photo"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M12 12.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM5 7l1.5-2h11L19 7h3a1 1 0 011 1v12a1 1 0 01-1 1H2a1 1 0 01-1-1V8a1 1 0 011-1h3zm7 12a5 5 0 100-10 5 5 0 000 10z"/></svg> Photo</a>';
+      html += '<button class="btn btn-ghost btn-sm" onclick="telechargerFacture(\'' + f.id + '\')" title="Télécharger"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Téléch.</button>';
       html += smsBtn;
       html += mailBtn;
-      html += '<button class="btn btn-sm" onclick="supprimerFacture(\'' + f.id + '\')" title="Supprimer" style="background:rgba(255,77,109,0.12);color:var(--red);border:1px solid rgba(255,77,109,0.3)"></button>';
+      html += '<button class="btn btn-sm" onclick="supprimerFacture(\'' + f.id + '\')" title="Supprimer" style="background:rgba(204,26,58,0.1);color:var(--red);border:1px solid rgba(204,26,58,0.3)"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Suppr.</button>';
       html += '</div>';
       html += '</div>';
     });
