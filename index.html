@@ -80,6 +80,12 @@ select option { background: var(--surface2); }
 .badge-ok { background: #d0f5ea; color: #0a7c5c; border: 1px solid #0a7c5c; }
 
 .rdv-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rdv-card-wrap { background:#ffffff; border:1.5px solid #b8cef0; border-radius:var(--r); margin-bottom:12px; overflow:hidden; transition:border-color 0.2s; }
+.rdv-card-wrap:hover { border-color: #091a45; }
+.rdv-card-header { background:#dce8f8; padding:10px 16px; display:flex; align-items:center; gap:10px; }
+.rdv-card-header h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:1.05rem; color:#091a45; margin:0; flex:1; }
+.rdv-card-body { padding:12px 16px; }
+.rdv-card-body p { font-size:0.9rem; color:var(--muted); margin-top:4px; }
 
 /* === AGENDA === */
 .agenda-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:8px; }
@@ -90,10 +96,10 @@ select option { background: var(--surface2); }
 .agenda-col-header.today { color:var(--accent); border-bottom-color:var(--accent); }
 .agenda-col-header.has-rdv { color:var(--text); }
 .agenda-hour-label { font-size:0.75rem; font-weight:600; color:var(--text); text-align:right; padding-right:6px; line-height:1; display:flex; align-items:center; justify-content:flex-end; border-right:2px solid var(--border); min-height:52px; }
-.agenda-cell { border-left:1px solid var(--border); border-bottom:1px solid #e8edf8; min-height:58px; position:relative; cursor:pointer; transition:background 0.1s; }
+.agenda-cell { border-left:1px solid var(--border); border-bottom:1px solid #e8edf8; min-height:58px; position:relative; cursor:pointer; transition:background 0.1s; padding-bottom:4px; }
 .agenda-cell:hover { background:rgba(245,166,35,0.07); }
 .agenda-cell.today-col { background:rgba(245,166,35,0.04); }
-.agenda-rdv-chip { position:absolute; left:2px; right:2px; border-radius:5px; padding:4px 6px; font-size:0.78rem; font-weight:700; overflow:hidden; cursor:pointer; z-index:2; line-height:1.4; top:3px; }
+.agenda-rdv-chip { display:block; margin:2px 2px 1px; border-radius:5px; padding:4px 6px; font-size:0.78rem; font-weight:700; overflow:hidden; cursor:pointer; line-height:1.4; }
 .agenda-rdv-chip.facture { background:#d0f5ea; color:#0a7c5c; border-left:2px solid #0a7c5c; }
 .agenda-rdv-chip.pending { background:#fff3d0; color:#7a4800; border-left:2px solid #f5a623; }
 .agenda-view-toggle { display:flex; gap:6px; margin-bottom:12px; }
@@ -422,6 +428,9 @@ select option { background: var(--surface2); }
   /* Cards RDV plus compactes et touch-friendly */
   .card { padding: 14px; margin-bottom: 10px; }
   .rdv-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .rdv-card-wrap { margin-bottom: 10px; }
+  .rdv-card-header { padding: 10px 12px; }
+  .rdv-card-body { padding: 10px 12px; }
   .agenda-rdv-chip { font-size: 0.72rem; }
   .rdv-actions {
     width: 100%;
@@ -502,7 +511,7 @@ select option { background: var(--surface2); }
     <button onclick="goTo('rdvs')">Rendez-vous</button>
     <button onclick="goTo('archives')">Factures</button>
     <button onclick="goTo('settings')">Paramètres</button>
-    <button onclick="doLogout()" title="Se déconnecter" style="color:var(--red)">⏏ Déco</button>
+    <button onclick="doLogout()" title="Se déconnecter" style="color:var(--red)">Déconnexion</button>
   </nav>
 </header>
 
@@ -533,8 +542,8 @@ select option { background: var(--surface2); }
 
     <!-- Toggle vue -->
     <div class="agenda-view-toggle">
-      <button class="btn btn-ghost btn-sm" id="btn-vue-agenda" onclick="setVueRdv('agenda')">📅 Agenda</button>
-      <button class="btn btn-ghost btn-sm" id="btn-vue-liste" onclick="setVueRdv('liste')">☰ Liste</button>
+      <button class="btn btn-ghost btn-sm" id="btn-vue-agenda" onclick="setVueRdv('agenda')"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg> Agenda</button>
+      <button class="btn btn-ghost btn-sm" id="btn-vue-liste" onclick="setVueRdv('liste')"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg> Liste</button>
     </div>
 
     <!-- VUE AGENDA -->
@@ -565,13 +574,13 @@ select option { background: var(--surface2); }
 
     <!-- Filtre Type client -->
     <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
-      <button class="arch-type-btn active" onclick="setArchiveType('Particulier')" id="atype-part">🏠 Particuliers</button>
-      <button class="arch-type-btn" onclick="setArchiveType('Voie publique')" id="atype-vp">🌳 Mairies / Voie publique</button>
+      <button class="arch-type-btn active" onclick="setArchiveType('Particulier')" id="atype-part">Particuliers</button>
+      <button class="arch-type-btn" onclick="setArchiveType('Voie publique')" id="atype-vp">Mairies / Voie publique</button>
     </div>
 
     <!-- Recherche par nom -->
     <div style="margin-bottom:14px">
-      <input type="search" id="arch-search" placeholder="🔍 Rechercher un client..." oninput="renderArchives()"
+      <input type="search" id="arch-search" placeholder="Rechercher un client..." oninput="renderArchives()"
         style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--card);color:var(--text);font-size:0.9rem;">
     </div>
 
@@ -586,13 +595,13 @@ select option { background: var(--surface2); }
   <div class="page" id="page-settings">
     <div class="section-header">
       <h2>Paramètres</h2>
-      <button class="btn btn-primary" onclick="saveSettings()">💾 Enregistrer</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button>
     </div>
 
     <!-- 1. Informations société (ouvert par défaut) -->
     <div class="param-section">
       <div class="param-section-header open" id="ps-header-societe" onclick="toggleParamSection('societe')">
-        <span class="param-section-title">🏢 Informations société</span>
+        <span class="param-section-title">Informations société</span>
         <span class="param-section-arrow">›</span>
       </div>
       <div class="param-section-body open" id="ps-body-societe">
@@ -611,7 +620,7 @@ select option { background: var(--surface2); }
     <!-- 2. Aides frelon asiatique -->
     <div class="param-section">
       <div class="param-section-header" id="ps-header-aides" onclick="toggleParamSection('aides')">
-        <span class="param-section-title">🐝 Aides frelon asiatique</span>
+        <span class="param-section-title">Aides frelon asiatique</span>
         <span class="param-section-arrow">›</span>
       </div>
       <div class="param-section-body" id="ps-body-aides">
@@ -626,7 +635,7 @@ select option { background: var(--surface2); }
     <!-- 3. Bons de commande -->
     <div class="param-section">
       <div class="param-section-header" id="ps-header-bdc" onclick="toggleParamSection('bdc')">
-        <span class="param-section-title">📋 Bons de commande</span>
+        <span class="param-section-title">Bons de commande</span>
         <span class="param-section-arrow">›</span>
       </div>
       <div class="param-section-body" id="ps-body-bdc">
@@ -641,7 +650,7 @@ select option { background: var(--surface2); }
     <!-- 4. Grille tarifaire -->
     <div class="param-section">
       <div class="param-section-header" id="ps-header-tarifs" onclick="toggleParamSection('tarifs')">
-        <span class="param-section-title">💰 Grille tarifaire</span>
+        <span class="param-section-title">Grille tarifaire</span>
         <span class="param-section-arrow">›</span>
       </div>
       <div class="param-section-body" id="ps-body-tarifs">
@@ -653,11 +662,11 @@ select option { background: var(--surface2); }
     <!-- 5. API (mail + photos) -->
     <div class="param-section">
       <div class="param-section-header" id="ps-header-api" onclick="toggleParamSection('api')">
-        <span class="param-section-title">🔌 API (photos &amp; mail)</span>
+        <span class="param-section-title">API (photos &amp; mail)</span>
         <span class="param-section-arrow">›</span>
       </div>
       <div class="param-section-body" id="ps-body-api">
-        <h4 style="font-family:Syne;font-size:0.95rem;margin:0 0 10px;color:var(--text)">📧 Envoi automatique par mail (EmailJS)</h4>
+        <h4 style="font-family:Syne;font-size:0.95rem;margin:0 0 10px;color:var(--text)">Envoi automatique par mail (EmailJS)</h4>
         <div class="info-box">
           Service gratuit jusqu'à 200 mails/mois. <a href="https://www.emailjs.com/" target="_blank">Créez un compte sur emailjs.com</a> puis collez vos 3 clés ci-dessous.<br>
           Variables EmailJS : <strong>{{to_name}}</strong>, <strong>{{facture_num}}</strong>, <strong>{{intervention}}</strong>, <strong>{{montant}}</strong>, <strong>{{facture_date}}</strong>, <strong>{{from_name}}</strong>, <strong>{{contact_tel}}</strong>
@@ -667,7 +676,7 @@ select option { background: var(--surface2); }
           <div class="form-group"><label>Service ID</label><input id="s-ejs-svc" type="text" placeholder="service_xxxxxxx"></div>
           <div class="form-group full"><label>Template ID</label><input id="s-ejs-tpl" type="text" placeholder="template_xxxxxxx"></div>
         </div>
-        <h4 style="font-family:Syne;font-size:0.95rem;margin:0 0 10px;color:var(--text)">📸 Photos des interventions (Cloudinary)</h4>
+        <h4 style="font-family:Syne;font-size:0.95rem;margin:0 0 10px;color:var(--text)">Photos des interventions (Cloudinary)</h4>
         <div class="info-box">Créez un compte gratuit sur <strong>cloudinary.com</strong>, puis créez un <strong>Upload Preset</strong> non signé. Renseignez votre <strong>Cloud Name</strong> et le nom du preset ci-dessous.</div>
         <div class="form-grid">
           <div class="form-group"><label>Cloud Name</label><input id="s-cloudinary-cloud" type="text" placeholder="mon-cloud-name"></div>
@@ -679,12 +688,12 @@ select option { background: var(--surface2); }
     <!-- 6. Sauvegarde & export -->
     <div class="param-section">
       <div class="param-section-header" id="ps-header-backup" onclick="toggleParamSection('backup')">
-        <span class="param-section-title">💾 Sauvegarde &amp; export</span>
+        <span class="param-section-title">Sauvegarde &amp; export</span>
         <span class="param-section-arrow">›</span>
       </div>
       <div class="param-section-body" id="ps-body-backup">
         <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Téléchargez une copie de toutes vos données (RDV, factures, paramètres) au format JSON.</p>
-        <button class="btn btn-ghost" onclick="exporterDonnees()">⬇️ Exporter mes données (JSON)</button>
+        <button class="btn btn-ghost" onclick="exporterDonnees()">Exporter mes données (JSON)</button>
       </div>
     </div>
 
@@ -699,19 +708,19 @@ select option { background: var(--surface2); }
 <!-- Navigation mobile en bas -->
 <div id="mobile-nav" style="display:none">
   <button class="active" onclick="goTo('dashboard')" id="mnav-dashboard">
-    <span class="nav-icon">🏠</span>Accueil
+    <span class="nav-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span>Accueil
   </button>
   <button onclick="goTo('rdvs')" id="mnav-rdvs">
-    <span class="nav-icon">📅</span>RDV
+    <span class="nav-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></span>RDV
   </button>
   <button onclick="goTo('archives')" id="mnav-archives">
-    <span class="nav-icon">🗂️</span>Factures
+    <span class="nav-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z"/></svg></span>Factures
   </button>
   <button onclick="goTo('settings')" id="mnav-settings">
-    <span class="nav-icon">⚙️</span>Params
+    <span class="nav-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96a6.93 6.93 0 00-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54a7.2 7.2 0 00-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.35 1.04.66 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.2 7.2 0 001.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 110-7.2 3.6 3.6 0 010 7.2z"/></svg></span>Params
   </button>
   <button onclick="doLogout()" style="color:var(--red)">
-    <span class="nav-icon">⏏</span>Déco
+    <span class="nav-icon" style="color:var(--red)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4a2 2 0 00-2 2v14a2 2 0 002 2h8v-2H4V5z"/></svg></span>Déco
   </button>
 </div>
 
@@ -729,9 +738,9 @@ select option { background: var(--surface2); }
       <div class="form-group full">
         <label>Adresse d'intervention *</label>
         <input id="r-adresse" type="text" placeholder="12 rue des Acacias, 31000 Toulouse" oninput="updateMapsLink()">
-        <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">📍 Ouvrir dans Google Maps</a>
+        <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">Ouvrir dans Google Maps</a>
       </div>
-      <div class="form-group"><label>Date *</label><input id="r-date" type="date"></div>
+      <div class="form-group" style="min-width:0"><label>Date *</label><input id="r-date" type="date" style="width:100%;box-sizing:border-box"></div>
       <div class="form-group full">
         <label>Heure</label>
         <input type="tel" id="r-heure-tel" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="onHeureInput(this)">
@@ -744,10 +753,10 @@ select option { background: var(--surface2); }
         <div class="cascade-step" id="step-client">
           <div class="cascade-label">Type de client</div>
           <div class="cascade-options" id="opts-client">
-            <button type="button" class="cascade-btn" onclick="selectClient('Particulier')">🏠 Particulier</button>
-            <button type="button" class="cascade-btn" onclick="selectClient('Voie publique')">🌳 Voie publique</button>
-            <button type="button" class="cascade-btn" onclick="selectClient('Montivilliers')">🏙️ Montivilliers</button>
-            <button type="button" class="cascade-btn" onclick="selectClient('Gonfreville')">🏭 Gonfreville</button>
+            <button type="button" class="cascade-btn" onclick="selectClient('Particulier')">Particulier</button>
+            <button type="button" class="cascade-btn" onclick="selectClient('Voie publique')">Voie publique</button>
+            <button type="button" class="cascade-btn" onclick="selectClient('Montivilliers')">Montivilliers</button>
+            <button type="button" class="cascade-btn" onclick="selectClient('Gonfreville')">Gonfreville</button>
           </div>
         </div>
 
@@ -761,10 +770,10 @@ select option { background: var(--surface2); }
         <div class="cascade-step" id="step-emplacement" style="display:none">
           <div class="cascade-label">Emplacement du nid</div>
           <div class="cascade-options" id="opts-emplacement">
-            <button type="button" class="cascade-btn" onclick="selectEmplacement('sol','Sol')">⛏️ Sol</button>
-            <button type="button" class="cascade-btn" onclick="selectEmplacement('hauteur','Hauteur d\'homme')">🧍 Hauteur d'homme</button>
-            <button type="button" class="cascade-btn" onclick="selectEmplacement('arbre','Arbre')">🌳 Arbre</button>
-            <button type="button" class="cascade-btn" onclick="selectEmplacement('cheminee','Cheminée')">🏚️ Cheminée</button>
+            <button type="button" class="cascade-btn" onclick="selectEmplacement('sol','Sol')">Sol</button>
+            <button type="button" class="cascade-btn" onclick="selectEmplacement('hauteur','Hauteur d\'homme')">Hauteur d'homme</button>
+            <button type="button" class="cascade-btn" onclick="selectEmplacement('arbre','Arbre')">Arbre</button>
+            <button type="button" class="cascade-btn" onclick="selectEmplacement('cheminee','Cheminée')">Cheminée</button>
           </div>
         </div>
 
@@ -772,16 +781,16 @@ select option { background: var(--surface2); }
         <div class="cascade-step" id="step-hauteur" style="display:none">
           <div class="cascade-label">Hauteur de l'arbre</div>
           <div class="cascade-options" id="opts-hauteur">
-            <button type="button" class="cascade-btn" onclick="selectHauteur('arbre-0-10','0-10m')">🌱 0-10m</button>
-            <button type="button" class="cascade-btn" onclick="selectHauteur('arbre-10-20','10-20m')">🌲 10-20m</button>
-            <button type="button" class="cascade-btn" onclick="selectHauteur('arbre-20plus','20m et +')">🌳 20m et +</button>
+            <button type="button" class="cascade-btn" onclick="selectHauteur('arbre-0-10','0-10m')">0-10m</button>
+            <button type="button" class="cascade-btn" onclick="selectHauteur('arbre-10-20','10-20m')">10-20m</button>
+            <button type="button" class="cascade-btn" onclick="selectHauteur('arbre-20plus','20m et +')">20m et +</button>
           </div>
         </div>
 
 
-        <div id="intervention-resume" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.35);border-radius:8px;font-size:0.88rem;color:#e0e0e0">
+        <div id="intervention-resume" style="display:none;margin-top:10px;padding:10px 14px;background:#d8f5e8;border:1.5px solid #0a7c5c;border-radius:8px;font-size:0.88rem;color:#091a45;font-weight:500">
           <span id="intervention-resume-text"></span>
-          <button type="button" onclick="resetCascade()" style="margin-left:10px;background:none;border:none;color:#aaa;cursor:pointer;font-size:0.8rem;text-decoration:underline">Modifier</button>
+          <button type="button" onclick="resetCascade()" style="margin-left:10px;background:none;border:none;color:#091a45;cursor:pointer;font-size:0.82rem;text-decoration:underline;font-weight:600">Modifier</button>
         </div>
 
         <input type="hidden" id="r-type">
@@ -794,13 +803,13 @@ select option { background: var(--surface2); }
 
       <div class="form-group full" id="bloc-mairie" style="display:none">
         <div style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.35);border-radius:10px;padding:14px 16px">
-          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:#f5a623;margin-bottom:10px;font-weight:600">🏛️ Facturation à la mairie</div>
+          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:#f5a623;margin-bottom:10px;font-weight:600">Facturation à la mairie</div>
           <div id="mairie-detectee" style="display:none;margin-bottom:10px;font-size:0.88rem;color:#ccc">
             <span id="mairie-nom-display"></span><br>
             <span id="mairie-adr-display" style="color:#aaa;font-size:0.82rem"></span>
           </div>
           <div id="mairie-inconnue" style="display:none;margin-bottom:8px;font-size:0.84rem;color:#f5a623">
-            ⚠️ Ville non reconnue — saisissez l'adresse de la mairie manuellement
+            Ville non reconnue — saisissez l'adresse de la mairie manuellement
           </div>
           <label style="font-size:0.78rem;color:#aaa;text-transform:uppercase;letter-spacing:.05em">Nom de la mairie</label>
           <input id="r-mairie-nom" type="text" placeholder="Mairie de [Ville]" style="margin-top:5px;margin-bottom:10px">
@@ -829,8 +838,8 @@ select option { background: var(--surface2); }
     <div id="aide-section" style="display:none;margin-top:16px">
       <div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Aide à la destruction (optionnel)</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button id="aide-depart" class="paiement-btn" onclick="choisirAide('departement')" style="flex:1;min-width:120px">🏛️ Département</button>
-        <button id="aide-seine" class="paiement-btn" onclick="choisirAide('seine')" style="flex:1;min-width:140px">🌊 Seine Métropole</button>
+        <button id="aide-depart" class="paiement-btn" onclick="choisirAide('departement')" style="flex:1;min-width:120px">Département</button>
+        <button id="aide-seine" class="paiement-btn" onclick="choisirAide('seine')" style="flex:1;min-width:140px">Seine Métropole</button>
       </div>
     </div>
 
@@ -838,25 +847,25 @@ select option { background: var(--surface2); }
     <div id="paiement-section" style="display:none;margin-top:20px">
       <div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mode de paiement</div>
       <div class="paiement-btns">
-        <button class="paiement-btn" id="pay-virement" onclick="choisirPaiement('virement')">🏦 Virement</button>
-        <button class="paiement-btn" id="pay-cheque"   onclick="choisirPaiement('cheque')">📝 Chèque</button>
-        <button class="paiement-btn" id="pay-espece"   onclick="choisirPaiement('espece')">💵 Espèces</button>
+        <button class="paiement-btn" id="pay-virement" onclick="choisirPaiement('virement')">Virement</button>
+        <button class="paiement-btn" id="pay-cheque"   onclick="choisirPaiement('cheque')">Chèque</button>
+        <button class="paiement-btn" id="pay-espece"   onclick="choisirPaiement('espece')">Espèces</button>
       </div>
       <div class="paiement-required" id="paiement-required">⚠️ Veuillez choisir un mode de paiement avant de valider</div>
     </div>
     <div class="facture-action-bar" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:18px">
       <button class="facture-action-btn" onclick="closeModal('modal-facture')">✕<span>Fermer</span></button>
-      <button class="facture-action-btn" onclick="voirFactureCourante()">👁<span>Voir</span></button>
-      <button class="facture-action-btn" onclick="printFacture()">🖨️<span>Impr.</span></button>
-      <button id="btn-sms" class="facture-action-btn" style="display:none" onclick="smsCurrent()">📲<span>SMS</span></button>
-      <button id="btn-mail" class="facture-action-btn" style="display:none" onclick="sendMailCurrent()">📧<span>Mail</span></button>
+      <button class="facture-action-btn" onclick="voirFactureCourante()"><svg viewBox="0 0 24 24" fill="currentColor" width="1.3em" height="1.3em"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg><span>Voir</span></button>
+      <button class="facture-action-btn" onclick="printFacture()"><svg viewBox="0 0 24 24" fill="currentColor" width="1.3em" height="1.3em"><path d="M19 8H5a3 3 0 00-3 3v6h4v4h12v-4h4v-6a3 3 0 00-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 110-2 1 1 0 010 2zm-1-9H6v4h12V3z"/></svg><span>Impr.</span></button>
+      <button id="btn-sms" class="facture-action-btn" style="display:none" onclick="smsCurrent()"><svg viewBox="0 0 24 24" fill="currentColor" width="1.3em" height="1.3em"><path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/></svg><span>SMS</span></button>
+      <button id="btn-mail" class="facture-action-btn" style="display:none" onclick="sendMailCurrent()"><svg viewBox="0 0 24 24" fill="currentColor" width="1.3em" height="1.3em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg><span>Mail</span></button>
       <button id="btn-valider" class="facture-action-btn facture-action-btn--valider" style="display:none;grid-column:1/-1" onclick="validerFacture()">✓<span>Valider et archiver</span></button>
     </div>
   </div>
 </div>
 
 <div id="toast"></div>
-<div id="save-indicator">💾 Sauvegarde…</div>
+<div id="save-indicator"> Sauvegarde…</div>
 
 <!-- ===== SIGNATURE PLEIN ÉCRAN (mobile) ===== -->
 <div id="sig-fullscreen">
@@ -873,7 +882,7 @@ select option { background: var(--surface2); }
     </div>
     <div id="sig-fs-actions">
       <button class="sig-btn-cancel" onclick="closeSigFullscreen(false)">↩ Retour</button>
-      <button class="sig-btn-clear" onclick="clearSigFS()">🗑 Effacer</button>
+      <button class="sig-btn-clear" onclick="clearSigFS()"> Effacer</button>
       <button class="sig-btn-ok" onclick="closeSigFullscreen(true)">✓ Valider</button>
     </div>
   </div>
@@ -885,7 +894,7 @@ select option { background: var(--surface2); }
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="width:100%;max-width:400px">
     <div style="text-align:center;margin-bottom:32px">
-      <div style="font-family:Syne;font-weight:800;font-size:1.8rem;color:var(--accent);margin-bottom:8px">🐝 Allo ça pique</div>
+      <div style="font-family:Syne;font-weight:800;font-size:1.8rem;color:var(--accent);margin-bottom:8px"> Allo ça pique</div>
       <div style="color:var(--muted);font-size:0.9rem">Connectez-vous pour accéder à vos données</div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px">
@@ -943,6 +952,10 @@ function initSupabase() {
 }
 
 // ===== DATA (initialisé vide, chargé depuis Supabase après login) =====
+
+var SVG_ICONS={home:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>',folder:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4a2 2 0 00-2 2v14a2 2 0 002 2h8v-2H4V5z"/></svg>',settings:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96a6.93 6.93 0 00-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54a7.2 7.2 0 00-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.35 1.04.66 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.2 7.2 0 001.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 110-7.2 3.6 3.6 0 010 7.2z"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',view:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg>',print:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 8H5a3 3 0 00-3 3v6h4v4h12v-4h4v-6a3 3 0 00-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 110-2 1 1 0 010 2zm-1-9H6v4h12V3z"/></svg>',sms:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/></svg>',mail:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>',save:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4zm-5 16a3 3 0 110-6 3 3 0 010 6zm3-10H5V5h10v4z"/></svg>',download:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>',map:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>',search:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5a6.5 6.5 0 10-6.5 6.5c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>',warn:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',check:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>',close:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>',list:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>'};
+function icon(name,sz){var s=SVG_ICONS[name]||'';if(sz)s=s.replace(/width="[^"]*"/,'width="'+sz+'"').replace(/height="[^"]*"/,'height="'+sz+'"');return s;}
+
 var rdvs = [];
 var factures = [];
 var settings = {};
@@ -1007,7 +1020,7 @@ var currentFactureId = null;
 var archiveType = 'Particulier';
 var agendaWeekOffset = 0; // non utilisé directement, conservé pour compat
 var agendaBlockOffset = 0; // bloc courant : 0=Lun-Mer de la semaine courante, 1=Jeu-Sam, 2=Lun-Mer semaine+1…
-var vueRdv = 'agenda'; // 'agenda' | 'liste'
+var vueRdv = 'liste'; // 'agenda' | 'liste' — liste par défaut
 var AGENDA_HEURES = [7,8,9,10,11,12,13,14,15,16,17,18,19,20]; // plages horaires affichées
 var archiveMonth = null;
 var modePaiement = null; // 'virement' | 'cheque' | 'espece'
@@ -1119,7 +1132,7 @@ function renderDashboard() {
   document.getElementById('stat-benef').textContent = benef.toFixed(0) + ' €';
   var el = document.getElementById('dash-rdvs');
   if (upcoming.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><p>Aucun RDV à venir</p></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="3rem" height="3rem"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></div><p>Aucun RDV à venir</p></div>';
   } else {
     el.innerHTML = upcoming.slice(0,5).map(makeRdvCard).join('');
   }
@@ -1412,8 +1425,8 @@ function renderRdvs() {
   var el = document.getElementById('rdv-list');
   if (list.length === 0) {
     el.innerHTML = filterDate
-      ? '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucun RDV ce jour</p></div>'
-      : '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucun RDV — créez-en un !</p></div>';
+      ? '<div class="empty"><div class="empty-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="3rem" height="3rem"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></div><p>Aucun RDV ce jour</p></div>'
+      : '<div class="empty"><div class="empty-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="3rem" height="3rem"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></div><p>Aucun RDV — créez-en un !</p></div>';
   } else {
     el.innerHTML = list.map(makeRdvCard).join('');
   }
@@ -1425,23 +1438,23 @@ function makeRdvCard(r) {
     ? '<span class="badge badge-ok">Facturé</span>'
     : '<span class="badge badge-rdv">À venir</span>';
   var actionBtn = r.factureId
-    ? '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + r.factureId + '\')">👁 Facture</button>'
-    : '<button class="btn btn-primary btn-sm" onclick="ouvrirFacture(\'' + r.id + '\')">📄 Facturer</button>';
+    ? '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + r.factureId + '\')">Facture</button>'
+    : '<button class="btn btn-primary btn-sm" onclick="ouvrirFacture(\'' + r.id + '\')"> Facturer</button>';
   var photoBtn = '<button class="btn btn-ghost btn-sm" onclick="prendrePhoto(\'' + r.id + '\')" title="Photo du nid">'
-    + (r.photoUrl ? '📸' : '📷') + '</button>';
+    + (r.photoUrl ? '' : '') + '</button>';
   return '<div class="card"><div class="rdv-card">'
     + '<div class="rdv-info">'
     + '<h3>' + escHtml(r.nom) + ' ' + badge + '</h3>'
-    + '<p>📅 ' + d + (r.heure ? ' • ' + r.heure : '') + ' &nbsp;|&nbsp; 📞 ' + escHtml(r.tel) + '</p>'
-    + '<p>📍 <a href="https://maps.google.com/?q=' + encodeURIComponent(r.adresse) + '" target="_blank" style="color:var(--accent);text-decoration:none">' + escHtml(r.adresse) + '</a></p>'
-    + '<p style="margin-top:4px">🐝 ' + escHtml(r.type) + ' — <strong>' + parseFloat(r.prix).toFixed(2) + ' €</strong></p>'
+    + '<p> ' + d + (r.heure ? ' • ' + r.heure : '') + ' &nbsp;|&nbsp;  ' + escHtml(r.tel) + '</p>'
+    + '<p> <a href="https://maps.google.com/?q=' + encodeURIComponent(r.adresse) + '" target="_blank" style="color:var(--accent);text-decoration:none">' + escHtml(r.adresse) + '</a></p>'
+    + '<p style="margin-top:4px"> ' + escHtml(r.type) + ' — <strong>' + parseFloat(r.prix).toFixed(2) + ' €</strong></p>'
     + (r.notes ? '<p style="color:var(--muted);font-size:0.82rem;margin-top:4px">' + escHtml(r.notes) + '</p>' : '')
     + '</div>'
     + '<div class="rdv-actions">'
     + actionBtn
     + ' ' + photoBtn
     + ' <button class="btn btn-ghost btn-sm" onclick="editRdv(\'' + r.id + '\')">✏️</button>'
-    + ' <button class="btn btn-danger btn-sm" onclick="supprimerRdv(\'' + r.id + '\')">🗑</button>'
+    + ' <button class="btn btn-danger btn-sm" onclick="supprimerRdv(\'' + r.id + '\')"></button>'
     + '</div></div></div>';
 }
 
@@ -1493,8 +1506,15 @@ var _cascade = { client: null, insecte: null, insecteLabel: null, emplacement: n
 
 function extraireVille(adresse) {
   if (!adresse) return '';
-  var parts = adresse.split(',');
-  return parts[parts.length - 1].trim();
+  // Format attendu : "Ville 12 rue du Moulin" ou "Ville-les-xxx 3bis chemin..."
+  // On prend tout ce qui est avant le premier chiffre
+  var match = adresse.match(/^(.*?)\s*\d/);
+  if (match && match[1] && match[1].trim().length > 0) {
+    return match[1].trim();
+  }
+  // Fallback : avant la première virgule
+  var comma = adresse.indexOf(',');
+  return comma > 0 ? adresse.substring(0, comma).trim() : adresse.trim();
 }
 
 function applyCascadeGrid(containerId) {
@@ -1540,7 +1560,7 @@ function selectClient(val) {
   // Build insecte buttons
   var container = document.getElementById('opts-insecte');
   container.innerHTML = INSECTES.map(function(ins) {
-    var icon = ins.id === 'frelon-asiatique' ? '🐝' : ins.id === 'frelon-europeen' ? '🐝' : ins.id === 'guepe' ? '🐛' : ins.id === 'abeille' ? '🍯' : '❓';
+    var icon = ins.id === 'frelon-asiatique' ? '' : ins.id === 'frelon-europeen' ? '' : ins.id === 'guepe' ? '' : ins.id === 'abeille' ? '' : '';
     return '<button type="button" class="cascade-btn" data-id="' + ins.id + '" onclick="selectInsecte(\'' + ins.id + '\',\'' + ins.label.replace(/'/g,"\\'") + '\')">' + icon + ' ' + ins.label + '</button>';
   }).join('');
   document.getElementById('step-insecte').style.display = '';
@@ -1593,7 +1613,7 @@ function finalizeCascade() {
   document.getElementById('r-type').value = typeLabel;
   document.getElementById('r-client-type').value = _cascade.client;
   document.getElementById('r-prix').value = prix;
-  var resume = '👤 ' + _cascade.client + ' — 🪲 ' + _cascade.insecteLabel + ' — 📍 ' + _cascade.emplacementLabel + ' — 💶 ' + prix + ' €';
+  var resume = ' ' + _cascade.client + ' —  ' + _cascade.insecteLabel + ' —  ' + _cascade.emplacementLabel + ' — € ' + prix + ' €';
   document.getElementById('intervention-resume-text').textContent = resume;
   document.getElementById('intervention-resume').style.display = '';
 }
@@ -1964,7 +1984,7 @@ function choisirPaiement(mode) {
   });
   document.getElementById('paiement-required').style.display = 'none';
   // Mettre à jour dynamiquement l'affichage sur la facture
-  var labels = { virement: '🏦 Virement bancaire', cheque: '📝 Chèque', espece: '💵 Espèces' };
+  var labels = { virement: 'Virement Virement bancaire', cheque: 'Chèque Chèque', espece: 'Espèces Espèces' };
   var mention = document.querySelector('.f-mention');
   if (mention) {
     // Supprimer l'ancienne ligne de paiement si elle existe
@@ -2062,7 +2082,7 @@ function ouvrirSMSFacture(f) {
   var tel = f.tel ? f.tel.replace(/\s/g, '').replace(/^0/, '+33') : '';
   if (!tel) { showToast('Pas de numéro de téléphone pour ce client', true); return; }
 
-  showToast('📲 Génération du lien facture...');
+  showToast('SMS Génération du lien facture...');
 
   // Générer l'image de la facture puis uploader sur ImgBB pour avoir un lien
   var tempDiv = document.createElement('div');
@@ -2105,7 +2125,7 @@ function ouvrirSMSFacture(f) {
 
       // Ouvrir l'app SMS
       window.location.href = 'sms:' + tel + '&body=' + encodeURIComponent(msg);
-      showToast('📲 SMS prêt à envoyer !');
+      showToast('SMS SMS prêt à envoyer !');
     })
     .catch(function(err) {
       console.error('ImgBB upload error:', err);
@@ -2128,7 +2148,7 @@ function sendMailForFacture(f) {
   var s = settings;
   if (!s.ejsPub || !s.ejsSvc || !s.ejsTpl) { showToast('Configurez EmailJS dans Paramètres', true); return; }
   if (!f.email) { showToast('Aucun email client renseigné', true); return; }
-  showToast('📧 Génération de la facture en image...');
+  showToast(' Génération de la facture en image...');
 
   var tempDiv = document.createElement('div');
   tempDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:750px;background:#fff;z-index:-1';
@@ -2148,7 +2168,7 @@ function sendMailForFacture(f) {
     var base64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
 
     // Upload to ImgBB
-    showToast('📤 Upload de la facture...');
+    showToast(' Upload de la facture...');
     var formData = new FormData();
     formData.append('image', base64);
     formData.append('name', 'facture_' + f.num);
@@ -2163,7 +2183,7 @@ function sendMailForFacture(f) {
       var imageUrl = result.data.url;
 
       // Send email with image URL
-      showToast('📧 Envoi du mail...');
+      showToast(' Envoi du mail...');
       emailjs.send(s.ejsSvc, s.ejsTpl, {
         to_email: f.email,
         to_name: f.nom,
@@ -2354,7 +2374,7 @@ function prendrePhoto(rdvId) {
   input.onchange = function() {
     var file = input.files[0];
     if (!file) return;
-    showToast('📤 Préparation de la photo...');
+    showToast(' Préparation de la photo...');
     var reader = new FileReader();
     reader.onload = function(e) {
       // Compression via canvas pour réduire la taille
@@ -2368,7 +2388,7 @@ function prendrePhoto(rdvId) {
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         var base64 = canvas.toDataURL('image/jpeg', 0.80);
-        showToast('📤 Upload vers Cloudinary...');
+        showToast(' Upload vers Cloudinary...');
         var formData = new FormData();
         formData.append('file', base64);
         formData.append('upload_preset', uploadPreset);
@@ -2448,9 +2468,9 @@ function printFacture() {
     + '</style>'
     + '</head><body>'
     + '<div class="print-toolbar">'
-    + '  <h2>📄 Facture</h2>'
+    + '  <h2> Facture</h2>'
     + '  <div class="print-toolbar-btns">'
-    + '    <button class="print-btn print-btn-print" onclick="window.print()">🖨️ Imprimer / PDF</button>'
+    + '    <button class="print-btn print-btn-print" onclick="window.print()">️ Imprimer / PDF</button>'
     + '    <button class="print-btn print-btn-close" onclick="window.close()">✕ Fermer</button>'
     + '  </div>'
     + '</div>'
@@ -2492,7 +2512,7 @@ function renderArchives() {
 
   if (factures.length === 0) {
     monthsEl.innerHTML = '';
-    el.innerHTML = '<div class="empty"><div class="empty-icon">🗂️</div><p>Aucune facture archivée</p></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">️</div><p>Aucune facture archivée</p></div>';
     return;
   }
 
@@ -2557,7 +2577,7 @@ function renderArchives() {
     var dayFacts = days[d];
 
     html += '<div class="arch-day-header">';
-    html += '<div class="day-label">📅 ' + label + ' <span style="font-size:0.78rem;font-weight:400;color:var(--muted)">(' + dayFacts.length + ' facture' + (dayFacts.length>1?'s':'') + ')</span></div>';
+    html += '<div class="day-label"> ' + label + ' <span style="font-size:0.78rem;font-weight:400;color:var(--muted)">(' + dayFacts.length + ' facture' + (dayFacts.length>1?'s':'') + ')</span></div>';
     html += '<button class="day-dl-btn" onclick="telechargerJournee(\'' + d + '\')" title="Télécharger toute la journée">⬇️ Télécharger la journée</button>';
     html += '</div>';
 
@@ -2565,9 +2585,9 @@ function renderArchives() {
       var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
       var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
       var mailBtn = (f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && f.clientType !== 'Voie publique')
-        ? '<button class="btn btn-ghost btn-sm" onclick="sendMailById(\'' + f.id + '\')">📧</button>' : '';
+        ? '<button class="btn btn-ghost btn-sm" onclick="sendMailById(\'' + f.id + '\')"></button>' : '';
       var smsBtn = (f.tel && f.clientType !== 'Voie publique')
-        ? '<button class="btn btn-ghost btn-sm" onclick="ouvrirSMSFacture(findById(factures, \''+f.id+'\'))" title="Envoyer par SMS">📲</button>' : '';
+        ? '<button class="btn btn-ghost btn-sm" onclick="ouvrirSMSFacture(findById(factures, \''+f.id+'\'))" title="Envoyer par SMS">SMS</button>' : '';
 
       html += '<div class="arch-fact-card">';
       var heureStr = rdvLie && rdvLie.heure ? ' <span style="color:var(--accent);font-weight:600">⏰ ' + escHtml(rdvLie.heure) + '</span>' : '';
@@ -2578,13 +2598,13 @@ function renderArchives() {
       html += '</div>';
       html += '<div class="arch-fact-price">' + (f.prix||0).toFixed(2) + ' €</div>';
       html += '<div class="arch-fact-actions">';
-      html += '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + f.id + '\')">👁 Voir</button>';
-      html += '<button class="btn btn-ghost btn-sm" onclick="voirEtImprimer(\'' + f.id + '\')">🖨️</button>';
-      if (photoUrl) html += '<a href="' + photoUrl + '" target="_blank" class="btn btn-ghost btn-sm">📸</a>';
+      html += '<button class="btn btn-ghost btn-sm" onclick="voirFacture(\'' + f.id + '\')">Voir</button>';
+      html += '<button class="btn btn-ghost btn-sm" onclick="voirEtImprimer(\'' + f.id + '\')">️</button>';
+      if (photoUrl) html += '<a href="' + photoUrl + '" target="_blank" class="btn btn-ghost btn-sm"></a>';
       html += '<button class="btn btn-ghost btn-sm" onclick="telechargerFacture(\'' + f.id + '\')" title="Télécharger facture + photo">⬇️</button>';
       html += smsBtn;
       html += mailBtn;
-      html += '<button class="btn btn-sm" onclick="supprimerFacture(\'' + f.id + '\')" title="Supprimer" style="background:rgba(255,77,109,0.12);color:var(--red);border:1px solid rgba(255,77,109,0.3)">🗑</button>';
+      html += '<button class="btn btn-sm" onclick="supprimerFacture(\'' + f.id + '\')" title="Supprimer" style="background:rgba(255,77,109,0.12);color:var(--red);border:1px solid rgba(255,77,109,0.3)"></button>';
       html += '</div>';
       html += '</div>';
     });
@@ -2617,7 +2637,7 @@ function supprimerFacture(factureId) {
   renderArchives();
   renderDashboard();
   renderRdvs();
-  showToast('🗑 Facture ' + f.num + ' supprimée');
+  showToast(' Facture ' + f.num + ' supprimée');
 }
 
 // ===== TÉLÉCHARGEMENT =====
@@ -3022,7 +3042,7 @@ async function afterLogin() {
     settings.nom = 'Allo ça pique';
     setTimeout(function() {
       goTo('settings');
-      showToast('👋 Bienvenue ! Vérifiez vos infos dans Paramètres.');
+      showToast(' Bienvenue ! Vérifiez vos infos dans Paramètres.');
     }, 600);
   } else {
     showToast('✅ Connecté — données chargées !');
@@ -3063,5 +3083,6 @@ initSupabase();
   }
 })();
 </script>
+
 </body>
 </html>
