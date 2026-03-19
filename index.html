@@ -10,35 +10,36 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0f1117; --surface: #181c27; --surface2: #1f2535;
-  --border: #2a3045; --accent: #f5a623; --text: #e8eaf0;
-  --muted: #7a8099; --green: #2dd4a0; --red: #ff4d6d; --r: 12px;
+  --bg: #ffffff; --surface: #ffffff; --surface2: #f0f4fa;
+  --border: #091a45; --accent: #091a45; --text: #091a45;
+  --muted: #4a5a80; --green: #0a7c5c; --red: #cc1a3a; --r: 12px;
+  --border-w: 2px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 1.05rem; }
 
 header {
-  background: var(--surface); border-bottom: 1px solid var(--border);
+  background: var(--surface); border-bottom: var(--border-w) solid var(--border);
   padding: 0 20px; display: flex; align-items: center;
   justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100;
 }
 .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; color: var(--accent); display: flex; align-items: center; gap: 8px; }
-.logo span { color: var(--text); }
+.logo span { color: var(--text); font-size: 1.15rem; }
 nav { display: flex; gap: 4px; }
 nav button {
   background: none; border: none; color: var(--muted);
-  font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
-  padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500;
+  padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
 }
-nav button:hover, nav button.active { background: var(--surface2); color: var(--text); }
-nav button.active { color: var(--accent); }
+nav button:hover { background: var(--surface2); color: var(--accent); }
+nav button.active { background: var(--accent); color: #ffffff; border-radius: 8px; }
 
 main { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
 .page { display: none; }
 .page.active { display: block; }
 
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.5rem; }
+h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.6rem; color: var(--text); }
 
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -46,82 +47,82 @@ h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.5rem; }
   font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 0.9rem;
   cursor: pointer; transition: all 0.2s;
 }
-.btn-primary { background: var(--accent); color: #0f1117; }
-.btn-primary:hover { background: #ffc654; }
-.btn-success { background: var(--green); color: #0f1117; }
+.btn-primary { background: var(--accent); color: #ffffff; }
+.btn-primary:hover { background: #142e6e; }
+.btn-success { background: var(--green); color: #ffffff; }
 .btn-success:hover { opacity: 0.85; }
 .btn-danger { background: var(--red); color: #fff; }
 .btn-danger:hover { opacity: 0.85; }
-.btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-ghost { background: var(--surface2); color: var(--text); border: var(--border-w) solid var(--border); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: #e8edf8; }
 .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 12px; transition: border-color 0.2s; }
+.card { background: var(--surface); border: var(--border-w) solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 12px; transition: border-color 0.2s; }
 .card:hover { border-color: #3d4f70; }
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group.full { grid-column: 1 / -1; }
-label { font-size: 0.8rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+label { font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 input, select, textarea {
-  background: var(--surface2); border: 1px solid var(--border);
+  background: var(--surface2); border: var(--border-w) solid var(--border);
   border-radius: 8px; color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
-  padding: 10px 14px; transition: border-color 0.2s; width: 100%;
+  font-family: 'DM Sans', sans-serif; font-size: 1rem;
+  padding: 11px 14px; transition: border-color 0.2s; width: 100%;
 }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
 textarea { resize: vertical; min-height: 80px; }
 select option { background: var(--surface2); }
 
 .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-.badge-rdv { background: #1a3a5c; color: #5bc4ff; }
-.badge-ok { background: #1a3d2b; color: var(--green); }
+.badge-rdv { background: #d0e4ff; color: #091a45; border: 1px solid #091a45; }
+.badge-ok { background: #d0f5ea; color: #0a7c5c; border: 1px solid #0a7c5c; }
 
 .rdv-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
 /* === AGENDA === */
 .agenda-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:8px; }
 .agenda-nav h3 { font-size:0.95rem; font-weight:700; color:var(--text); text-align:center; flex:1; }
-.agenda-week { display:grid; grid-template-columns: 44px repeat(7, 1fr); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; background:var(--surface); }
-.agenda-col-header { background:var(--surface2); border-bottom:2px solid var(--border); padding:6px 2px; text-align:center; font-size:0.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; cursor:pointer; transition:background 0.15s; }
+.agenda-week { display:grid; grid-template-columns: 44px repeat(3, 1fr); border:2px solid var(--border); border-radius:var(--r); overflow:hidden; background:var(--surface); }
+.agenda-col-header { background:var(--surface2); border-bottom:3px solid var(--border); padding:10px 4px; text-align:center; font-size:0.85rem; font-weight:700; color:var(--text); text-transform:uppercase; cursor:pointer; transition:background 0.15s; }
 .agenda-col-header:hover { background:var(--border); }
 .agenda-col-header.today { color:var(--accent); border-bottom-color:var(--accent); }
 .agenda-col-header.has-rdv { color:var(--text); }
-.agenda-hour-label { font-size:0.65rem; color:var(--muted); text-align:right; padding-right:5px; line-height:1; display:flex; align-items:flex-start; justify-content:flex-end; border-right:1px solid var(--border); }
-.agenda-cell { border-left:1px solid var(--border); border-bottom:1px solid rgba(255,255,255,0.04); min-height:28px; position:relative; cursor:pointer; transition:background 0.1s; }
+.agenda-hour-label { font-size:0.75rem; font-weight:600; color:var(--text); text-align:right; padding-right:6px; line-height:1; display:flex; align-items:center; justify-content:flex-end; border-right:2px solid var(--border); min-height:52px; }
+.agenda-cell { border-left:1px solid var(--border); border-bottom:1px solid #e8edf8; min-height:58px; position:relative; cursor:pointer; transition:background 0.1s; }
 .agenda-cell:hover { background:rgba(245,166,35,0.07); }
 .agenda-cell.today-col { background:rgba(245,166,35,0.04); }
-.agenda-rdv-chip { position:absolute; left:1px; right:1px; border-radius:4px; padding:2px 4px; font-size:0.62rem; font-weight:700; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; z-index:2; line-height:1.3; }
-.agenda-rdv-chip.facture { background:#1a3d2b; color:#2dd4a0; border-left:2px solid #2dd4a0; }
-.agenda-rdv-chip.pending { background:#2a2010; color:#f5a623; border-left:2px solid #f5a623; }
+.agenda-rdv-chip { position:absolute; left:2px; right:2px; border-radius:5px; padding:4px 6px; font-size:0.78rem; font-weight:700; overflow:hidden; cursor:pointer; z-index:2; line-height:1.4; top:3px; }
+.agenda-rdv-chip.facture { background:#d0f5ea; color:#0a7c5c; border-left:2px solid #0a7c5c; }
+.agenda-rdv-chip.pending { background:#fff3d0; color:#7a4800; border-left:2px solid #f5a623; }
 .agenda-view-toggle { display:flex; gap:6px; margin-bottom:12px; }
 .agenda-view-toggle button { padding:5px 12px; font-size:0.78rem; }
-.rdv-info h3 { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem; margin-bottom: 4px; }
-.rdv-info p { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.rdv-info h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; color: var(--text); }
+.rdv-info p { font-size: 0.9rem; color: var(--muted); margin-top: 2px; }
 .rdv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
 @media (max-width: 500px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
-.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; }
+.stat-card { background: var(--surface); border: var(--border-w) solid var(--border); border-radius: var(--r); padding: 18px; }
 .stat-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; color: var(--accent); }
-.stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+.stat-label { font-size: 0.85rem; color: var(--text); margin-top: 4px; font-weight: 500; }
 
 .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
 .empty-icon { font-size: 3rem; margin-bottom: 12px; }
 
 .archive-table { width: 100%; border-collapse: collapse; }
-.archive-table th { font-size: 0.78rem; text-transform: uppercase; color: var(--muted); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
-.archive-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-.archive-table tr:hover td { background: var(--surface2); }
+.archive-table th { font-size: 0.85rem; text-transform: uppercase; color: var(--text); font-weight: 700; padding: 10px 14px; text-align: left; border-bottom: var(--border-w) solid var(--border); }
+.archive-table td { padding: 12px 14px; border-bottom: 1px solid #e8edf8; font-size: 0.95rem; }
+.archive-table tr:hover td { background: #f0f4fa; }
 
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
 .modal-overlay.open { display: flex; }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 740px; max-height: 90vh; overflow-y: auto; }
+.modal { background: var(--surface); border: var(--border-w) solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 740px; max-height: 90vh; overflow-y: auto; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .modal-header h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.2rem; }
-.close-btn { background: none; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; padding: 4px 8px; }
-.close-btn:hover { color: var(--text); }
+.close-btn { background: var(--surface2); border: var(--border-w) solid var(--border); border-radius: 8px; color: var(--text); font-size: 1.6rem; font-weight: 700; cursor: pointer; padding: 4px 12px; line-height: 1; }
+.close-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 .facture-wrap { background: #fff; color: #111; border-radius: var(--r); padding: 28px; font-family: 'DM Sans', sans-serif; }
 .f-header { display: flex; justify-content: space-between; margin-bottom: 24px; align-items: flex-start; }
@@ -147,16 +148,29 @@ select option { background: var(--surface2); }
 /* Boutons mode de paiement */
 .paiement-btns { display: flex; gap: 10px; margin: 16px 0 4px; flex-wrap: wrap; }
 .paiement-btn {
-  flex: 1; min-width: 90px; padding: 12px 8px;
+  flex: 1; min-width: 90px; padding: 13px 8px;
   border-radius: 10px; border: 2px solid var(--border);
   background: var(--surface2); color: var(--muted);
-  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+  font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s; text-align: center;
 }
-.paiement-btn:hover { border-color: var(--accent); color: var(--accent); }
-.paiement-btn.active { border-color: var(--accent); background: rgba(245,166,35,0.12); color: var(--accent); }
+.paiement-btn:hover { border-color: var(--accent); color: var(--accent); background: #e8edf8; }
+.paiement-btn.active { border-color: var(--accent); background: var(--accent); color: #ffffff; }
 .paiement-required { font-size: 0.78rem; color: var(--red); margin-top: 4px; display: none; }
 .f-sig { margin-top: 18px; border: 2px dashed #ddd; border-radius: 8px; padding: 10px; }
+/* Boutons actions facture */
+.facture-action-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 10px 4px; min-height: 60px;
+  background: var(--surface2); border: var(--border-w) solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 1.5rem; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+}
+.facture-action-btn span { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.facture-action-btn:hover { background: #e8edf8; border-color: var(--accent); }
+.facture-action-btn--valider { background: var(--green); border-color: #085c42; color: #fff; flex-direction: row; gap: 8px; font-size: 1.1rem; }
+.facture-action-btn--valider span { font-size: 0.95rem; color: #fff; text-transform: none; letter-spacing: 0; font-weight: 600; }
+.facture-action-btn--valider:hover { background: #085c42; }
 .f-sig p { font-size: 0.8rem; color: #888; margin-bottom: 6px; }
 #sigCanvas { border: 1px solid #ccc; border-radius: 6px; cursor: crosshair; touch-action: none; display: block; max-width: 100%; }
 
@@ -165,7 +179,7 @@ select option { background: var(--surface2); }
   display: none;
   position: fixed;
   inset: 0;
-  background: #0f1117;
+  background: var(--bg);
   z-index: 2000;
   flex-direction: column;
   align-items: stretch;
@@ -175,7 +189,7 @@ select option { background: var(--surface2); }
 
 /* Barre noire du haut */
 #sig-fs-header {
-  background: #0f1117;
+  background: var(--surface);
   padding: 14px 20px;
   display: flex;
   align-items: center;
@@ -186,7 +200,7 @@ select option { background: var(--surface2); }
   font-family: Syne, sans-serif;
   font-weight: 700;
   font-size: 1rem;
-  color: #f5a623;
+  color: var(--accent);
   margin: 0;
 }
 
@@ -255,40 +269,42 @@ select option { background: var(--surface2); }
 
 /* Cascade intervention */
 .cascade-step { margin-bottom: 10px; }
-.cascade-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: #aaa; margin-bottom: 6px; }
-.cascade-options { display: flex; flex-wrap: wrap; gap: 8px; }
-.cascade-btn { padding: 8px 14px; background: var(--bg3); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; font-size: 0.87rem; font-family: inherit; transition: all 0.15s; }
-.cascade-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(76,175,80,0.08); }
-.cascade-btn.selected { border-color: var(--accent); background: rgba(76,175,80,0.15); color: var(--accent); font-weight: 600; }
+.cascade-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text); margin-bottom: 8px; font-weight: 700; }
+.cascade-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cascade-options.single { grid-template-columns: 1fr; }
+.cascade-options .cascade-btn-full { grid-column: 1 / -1; }
+.cascade-btn { padding: 8px 14px; background: var(--surface2); border: var(--border-w) solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; font-size: 0.95rem; font-family: inherit; transition: all 0.15s; font-weight: 500; }
+.cascade-btn:hover { border-color: var(--accent); color: var(--accent); background: #e8edf8; }
+.cascade-btn.selected { border-color: var(--accent); background: var(--accent); color: #ffffff; font-weight: 700; }
 .tarif-grid-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-.tarif-grid-table th { text-align: left; padding: 8px 10px; background: var(--bg3); color: #aaa; font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+.tarif-grid-table th { text-align: left; padding: 8px 10px; background: var(--surface2); color: var(--text); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
 .tarif-grid-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
 .tarif-grid-table tr:last-child td { border-bottom: none; }
-.tarif-grid-table td:first-child { color: #ddd; }
-.tarif-grid-table input[type=number] { width: 80px; padding: 5px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; text-align: right; }
+.tarif-grid-table td:first-child { color: var(--text); }
+.tarif-grid-table input[type=number] { width: 80px; padding: 5px 8px; background: var(--surface2); border: var(--border-w) solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem; text-align: right; }
 .tarif-grid-section { margin-bottom: 22px; }
-.tarif-grid-section h4 { font-family: Syne; font-size: 0.95rem; color: var(--accent); margin: 0 0 10px 0; padding-bottom: 6px; border-bottom: 1px solid rgba(76,175,80,0.25); }
+.tarif-grid-section h4 { font-family: Syne; font-size: 1rem; color: var(--accent); margin: 0 0 10px 0; padding-bottom: 6px; border-bottom: var(--border-w) solid var(--border); font-weight: 700; }
 
-.info-box { background: #1a2a1a; border: 1px solid #2a4a2a; border-radius: 8px; padding: 12px 16px; font-size: 0.85rem; color: #aaccaa; margin-bottom: 16px; line-height: 1.6; }
+.info-box { background: #f0f4fa; border: var(--border-w) solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 0.9rem; color: var(--text); margin-bottom: 16px; line-height: 1.6; }
 
 /* ===== ARCHIVES FILTRES ===== */
 .arch-type-btn {
-  padding: 10px 20px; border-radius: 10px; border: 2px solid var(--border);
-  background: var(--surface); color: var(--muted);
-  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+  padding: 10px 20px; border-radius: 10px; border: var(--border-w) solid var(--border);
+  background: var(--surface); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s;
 }
 .arch-type-btn.active {
-  border-color: var(--accent); color: var(--accent); background: rgba(245,166,35,0.1);
+  border-color: var(--accent); background: var(--accent); color: #ffffff;
 }
 .arch-month-btn {
-  padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--border);
-  background: var(--surface); color: var(--muted);
-  font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 500;
+  padding: 8px 14px; border-radius: 8px; border: var(--border-w) solid var(--border);
+  background: var(--surface); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500;
   cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
 .arch-month-btn.active {
-  border-color: var(--accent); color: var(--accent); background: rgba(245,166,35,0.08);
+  border-color: var(--accent); background: var(--accent); color: #ffffff;
 }
 .arch-day-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -306,24 +322,34 @@ select option { background: var(--surface2); }
 }
 .arch-day-header .day-dl-btn:hover { border-color: var(--green); color: var(--green); }
 .arch-fact-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--surface); border: var(--border-w) solid var(--border); border-radius: var(--r);
   padding: 14px 16px; margin-bottom: 8px; display: flex;
   align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
-.arch-fact-card:hover { border-color: #3d4f70; }
+.arch-fact-card:hover { border-color: var(--accent); background: #f5f8ff; }
 .arch-fact-info { flex: 1; min-width: 0; }
-.arch-fact-info .fact-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.88rem; color: var(--muted); }
+.arch-fact-info .fact-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.92rem; color: var(--muted); }
 .arch-fact-info .fact-client { font-weight: 600; font-size: 0.95rem; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .arch-fact-info .fact-type { font-size: 0.8rem; color: var(--muted); }
-.arch-fact-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--accent); white-space: nowrap; }
+.arch-fact-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.15rem; color: var(--accent); white-space: nowrap; }
 .arch-fact-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .info-box a { color: var(--accent); }
 
-#save-indicator { position: fixed; top: 14px; right: 14px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; opacity: 0; transition: opacity 0.3s; z-index: 1000; pointer-events: none; }
+/* === ACCORDÉON PARAMÈTRES === */
+.param-section { background: var(--surface); border: var(--border-w) solid var(--border); border-radius: var(--r); margin-bottom: 12px; overflow: hidden; }
+.param-section-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; cursor: pointer; user-select: none; background: var(--surface2); transition: background 0.15s; }
+.param-section-header:hover { background: #e8edf8; }
+.param-section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--text); }
+.param-section-arrow { font-size: 1.1rem; color: var(--muted); transition: transform 0.25s; }
+.param-section-header.open .param-section-arrow { transform: rotate(90deg); }
+.param-section-body { padding: 20px; display: none; }
+.param-section-body.open { display: block; }
+
+#save-indicator { position: fixed; top: 14px; right: 14px; background: #ffffff; border: var(--border-w) solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; opacity: 0; transition: opacity 0.3s; z-index: 1000; pointer-events: none; }
 #save-indicator.visible { opacity: 1; }
-#toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #0f1117; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 999; pointer-events: none; }
+#toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #ffffff; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 999; pointer-events: none; border: 2px solid #085c42; }
 #toast.show { transform: translateY(0); opacity: 1; }
-#toast.err { background: var(--red); color: #fff; }
+#toast.err { background: var(--red); color: #fff; border-color: #8a0f22; }
 
 /* ===== MOBILE / IPHONE ===== */
 @media (max-width: 768px) {
@@ -344,8 +370,8 @@ select option { background: var(--surface2); }
     display: flex !important;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
+    background: #ffffff;
+    border-top: var(--border-w) solid var(--border);
     z-index: 150;
     padding: 0;
     height: 76px;
@@ -355,6 +381,7 @@ select option { background: var(--surface2); }
     flex: 1;
     background: none;
     border: none;
+    border-right: 1px solid var(--border);
     color: var(--muted);
     font-family: 'DM Sans', sans-serif;
     font-size: 0.72rem;
@@ -367,10 +394,11 @@ select option { background: var(--surface2); }
     cursor: pointer;
     padding: 10px 4px;
     transition: all 0.2s;
-    border-top: 2px solid transparent;
+    border-top: 3px solid transparent;
   }
+  #mobile-nav button:last-child { border-right: none; }
   #mobile-nav button .nav-icon { font-size: 1.6rem; line-height: 1; }
-  #mobile-nav button.active { color: var(--accent); border-top-color: var(--accent); }
+  #mobile-nav button.active { color: var(--accent); border-top-color: var(--accent); background: #f0f4fa; font-weight: 700; }
 
   main {
     padding: 16px 12px 96px 12px; /* espace pour nav bas */
@@ -388,15 +416,13 @@ select option { background: var(--surface2); }
     margin-bottom: 20px;
   }
   .stat-card { padding: 14px 12px; }
-  .stat-val { font-size: 1.4rem; }
-  .stat-label { font-size: 0.72rem; }
+  .stat-val { font-size: 1.5rem; }
+  .stat-label { font-size: 0.8rem; }
 
   /* Cards RDV plus compactes et touch-friendly */
   .card { padding: 14px; margin-bottom: 10px; }
   .rdv-card { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .agenda-week { overflow-x: auto; display: block; }
-  #agenda-week-grid { display: grid; grid-template-columns: 44px repeat(7, minmax(90px,1fr)); min-width: 680px; }
-  .agenda-rdv-chip { font-size: 0.58rem; }
+  .agenda-rdv-chip { font-size: 0.72rem; }
   .rdv-actions {
     width: 100%;
     display: flex;
@@ -407,7 +433,7 @@ select option { background: var(--surface2); }
 
   /* Boutons plus grands pour le touch */
   .btn { min-height: 40px; }
-  .btn-sm { min-height: 36px; padding: 6px 10px; }
+  .btn-sm { min-height: 40px; padding: 7px 12px; font-size: 0.88rem; }
 
   /* Archives : on cache le tableau et on affiche des cards */
   .archive-table { display: none; }
@@ -437,7 +463,7 @@ select option { background: var(--surface2); }
   /* Formulaires pleine largeur */
   .form-grid { grid-template-columns: 1fr; gap: 12px; }
   .form-group.full { grid-column: 1; }
-  input, select, textarea { font-size: 1rem; padding: 12px 14px; } /* évite le zoom iOS */
+  input, select, textarea { font-size: 1.05rem; padding: 13px 14px; } /* évite le zoom iOS */
 
   /* Facture dans la modale */
   .facture-wrap { padding: 16px 12px; }
@@ -456,7 +482,7 @@ select option { background: var(--surface2); }
   #toast { left: 16px; right: 16px; bottom: 76px; text-align: center; }
 
   /* Cascade buttons plus grands */
-  .cascade-btn { padding: 10px 16px; font-size: 0.9rem; min-height: 40px; }
+  .cascade-btn { padding: 14px 10px; font-size: 0.95rem; min-height: 52px; text-align: center; justify-content: center; }
 }
 
 @media (min-width: 769px) {
@@ -514,10 +540,10 @@ select option { background: var(--surface2); }
     <!-- VUE AGENDA -->
     <div id="vue-agenda">
       <div class="agenda-nav">
-        <button class="btn btn-ghost btn-sm" onclick="agendaNavSemaine(-1)">‹</button>
-        <h3 id="agenda-titre"></h3>
-        <button class="btn btn-ghost btn-sm" onclick="agendaNavSemaine(0)" title="Aujourd'hui">●</button>
-        <button class="btn btn-ghost btn-sm" onclick="agendaNavSemaine(1)">›</button>
+        <button class="btn btn-ghost btn-sm" onclick="agendaNavBloc(-1)" style="font-size:1.2rem;padding:6px 16px">‹</button>
+        <h3 id="agenda-titre" style="font-size:0.9rem"></h3>
+        <button class="btn btn-ghost btn-sm" onclick="agendaNavBloc(0)" title="Aujourd'hui" style="font-size:0.8rem">Auj.</button>
+        <button class="btn btn-ghost btn-sm" onclick="agendaNavBloc(1)" style="font-size:1.2rem;padding:6px 16px">›</button>
       </div>
       <div id="agenda-grid"></div>
     </div>
@@ -562,64 +588,109 @@ select option { background: var(--surface2); }
       <h2>Paramètres</h2>
       <button class="btn btn-primary" onclick="saveSettings()">💾 Enregistrer</button>
     </div>
-    <div class="card">
-      <h3 style="font-family:Syne;margin-bottom:16px">Informations société</h3>
-      <div class="form-grid">
-        <div class="form-group"><label>Nom / Raison sociale</label><input id="s-nom" type="text" placeholder="Mon Entreprise"></div>
-        <div class="form-group"><label>SIRET</label><input id="s-siret" type="text" placeholder="123 456 789 00012"></div>
-        <div class="form-group"><label>Adresse</label><input id="s-adresse" type="text" placeholder="12 rue des Fleurs"></div>
-        <div class="form-group"><label>Ville / Code postal</label><input id="s-ville" type="text" placeholder="31000 Toulouse"></div>
-        <div class="form-group"><label>Téléphone</label><input id="s-tel" type="text" placeholder="06 00 00 00 00"></div>
-        <div class="form-group"><label>Email professionnel</label><input id="s-email" type="email" placeholder="contact@monentreprise.fr"></div>
-        <div class="form-group full"><label>Mention légale facture</label><input id="s-mention" type="text" placeholder="TVA non applicable, art. 293B du CGI"></div>
+
+    <!-- 1. Informations société (ouvert par défaut) -->
+    <div class="param-section">
+      <div class="param-section-header open" id="ps-header-societe" onclick="toggleParamSection('societe')">
+        <span class="param-section-title">🏢 Informations société</span>
+        <span class="param-section-arrow">›</span>
+      </div>
+      <div class="param-section-body open" id="ps-body-societe">
+        <div class="form-grid">
+          <div class="form-group"><label>Nom / Raison sociale</label><input id="s-nom" type="text" placeholder="Mon Entreprise"></div>
+          <div class="form-group"><label>SIRET</label><input id="s-siret" type="text" placeholder="123 456 789 00012"></div>
+          <div class="form-group"><label>Adresse</label><input id="s-adresse" type="text" placeholder="12 rue des Fleurs"></div>
+          <div class="form-group"><label>Ville / Code postal</label><input id="s-ville" type="text" placeholder="31000 Toulouse"></div>
+          <div class="form-group"><label>Téléphone</label><input id="s-tel" type="text" placeholder="06 00 00 00 00"></div>
+          <div class="form-group"><label>Email professionnel</label><input id="s-email" type="email" placeholder="contact@monentreprise.fr"></div>
+          <div class="form-group full"><label>Mention légale facture</label><input id="s-mention" type="text" placeholder="TVA non applicable, art. 293B du CGI"></div>
+        </div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:16px">
-      <h3 style="font-family:Syne;margin-bottom:8px">Envoi automatique par mail (EmailJS)</h3>
-      <div class="info-box">
-        Service gratuit jusqu'à 200 mails/mois. <a href="https://www.emailjs.com/" target="_blank">Créez un compte sur emailjs.com</a> puis collez vos 3 clés ci-dessous.<br>
-        Variables à utiliser dans votre template EmailJS : <strong>{{to_name}}</strong>, <strong>{{facture_num}}</strong>, <strong>{{intervention}}</strong>, <strong>{{montant}}</strong>, <strong>{{facture_date}}</strong>, <strong>{{from_name}}</strong>, <strong>{{contact_tel}}</strong>
+    <!-- 2. Aides frelon asiatique -->
+    <div class="param-section">
+      <div class="param-section-header" id="ps-header-aides" onclick="toggleParamSection('aides')">
+        <span class="param-section-title">🐝 Aides frelon asiatique</span>
+        <span class="param-section-arrow">›</span>
       </div>
-      <div class="form-grid">
-        <div class="form-group"><label>Public Key</label><input id="s-ejs-pub" type="text" placeholder="xxxxxxxxxxxxxxx"></div>
-        <div class="form-group"><label>Service ID</label><input id="s-ejs-svc" type="text" placeholder="service_xxxxxxx"></div>
-        <div class="form-group full"><label>Template ID</label><input id="s-ejs-tpl" type="text" placeholder="template_xxxxxxx"></div>
+      <div class="param-section-body" id="ps-body-aides">
+        <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Taux de prise en charge par organisme (en %). Par défaut : 30 %.</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Aide Département (%)</label><input id="s-aide-depart-pct" type="number" min="0" max="100" step="1" placeholder="30"></div>
+          <div class="form-group"><label>Aide Seine Métropole (%)</label><input id="s-aide-seine-pct" type="number" min="0" max="100" step="1" placeholder="30"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Bons de commande -->
+    <div class="param-section">
+      <div class="param-section-header" id="ps-header-bdc" onclick="toggleParamSection('bdc')">
+        <span class="param-section-title">📋 Bons de commande</span>
+        <span class="param-section-arrow">›</span>
+      </div>
+      <div class="param-section-body" id="ps-body-bdc">
+        <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Ces numéros apparaîtront sur la facture sous le numéro de facture.</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Bon de commande — Montivilliers</label><input id="s-bdc-montivilliers" type="text" placeholder="N° BC Montivilliers..."></div>
+          <div class="form-group"><label>Bon de commande — Gonfreville</label><input id="s-bdc-gonfreville" type="text" placeholder="N° BC Gonfreville..."></div>
+        </div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:16px">
-      <h3 style="font-family:Syne;margin-bottom:8px">📸 Photos des interventions (Cloudinary)</h3>
-      <div class="info-box">Créez un compte gratuit sur <strong>cloudinary.com</strong>, puis créez un <strong>Upload Preset</strong> non signé. Renseignez votre <strong>Cloud Name</strong> et le nom du preset ci-dessous.</div>
-      <div class="form-grid">
-        <div class="form-group"><label>Cloud Name</label><input id="s-cloudinary-cloud" type="text" placeholder="mon-cloud-name"></div>
-        <div class="form-group"><label>Upload Preset</label><input id="s-cloudinary-preset" type="text" placeholder="unsigned_preset"></div>
-
-      <h3 style="margin:20px 0 10px;font-size:1rem;color:var(--accent)">📋 Bons de commande</h3>
-      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">Ces bons de commande apparaîtront sur la facture sous le numéro.</div>
-      <div class="form-group"><label>Bon de commande — Montivilliers</label><input id="s-bdc-montivilliers" type="text" placeholder="N° BC Montivilliers..."></div>
-      <div class="form-group"><label>Bon de commande — Gonfreville</label><input id="s-bdc-gonfreville" type="text" placeholder="N° BC Gonfreville..."></div>
-
-      <h3 style="margin:20px 0 10px;font-size:1rem;color:var(--accent)">🐝 Aides frelon asiatique</h3>
-      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">Taux de prise en charge par organisme (en %). Par défaut : 30 %.</div>
-      <div class="form-group"><label>Aide Département (%)</label><input id="s-aide-depart-pct" type="number" min="0" max="100" step="1" placeholder="30"></div>
-      <div class="form-group"><label>Aide Seine Métropole (%)</label><input id="s-aide-seine-pct" type="number" min="0" max="100" step="1" placeholder="30"></div>
+    <!-- 4. Grille tarifaire -->
+    <div class="param-section">
+      <div class="param-section-header" id="ps-header-tarifs" onclick="toggleParamSection('tarifs')">
+        <span class="param-section-title">💰 Grille tarifaire</span>
+        <span class="param-section-arrow">›</span>
+      </div>
+      <div class="param-section-body" id="ps-body-tarifs">
+        <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Prix en € HT selon l'insecte et l'emplacement. Ces prix s'appliquent automatiquement.</p>
+        <div id="tarif-grid-container"></div>
       </div>
     </div>
-    <div class="card" style="margin-top:16px;display:none">
+
+    <!-- 5. API (mail + photos) -->
+    <div class="param-section">
+      <div class="param-section-header" id="ps-header-api" onclick="toggleParamSection('api')">
+        <span class="param-section-title">🔌 API (photos &amp; mail)</span>
+        <span class="param-section-arrow">›</span>
+      </div>
+      <div class="param-section-body" id="ps-body-api">
+        <h4 style="font-family:Syne;font-size:0.95rem;margin:0 0 10px;color:var(--text)">📧 Envoi automatique par mail (EmailJS)</h4>
+        <div class="info-box">
+          Service gratuit jusqu'à 200 mails/mois. <a href="https://www.emailjs.com/" target="_blank">Créez un compte sur emailjs.com</a> puis collez vos 3 clés ci-dessous.<br>
+          Variables EmailJS : <strong>{{to_name}}</strong>, <strong>{{facture_num}}</strong>, <strong>{{intervention}}</strong>, <strong>{{montant}}</strong>, <strong>{{facture_date}}</strong>, <strong>{{from_name}}</strong>, <strong>{{contact_tel}}</strong>
+        </div>
+        <div class="form-grid" style="margin-bottom:20px">
+          <div class="form-group"><label>Public Key</label><input id="s-ejs-pub" type="text" placeholder="xxxxxxxxxxxxxxx"></div>
+          <div class="form-group"><label>Service ID</label><input id="s-ejs-svc" type="text" placeholder="service_xxxxxxx"></div>
+          <div class="form-group full"><label>Template ID</label><input id="s-ejs-tpl" type="text" placeholder="template_xxxxxxx"></div>
+        </div>
+        <h4 style="font-family:Syne;font-size:0.95rem;margin:0 0 10px;color:var(--text)">📸 Photos des interventions (Cloudinary)</h4>
+        <div class="info-box">Créez un compte gratuit sur <strong>cloudinary.com</strong>, puis créez un <strong>Upload Preset</strong> non signé. Renseignez votre <strong>Cloud Name</strong> et le nom du preset ci-dessous.</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Cloud Name</label><input id="s-cloudinary-cloud" type="text" placeholder="mon-cloud-name"></div>
+          <div class="form-group"><label>Upload Preset</label><input id="s-cloudinary-preset" type="text" placeholder="unsigned_preset"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Sauvegarde & export -->
+    <div class="param-section">
+      <div class="param-section-header" id="ps-header-backup" onclick="toggleParamSection('backup')">
+        <span class="param-section-title">💾 Sauvegarde &amp; export</span>
+        <span class="param-section-arrow">›</span>
+      </div>
+      <div class="param-section-body" id="ps-body-backup">
+        <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Téléchargez une copie de toutes vos données (RDV, factures, paramètres) au format JSON.</p>
+        <button class="btn btn-ghost" onclick="exporterDonnees()">⬇️ Exporter mes données (JSON)</button>
+      </div>
+    </div>
+
+    <div style="display:none">
       <input type="hidden" id="s-sb-url">
       <input type="hidden" id="s-sb-key">
-    </div>
-    <div class="card" style="margin-top:16px">
-      <h3 style="font-family:Syne;margin-bottom:4px">💰 Grille tarifaire</h3>
-      <p style="font-size:0.83rem;color:#aaa;margin:0 0 14px 0">Prix en € HT selon l'insecte et l'emplacement du nid. Ces prix s'appliquent automatiquement lors de la sélection.</p>
-      <div id="tarif-grid-container"></div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <h3 style="font-family:Syne;margin-bottom:8px">💾 Sauvegarde &amp; export</h3>
-      <p style="font-size:0.83rem;color:#aaa;margin:0 0 14px 0">Téléchargez une copie de toutes vos données (RDV, factures, paramètres) au format JSON.</p>
-      <button class="btn btn-ghost" onclick="exporterDonnees()">⬇️ Exporter mes données (JSON)</button>
     </div>
   </div>
 
@@ -650,6 +721,8 @@ select option { background: var(--surface2); }
       <h3 id="rdv-modal-title">Nouveau rendez-vous</h3>
       <button class="close-btn" onclick="closeModal('modal-rdv')">✕</button>
     </div>
+    <!-- Mini agenda dans la modale -->
+    <div id="rdv-modal-agenda" style="margin-bottom:18px"></div>
     <div class="form-grid">
       <div class="form-group"><label>Nom du client *</label><input id="r-nom" type="text" placeholder="Jean Dupont"></div>
       <div class="form-group"><label>Téléphone *</label><input id="r-tel" type="tel" placeholder="06 00 00 00 00"></div>
@@ -771,12 +844,13 @@ select option { background: var(--surface2); }
       </div>
       <div class="paiement-required" id="paiement-required">⚠️ Veuillez choisir un mode de paiement avant de valider</div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="closeModal('modal-facture')">Fermer</button>
-      <button class="btn btn-ghost" onclick="printFacture()">🖨️ Imprimer / PDF</button>
-      <button id="btn-sms" class="btn btn-ghost" style="display:none" onclick="smsCurrent()">📲 SMS</button>
-      <button id="btn-mail" class="btn btn-ghost" style="display:none" onclick="sendMailCurrent()">📧 Mail</button>
-      <button id="btn-valider" class="btn btn-success" style="display:none" onclick="validerFacture()">✓ Valider et archiver</button>
+    <div class="facture-action-bar" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:18px">
+      <button class="facture-action-btn" onclick="closeModal('modal-facture')">✕<span>Fermer</span></button>
+      <button class="facture-action-btn" onclick="voirFactureCourante()">👁<span>Voir</span></button>
+      <button class="facture-action-btn" onclick="printFacture()">🖨️<span>Impr.</span></button>
+      <button id="btn-sms" class="facture-action-btn" style="display:none" onclick="smsCurrent()">📲<span>SMS</span></button>
+      <button id="btn-mail" class="facture-action-btn" style="display:none" onclick="sendMailCurrent()">📧<span>Mail</span></button>
+      <button id="btn-valider" class="facture-action-btn facture-action-btn--valider" style="display:none;grid-column:1/-1" onclick="validerFacture()">✓<span>Valider et archiver</span></button>
     </div>
   </div>
 </div>
@@ -817,7 +891,7 @@ select option { background: var(--surface2); }
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px">
       <div id="login-error" style="display:none;background:rgba(255,77,109,0.12);border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:0.85rem;margin-bottom:16px"></div>
       <div id="login-mode-tabs" style="display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-        <button onclick="switchLoginMode('login')" id="tab-login" style="flex:1;padding:10px;border:none;background:var(--accent);color:#0f1117;font-family:DM Sans;font-weight:600;font-size:0.9rem;cursor:pointer">Connexion</button>
+        <button onclick="switchLoginMode('login')" id="tab-login" style="flex:1;padding:10px;border:none;background:var(--accent);color:#ffffff;font-family:DM Sans;font-weight:600;font-size:0.9rem;cursor:pointer">Connexion</button>
         <button onclick="switchLoginMode('signup')" id="tab-signup" style="flex:1;padding:10px;border:none;background:transparent;color:var(--muted);font-family:DM Sans;font-weight:500;font-size:0.9rem;cursor:pointer">Créer un compte</button>
       </div>
       <div class="form-group" style="margin-bottom:14px">
@@ -931,7 +1005,8 @@ var editingId = null;
 var currentRdvId = null;
 var currentFactureId = null;
 var archiveType = 'Particulier';
-var agendaWeekOffset = 0; // semaine courante = 0, -1 = semaine précédente…
+var agendaWeekOffset = 0; // non utilisé directement, conservé pour compat
+var agendaBlockOffset = 0; // bloc courant : 0=Lun-Mer de la semaine courante, 1=Jeu-Sam, 2=Lun-Mer semaine+1…
 var vueRdv = 'agenda'; // 'agenda' | 'liste'
 var AGENDA_HEURES = [7,8,9,10,11,12,13,14,15,16,17,18,19,20]; // plages horaires affichées
 var archiveMonth = null;
@@ -1000,10 +1075,24 @@ function goTo(page) {
   if (page === 'rdvs') {
     var f = document.getElementById('rdv-filter-date');
     if (f) f.value = '';
+    agendaBlockOffset = agendaGetCurrentBlockOffset();
     setVueRdv(vueRdv); // déclenche agenda ou liste selon l'état courant
+    // Appliquer la grille cascade aux options statiques
+    ['opts-client','opts-emplacement','opts-hauteur'].forEach(applyCascadeGrid);
   }
   if (page === 'archives') renderArchives();
   if (page === 'settings') renderSettings();
+}
+
+function voirFactureCourante() {
+  if (currentFactureId) {
+    // Facture déjà archivée — télécharger
+    var f = findById(factures, currentFactureId);
+    if (f) downloadFacture(f);
+  } else {
+    // Nouvelle facture — ouvrir impression (inclut le PDF)
+    printFacture();
+  }
 }
 
 function closeModal(id) {
@@ -1049,15 +1138,64 @@ function setVueRdv(vue) {
   else renderRdvs();
 }
 
-function agendaNavSemaine(delta) {
-  if (delta === 0) { agendaWeekOffset = 0; }
-  else { agendaWeekOffset += delta; }
+function agendaNavBloc(delta) {
+  if (delta === 0) {
+    // Revenir au bloc contenant aujourd'hui
+    agendaBlockOffset = agendaGetCurrentBlockOffset();
+  } else {
+    agendaBlockOffset += delta;
+  }
   renderAgenda();
 }
 
+// Calcule l'offset du bloc contenant aujourd'hui (0=Lun-Mer cette semaine, 1=Jeu-Sam, …)
+function agendaGetCurrentBlockOffset() {
+  var today = new Date();
+  var day = today.getDay(); // 0=dim,1=lun…6=sam
+  var diffToMonday = (day === 0) ? -6 : 1 - day;
+  var monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+  // Bloc 0 = lundi de cette semaine (Lun-Mer), bloc 1 = jeudi (Jeu-Sam)
+  // On cherche l'offset depuis le lundi de la semaine 0
+  var refMonday = agendaRefMonday();
+  var diffDays = Math.round((monday - refMonday) / 86400000);
+  var weekIdx = Math.floor(diffDays / 7);
+  var bloc = weekIdx * 2 + (day >= 4 && day <= 6 ? 1 : 0); // si jeu-sam, bloc impair
+  return bloc;
+}
+
+// Lundi de référence absolu (lundi de la semaine courante au démarrage)
+var _refMonday = null;
+function agendaRefMonday() {
+  if (!_refMonday) {
+    var d = new Date();
+    var day = d.getDay();
+    var diff = (day === 0) ? -6 : 1 - day;
+    _refMonday = new Date(d);
+    _refMonday.setDate(d.getDate() + diff);
+    _refMonday.setHours(0, 0, 0, 0);
+  }
+  return _refMonday;
+}
+
+// Retourne le 1er jour du bloc (offset en blocs de 3j à partir du lundi de référence)
+function agendaFirstDayOfBlock(blockOffset) {
+  var ref = agendaRefMonday();
+  // Chaque semaine = 2 blocs : bloc pair = Lun(+0), bloc impair = Jeu(+3)
+  var weekIdx = Math.floor(blockOffset / 2);
+  var isSecondHalf = (blockOffset % 2 + 2) % 2 === 1; // true si Jeu-Sam
+  var dayOffset = weekIdx * 7 + (isSecondHalf ? 3 : 0);
+  var d = new Date(ref);
+  d.setDate(ref.getDate() + dayOffset);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 function agendaLundiSemaine(offset) {
+  // Compatibilité — non utilisé directement
   var d = new Date();
-  var day = d.getDay(); // 0=dim,1=lun…6=sam
+  var day = d.getDay();
   var diffToMonday = (day === 0) ? -6 : 1 - day;
   d.setDate(d.getDate() + diffToMonday + offset * 7);
   d.setHours(0, 0, 0, 0);
@@ -1071,17 +1209,20 @@ function dateToStr(d) {
 }
 
 function renderAgenda() {
-  var JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  var JOURS_LONG = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  var JOURS_COURT = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
   var MOIS  = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
-  var lundi = agendaLundiSemaine(agendaWeekOffset);
-  var dimanche = new Date(lundi); dimanche.setDate(lundi.getDate() + 6);
+  var NB_JOURS = 3;
+
+  var firstDay = agendaFirstDayOfBlock(agendaBlockOffset);
   var todayStr = dateToStr(new Date());
 
-  // Titre semaine
+  // Titre du bloc
   var titreEl = document.getElementById('agenda-titre');
   if (titreEl) {
-    var debut = lundi.getDate() + ' ' + MOIS[lundi.getMonth()];
-    var fin   = dimanche.getDate() + ' ' + MOIS[dimanche.getMonth()] + ' ' + dimanche.getFullYear();
+    var lastDay = new Date(firstDay); lastDay.setDate(firstDay.getDate() + NB_JOURS - 1);
+    var debut = JOURS_LONG[firstDay.getDay()] + ' ' + firstDay.getDate() + ' ' + MOIS[firstDay.getMonth()];
+    var fin   = JOURS_LONG[lastDay.getDay()] + ' ' + lastDay.getDate() + ' ' + MOIS[lastDay.getMonth()] + ' ' + lastDay.getFullYear();
     titreEl.textContent = debut + ' – ' + fin;
   }
 
@@ -1095,45 +1236,53 @@ function renderAgenda() {
 
   // Construction grille
   var h = '';
-  // Ligne en-tête
   h += '<div class="agenda-week" id="agenda-week-grid">';
-  h += '<div class="agenda-col-header" style="cursor:default"></div>'; // coin
-  for (var i = 0; i < 7; i++) {
-    var d = new Date(lundi); d.setDate(lundi.getDate() + i);
+
+  // En-tête : coin vide + 3 colonnes jours
+  h += '<div class="agenda-col-header" style="cursor:default;background:var(--surface2)"></div>';
+  for (var i = 0; i < NB_JOURS; i++) {
+    var d = new Date(firstDay); d.setDate(firstDay.getDate() + i);
     var ds = dateToStr(d);
     var cls = 'agenda-col-header';
     if (ds === todayStr) cls += ' today';
     if (rdvByDate[ds] && rdvByDate[ds].length) cls += ' has-rdv';
-    var rdvCount = (rdvByDate[ds] && rdvByDate[ds].length) ? '<span style="display:block;font-size:0.65rem;color:var(--accent)">' + rdvByDate[ds].length + ' RDV</span>' : '';
-    h += '<div class="' + cls + '" onclick="agendaClickDay(\'' + ds + '\')">' + JOURS[i] + '<br>' + d.getDate() + '/' + (d.getMonth()+1) + rdvCount + '</div>';
+    var rdvCount = (rdvByDate[ds] && rdvByDate[ds].length)
+      ? '<span style="display:block;font-size:0.72rem;color:var(--accent);font-weight:700">' + rdvByDate[ds].length + ' RDV</span>'
+      : '';
+    h += '<div class="' + cls + '" onclick="agendaClickDay(\'' + ds + '\')">'
+      + '<span style="font-size:0.8rem">' + JOURS_COURT[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1) + '</span>'
+      + rdvCount
+      + '</div>';
   }
 
   // Lignes heures
   AGENDA_HEURES.forEach(function(heure) {
-    // Label heure
-    h += '<div class="agenda-hour-label" style="grid-row:auto">' + heure + 'h</div>';
-    for (var i = 0; i < 7; i++) {
-      var d = new Date(lundi); d.setDate(lundi.getDate() + i);
+    h += '<div class="agenda-hour-label">' + heure + 'h</div>';
+    for (var i = 0; i < NB_JOURS; i++) {
+      var d = new Date(firstDay); d.setDate(firstDay.getDate() + i);
       var ds = dateToStr(d);
       var cellCls = 'agenda-cell' + (ds === todayStr ? ' today-col' : '');
-      // RDV dans ce créneau
       var chips = '';
       if (rdvByDate[ds]) {
         rdvByDate[ds].forEach(function(r) {
           var rh = parseInt((r.heure || '').split(':')[0], 10);
           if (rh === heure) {
             var chipCls = 'agenda-rdv-chip ' + (r.factureId ? 'facture' : 'pending');
-            var label = escHtml(r.nom) + (r.heure ? ' ' + r.heure : '');
-            chips += '<div class="' + chipCls + '" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')" title="' + escHtml(r.nom) + ' — ' + escHtml(r.type||'') + '">' + label + '</div>';
+            var ville = extraireVille(r.adresse);
+            var label = escHtml(r.nom) + (r.heure ? ' <strong>' + r.heure + '</strong>' : '')
+              + (ville ? '<br><span style="font-size:0.68rem;font-weight:500;opacity:0.85">' + escHtml(ville) + '</span>' : '');
+            chips += '<div class="' + chipCls + '" style="white-space:normal" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')" title="' + escHtml(r.nom) + ' — ' + escHtml(ville) + '">' + label + '</div>';
           }
         });
       }
-      // RDV sans heure : affichés dans la première cellule (7h) comme pastilles
+      // RDV sans heure : dans la première ligne
       if (heure === AGENDA_HEURES[0] && rdvByDate[ds]) {
         rdvByDate[ds].forEach(function(r) {
           if (!r.heure) {
             var chipCls = 'agenda-rdv-chip ' + (r.factureId ? 'facture' : 'pending');
-            chips += '<div class="' + chipCls + '" style="opacity:0.7" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')" title="Heure non définie — ' + escHtml(r.nom) + '">? ' + escHtml(r.nom) + '</div>';
+            var villeNH = extraireVille(r.adresse);
+            chips += '<div class="' + chipCls + '" style="opacity:0.75;white-space:normal" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')" title="Heure non définie — ' + escHtml(r.nom) + '">? ' + escHtml(r.nom)
+              + (villeNH ? '<br><span style="font-size:0.68rem;font-weight:500">' + escHtml(villeNH) + '</span>' : '') + '</div>';
           }
         });
       }
@@ -1146,15 +1295,101 @@ function renderAgenda() {
 }
 
 function agendaClickDay(dateStr) {
-  // Ouvre un nouveau RDV pré-rempli avec cette date
   openNewRdv();
+  var el = document.getElementById('r-date');
+  if (el) el.value = dateStr;
+  renderMiniAgenda();
+}
+
+function agendaClickCell(dateStr, heure) {
+  openNewRdv();
+  var el = document.getElementById('r-date');
+  if (el) el.value = dateStr;
+  var heureStr = String(heure).padStart(2, '0') + ':00';
+  setTimePickerValue(heureStr);
+  renderMiniAgenda();
+}
+
+// Mini agenda identique à renderAgenda mais injecté dans la modale RDV
+// Navigation indépendante via agendaBlockOffset (partagé)
+function renderMiniAgenda() {
+  var container = document.getElementById('rdv-modal-agenda');
+  if (!container) return;
+
+  var JOURS_COURT = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  var MOIS = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+  var NB_JOURS = 3;
+  var firstDay = agendaFirstDayOfBlock(agendaBlockOffset);
+  var todayStr = dateToStr(new Date());
+
+  var lastDay = new Date(firstDay); lastDay.setDate(firstDay.getDate() + NB_JOURS - 1);
+  var titre = JOURS_COURT[firstDay.getDay()] + ' ' + firstDay.getDate() + '/' + (firstDay.getMonth()+1)
+            + ' – ' + JOURS_COURT[lastDay.getDay()] + ' ' + lastDay.getDate() + '/' + (lastDay.getMonth()+1) + ' ' + lastDay.getFullYear();
+
+  var rdvByDate = {};
+  rdvs.forEach(function(r) {
+    if (!r.date) return;
+    if (!rdvByDate[r.date]) rdvByDate[r.date] = [];
+    rdvByDate[r.date].push(r);
+  });
+
+  var h = '<div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">'
+    + '<button onclick="agendaNavBloc(-1);renderMiniAgenda()" class="btn btn-ghost btn-sm" style="padding:4px 12px;font-size:1rem">‹</button>'
+    + '<span style="flex:1;text-align:center;font-size:0.82rem;font-weight:700;color:var(--text)">' + titre + '</span>'
+    + '<button onclick="agendaNavBloc(0);renderMiniAgenda()" class="btn btn-ghost btn-sm" style="font-size:0.75rem">Auj.</button>'
+    + '<button onclick="agendaNavBloc(1);renderMiniAgenda()" class="btn btn-ghost btn-sm" style="padding:4px 12px;font-size:1rem">›</button>'
+    + '</div>';
+
+  h += '<div style="display:grid;grid-template-columns:36px repeat(3,1fr);border:2px solid var(--border);border-radius:10px;overflow:hidden">';
+  // En-têtes
+  h += '<div style="background:var(--surface2);border-bottom:2px solid var(--border)"></div>';
+  for (var i = 0; i < NB_JOURS; i++) {
+    var d = new Date(firstDay); d.setDate(firstDay.getDate() + i);
+    var ds = dateToStr(d);
+    var isToday = ds === todayStr;
+    var nb = rdvByDate[ds] ? rdvByDate[ds].length : 0;
+    h += '<div style="background:' + (isToday ? '#e8edf8' : 'var(--surface2)') + ';border-bottom:2px solid var(--border);border-left:1px solid var(--border);padding:7px 3px;text-align:center;cursor:pointer;font-size:0.8rem;font-weight:700;color:' + (isToday ? 'var(--accent)' : 'var(--text)') + '" onclick="miniAgendaClickDay(\'' + ds + '\')"><span>' + JOURS_COURT[d.getDay()] + ' ' + d.getDate() + '</span>' + (nb ? '<br><span style="font-size:0.68rem;color:var(--accent)">' + nb + ' RDV</span>' : '') + '</div>';
+  }
+  // Lignes heures (plus compactes : min-height 38px)
+  AGENDA_HEURES.forEach(function(heure) {
+    h += '<div style="font-size:0.72rem;font-weight:600;color:var(--muted);text-align:right;padding-right:4px;display:flex;align-items:center;justify-content:flex-end;min-height:38px;border-right:2px solid var(--border);border-bottom:1px solid #e8edf8">' + heure + 'h</div>';
+    for (var i = 0; i < NB_JOURS; i++) {
+      var d = new Date(firstDay); d.setDate(firstDay.getDate() + i);
+      var ds = dateToStr(d);
+      var isToday = ds === todayStr;
+      var chips = '';
+      if (rdvByDate[ds]) {
+        rdvByDate[ds].forEach(function(r) {
+          var rh = parseInt((r.heure || '').split(':')[0], 10);
+          if (rh === heure) {
+            var col = r.factureId ? '#d0f5ea' : '#fff3d0';
+            var colTxt = r.factureId ? '#0a7c5c' : '#7a4800';
+            var villeM = extraireVille(r.adresse);
+            chips += '<div style="background:' + col + ';color:' + colTxt + ';border-radius:4px;padding:2px 4px;font-size:0.7rem;font-weight:700;white-space:normal;margin:1px;cursor:pointer" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')"><span style="font-size:0.65rem">' + r.heure + '</span> ' + escHtml(r.nom) + (villeM ? '<br><span style="font-size:0.63rem;font-weight:500;opacity:0.85">' + escHtml(villeM) + '</span>' : '') + '</div>';
+          }
+        });
+      }
+      if (heure === AGENDA_HEURES[0] && rdvByDate[ds]) {
+        rdvByDate[ds].forEach(function(r) {
+          if (!r.heure) {
+            var villeMNH = extraireVille(r.adresse);
+            chips += '<div style="background:#fff3d0;color:#7a4800;border-radius:4px;padding:2px 4px;font-size:0.7rem;opacity:0.75;white-space:normal;margin:1px;cursor:pointer" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')">? ' + escHtml(r.nom) + (villeMNH ? '<br><span style="font-size:0.63rem;font-weight:500">' + escHtml(villeMNH) + '</span>' : '') + '</div>';
+          }
+        });
+      }
+      h += '<div style="border-left:1px solid var(--border);border-bottom:1px solid #e8edf8;min-height:38px;position:relative;cursor:pointer;background:' + (isToday ? '#f5f8ff' : 'transparent') + '" onclick="miniAgendaClickCell(\'' + ds + '\',' + heure + ')">' + chips + '</div>';
+    }
+  });
+  h += '</div>';
+  container.innerHTML = h;
+}
+
+function miniAgendaClickDay(dateStr) {
   var el = document.getElementById('r-date');
   if (el) el.value = dateStr;
 }
 
-function agendaClickCell(dateStr, heure) {
-  // Ouvre un nouveau RDV pré-rempli avec date + heure
-  openNewRdv();
+function miniAgendaClickCell(dateStr, heure) {
   var el = document.getElementById('r-date');
   if (el) el.value = dateStr;
   var heureStr = String(heure).padStart(2, '0') + ':00';
@@ -1228,7 +1463,9 @@ function openNewRdv() {
   document.getElementById('maps-link').style.display = 'none';
   resetCascade();
   initTimePicker();
+  ['opts-client','opts-emplacement','opts-hauteur'].forEach(applyCascadeGrid);
   document.getElementById('modal-rdv').classList.add('open');
+  renderMiniAgenda();
 }
 
 function editRdv(id) {
@@ -1248,10 +1485,33 @@ function editRdv(id) {
   updateMapsLink();
   initTimePicker();
   document.getElementById('modal-rdv').classList.add('open');
+  renderMiniAgenda();
 }
 
 // ---- CASCADE INTERVENTION ----
 var _cascade = { client: null, insecte: null, insecteLabel: null, emplacement: null, emplacementLabel: null };
+
+function extraireVille(adresse) {
+  if (!adresse) return '';
+  var parts = adresse.split(',');
+  return parts[parts.length - 1].trim();
+}
+
+function applyCascadeGrid(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  var btns = container.querySelectorAll('.cascade-btn');
+  var nb = btns.length;
+  btns.forEach(function(b) { b.classList.remove('cascade-btn-full'); });
+  if (nb % 2 !== 0 && nb > 1) {
+    btns[btns.length - 1].classList.add('cascade-btn-full');
+  }
+  if (nb === 1) {
+    container.classList.add('single');
+  } else {
+    container.classList.remove('single');
+  }
+}
 
 function resetCascade() {
   _cascade = { client: null, insecte: null, insecteLabel: null, emplacement: null, emplacementLabel: null };
@@ -1284,6 +1544,8 @@ function selectClient(val) {
     return '<button type="button" class="cascade-btn" data-id="' + ins.id + '" onclick="selectInsecte(\'' + ins.id + '\',\'' + ins.label.replace(/'/g,"\\'") + '\')">' + icon + ' ' + ins.label + '</button>';
   }).join('');
   document.getElementById('step-insecte').style.display = '';
+  applyCascadeGrid('opts-insecte');
+  applyCascadeGrid('opts-client');
   document.getElementById('r-client-type').value = val;
   // Afficher/masquer bloc mairie
   updateBlocMairie();
@@ -2148,11 +2410,51 @@ function printFacture() {
   var content = document.getElementById('facture-content').innerHTML;
   var w = window.open('', '_blank');
   if (!w) { showToast('Autorisez les popups pour imprimer', true); return; }
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture</title>'
+  w.document.write('<!DOCTYPE html><html><head>'
+    + '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>Facture</title>'
     + '<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">'
-    + '<style>body{font-family:"DM Sans",sans-serif;margin:0;padding:20px;background:#fff;color:#111}.facture-wrap{max-width:700px;margin:auto}.f-title{font-family:"Syne",sans-serif;font-size:2rem;color:#f5a623;font-weight:800}.f-header{display:flex;justify-content:space-between;margin-bottom:24px;align-items:flex-start}.f-company-name{font-family:"Syne",sans-serif;font-weight:800;font-size:1rem;color:#f5a623}.f-meta{font-size:.85rem;color:#555;line-height:1.7}.f-parties{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}.f-party{background:#f7f7f7;border-radius:8px;padding:14px}.f-party h4{font-size:.72rem;text-transform:uppercase;color:#888;margin-bottom:8px}.f-party p{font-size:.88rem;line-height:1.6}.f-table{width:100%;border-collapse:collapse;margin-bottom:18px}.f-table th{background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:.83rem}.f-table td{padding:10px 12px;border-bottom:1px solid #eee;font-size:.88rem}.f-total{text-align:right;margin-bottom:16px}.f-total-line{font-size:.88rem;color:#555;margin-bottom:3px}.f-total-ttc{font-size:1.2rem;font-weight:700;color:#111;margin-top:6px}.f-mention{font-size:.75rem;color:#888;border-top:1px solid #eee;padding-top:10px;margin-top:10px}.f-sig{margin-top:18px;border:2px dashed #ddd;border-radius:8px;padding:10px}.f-sig p{font-size:.8rem;color:#888;margin-bottom:6px}#sigCanvas,input[type=email],button.noprint{display:none}@media print{.noprint{display:none}}</style>'
-    + '</head><body>' + content
-    + '<br><button class="noprint" onclick="window.print()" style="margin-top:16px;padding:10px 22px;background:#f5a623;border:none;border-radius:8px;font-size:1rem;cursor:pointer">🖨️ Imprimer / Enregistrer en PDF</button>'
+    + '<style>'
+    + 'body{font-family:"DM Sans",sans-serif;margin:0;padding:0;background:#fff;color:#111}'
+    + '.print-toolbar{position:fixed;top:0;left:0;right:0;background:#091a45;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;z-index:999}'
+    + '.print-toolbar h2{color:#fff;font-family:"Syne",sans-serif;font-size:1rem;margin:0}'
+    + '.print-toolbar-btns{display:flex;gap:8px}'
+    + '.print-btn{padding:9px 18px;border:none;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}'
+    + '.print-btn-print{background:#f5a623;color:#091a45}'
+    + '.print-btn-close{background:rgba(255,255,255,0.15);color:#fff}'
+    + '.facture-area{max-width:700px;margin:auto;padding:80px 20px 30px}'
+    + '.facture-wrap{max-width:700px;margin:auto}'
+    + '.f-title{font-family:"Syne",sans-serif;font-size:2rem;color:#0d2257;font-weight:800}'
+    + '.f-header{display:flex;justify-content:space-between;margin-bottom:24px;align-items:flex-start}'
+    + '.f-company-name{font-family:"Syne",sans-serif;font-weight:800;font-size:1rem;color:#0d2257}'
+    + '.f-meta{font-size:.88rem;color:#333;line-height:1.7}'
+    + '.f-meta strong{color:#0d2257}'
+    + '.f-parties{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}'
+    + '.f-party{background:#f0f4fa;border-radius:8px;padding:14px;border:1px solid #0d2257}'
+    + '.f-party h4{font-size:.75rem;text-transform:uppercase;color:#4a5a80;margin-bottom:8px;font-weight:700}'
+    + '.f-party p{font-size:.9rem;line-height:1.6;color:#111}'
+    + '.f-table{width:100%;border-collapse:collapse;margin-bottom:18px}'
+    + '.f-table th{background:#0d2257;color:#fff;padding:9px 12px;text-align:left;font-size:.85rem}'
+    + '.f-table td{padding:10px 12px;border-bottom:1px solid #e0e8f0;font-size:.9rem}'
+    + '.f-total{text-align:right;margin-bottom:16px}'
+    + '.f-total-line{font-size:.88rem;color:#555;margin-bottom:3px}'
+    + '.f-total-ttc{font-size:1.25rem;font-weight:700;color:#0d2257;margin-top:6px}'
+    + '.f-mention{font-size:.78rem;color:#555;border-top:1px solid #ccd6e8;padding-top:10px;margin-top:10px}'
+    + '.f-sig{margin-top:18px;border:2px dashed #aab4cc;border-radius:8px;padding:10px}'
+    + '.f-sig p{font-size:.8rem;color:#888;margin-bottom:6px}'
+    + '#sigCanvas,input[type=email],.noprint{display:none}'
+    + '@media print{.print-toolbar{display:none}.facture-area{padding-top:20px}}'
+    + '@media (max-width:600px){.f-parties{grid-template-columns:1fr}.f-header{flex-direction:column;gap:12px}}'
+    + '</style>'
+    + '</head><body>'
+    + '<div class="print-toolbar">'
+    + '  <h2>📄 Facture</h2>'
+    + '  <div class="print-toolbar-btns">'
+    + '    <button class="print-btn print-btn-print" onclick="window.print()">🖨️ Imprimer / PDF</button>'
+    + '    <button class="print-btn print-btn-close" onclick="window.close()">✕ Fermer</button>'
+    + '  </div>'
+    + '</div>'
+    + '<div class="facture-area">' + content + '</div>'
     + '</body></html>');
   w.document.close();
 }
@@ -2478,6 +2780,15 @@ function renderSettings() {
   renderTarifGrid();
 }
 
+function toggleParamSection(id) {
+  var header = document.getElementById('ps-header-' + id);
+  var body = document.getElementById('ps-body-' + id);
+  if (!header || !body) return;
+  var isOpen = body.classList.contains('open');
+  header.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+
 function exporterDonnees() {
   var data = {
     exported_at: new Date().toISOString(),
@@ -2602,7 +2913,7 @@ function hideLoginScreen() {
 function switchLoginMode(mode) {
   var isLogin = mode === 'login';
   document.getElementById('tab-login').style.background = isLogin ? 'var(--accent)' : 'transparent';
-  document.getElementById('tab-login').style.color = isLogin ? '#0f1117' : 'var(--muted)';
+  document.getElementById('tab-login').style.color = isLogin ? '#ffffff' : 'var(--muted)';
   document.getElementById('tab-signup').style.background = isLogin ? 'transparent' : 'var(--accent)';
   document.getElementById('tab-signup').style.color = isLogin ? 'var(--muted)' : '#0f1117';
   document.getElementById('login-btn').textContent = isLogin ? 'Se connecter' : 'Créer mon compte';
