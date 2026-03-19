@@ -62,8 +62,8 @@ h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.6rem; color
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group.full { grid-column: 1 / -1; }
+.form-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.form-group.full { grid-column: 1 / -1; min-width: 0; overflow: hidden; }
 label { font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 input, select, textarea {
   background: var(--surface2); border: var(--border-w) solid var(--border);
@@ -740,7 +740,13 @@ select option { background: var(--surface2); }
         <input id="r-adresse" type="text" placeholder="12 rue des Acacias, 31000 Toulouse" oninput="updateMapsLink()">
         <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">Ouvrir dans Google Maps</a>
       </div>
-      <div class="form-group full"><label>Date *</label><input id="r-date" type="date" style="width:100%;box-sizing:border-box"></div>
+      <div class="form-group full" style="min-width:0;overflow:hidden">
+        <label>Date *</label>
+        <input type="tel" id="r-date-display" placeholder="JJ/MM/AAAA" maxlength="10" inputmode="numeric" autocomplete="off"
+          oninput="onDateInput(this)"
+          style="width:100%;max-width:100%;box-sizing:border-box;display:block">
+        <input type="hidden" id="r-date">
+      </div>
       <div class="form-group full">
         <label>Heure</label>
         <input type="tel" id="r-heure-tel" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="onHeureInput(this)">
@@ -1317,7 +1323,7 @@ function agendaClickDay(dateStr) {
 function agendaClickCell(dateStr, heure) {
   openNewRdv();
   var el = document.getElementById('r-date');
-  if (el) el.value = dateStr;
+  if (el) { el.value = dateStr; setDateDisplayValue(dateStr); }
   var heureStr = String(heure).padStart(2, '0') + ':00';
   setTimePickerValue(heureStr);
   renderMiniAgenda();
@@ -1399,12 +1405,12 @@ function renderMiniAgenda() {
 
 function miniAgendaClickDay(dateStr) {
   var el = document.getElementById('r-date');
-  if (el) el.value = dateStr;
+  if (el) { el.value = dateStr; setDateDisplayValue(dateStr); }
 }
 
 function miniAgendaClickCell(dateStr, heure) {
   var el = document.getElementById('r-date');
-  if (el) el.value = dateStr;
+  if (el) { el.value = dateStr; setDateDisplayValue(dateStr); }
   var heureStr = String(heure).padStart(2, '0') + ':00';
   setTimePickerValue(heureStr);
 }
@@ -1469,7 +1475,10 @@ function openNewRdv() {
   document.getElementById('r-nom').value = '';
   document.getElementById('r-tel').value = '';
   document.getElementById('r-adresse').value = '';
-  document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
+  var rdd = document.getElementById('r-date-display'); if (rdd) { rdd.value = ''; rdd.style.borderColor = ''; }
+  var todayStr = new Date().toISOString().split('T')[0];
+  document.getElementById('r-date').value = todayStr;
+  setDateDisplayValue(todayStr);
   setTimePickerValue('');
   document.getElementById('r-email').value = '';
   document.getElementById('r-prix').value = '';
@@ -1491,6 +1500,7 @@ function editRdv(id) {
   document.getElementById('r-tel').value = r.tel;
   document.getElementById('r-adresse').value = r.adresse;
   document.getElementById('r-date').value = r.date;
+  setDateDisplayValue(r.date || '');
   setTimePickerValue(r.heure || '');
   document.getElementById('r-email').value = r.email || '';
   document.getElementById('r-prix').value = r.prix;
@@ -2248,6 +2258,45 @@ function makeCanvasDrawable(canvas, onDraw) {
 }
 
 // ===== SAISIE HEURE — INPUT TEL NATIF =====
+function onDateInput(el) {
+  var raw = el.value.replace(/[^0-9]/g, '');
+  var out = '';
+  if (raw.length >= 1) out = raw.substring(0, 2);
+  if (raw.length >= 3) out += '/' + raw.substring(2, 4);
+  if (raw.length >= 5) out += '/' + raw.substring(4, 8);
+  el.value = out;
+  // Validation et mise à jour du champ caché YYYY-MM-DD
+  var hidden = document.getElementById('r-date');
+  var parts = out.split('/');
+  if (parts.length === 3 && parts[2].length === 4) {
+    var dd = parts[0], mm = parts[1], yyyy = parts[2];
+    var d = parseInt(dd,10), m = parseInt(mm,10), y = parseInt(yyyy,10);
+    if (d>=1&&d<=31&&m>=1&&m<=12&&y>=2020&&y<=2099) {
+      hidden.value = yyyy + '-' + mm.padStart(2,'0') + '-' + dd.padStart(2,'0');
+      el.style.borderColor = '';
+    } else {
+      hidden.value = '';
+      el.style.borderColor = 'var(--red)';
+    }
+  } else {
+    hidden.value = '';
+    el.style.borderColor = (out.length > 0 ? 'var(--red)' : '');
+  }
+}
+
+// Utilitaire : mettre à jour l'affichage JJ/MM/AAAA depuis une valeur YYYY-MM-DD
+function setDateDisplayValue(yyyymmdd) {
+  var el = document.getElementById('r-date-display');
+  if (!el) return;
+  if (!yyyymmdd) { el.value = ''; return; }
+  var parts = yyyymmdd.split('-');
+  if (parts.length === 3) {
+    el.value = parts[2] + '/' + parts[1] + '/' + parts[0];
+  } else {
+    el.value = yyyymmdd;
+  }
+}
+
 function onHeureInput(el) {
   var raw = el.value.replace(/[^0-9]/g, '').slice(0, 4);
   var formatted = raw.length > 2 ? raw.slice(0, 2) + ':' + raw.slice(2) : raw;
