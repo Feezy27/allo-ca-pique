@@ -706,11 +706,11 @@ select option { background: var(--surface2); }
 
     <!-- 6. Villes -->
     <div class="param-section">
-      <div class="param-section-header" id="ps-header-villes" onclick="toggleParamSection('villes')">
+      <div class="param-section-header open" id="ps-header-villes" onclick="toggleParamSection('villes')">
         <span class="param-section-title">Villes</span>
         <span class="param-section-arrow">›</span>
       </div>
-      <div class="param-section-body" id="ps-body-villes">
+      <div class="param-section-body open" id="ps-body-villes">
         <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Ces villes apparaissent en suggestion lors de la saisie de l'adresse d'intervention. Les villes de base sont déjà incluses.</p>
         <div id="villes-list-container"></div>
         <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
@@ -775,7 +775,7 @@ select option { background: var(--surface2); }
         <label>Ville *</label>
         <input id="r-ville" type="text" placeholder="Le Havre" autocomplete="off"
           oninput="onVilleInput(this)" onblur="closeVilleSuggestions()" style="width:100%;box-sizing:border-box">
-        <div id="ville-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:2px solid var(--border);border-radius:0 0 8px 8px;z-index:500;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(9,26,69,0.15)"></div>
+        <div id="ville-suggestions" style="display:none;position:fixed;background:#fff;border:2px solid var(--border);border-radius:8px;z-index:9999;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(9,26,69,0.2)"></div>
       </div>
       <div class="form-group full">
         <label>Adresse (n° et rue) *</label>
@@ -1623,6 +1623,15 @@ function getVillesDB() {
   return db;
 }
 
+function positionnerSuggestions(el) {
+  var sug = document.getElementById('ville-suggestions');
+  if (!sug || sug.style.display === 'none') return;
+  var rect = el.getBoundingClientRect();
+  sug.style.left = rect.left + 'px';
+  sug.style.top = (rect.bottom + 2) + 'px';
+  sug.style.width = rect.width + 'px';
+}
+
 function onVilleInput(el) {
   updateMapsLink();
   var q = el.value.trim().toLowerCase();
@@ -1639,6 +1648,10 @@ function onVilleInput(el) {
       + ' onmousedown="choisirVille(\'' + v.ville.replace(/'/g,"\'") + '\',\'' + v.cp + '\')">'
       + '<strong>' + v.ville + '</strong> <span style="color:var(--muted);font-size:0.85rem">— ' + v.cp + '</span></div>';
   }).join('');
+  var rect = el.getBoundingClientRect();
+  sug.style.left = rect.left + 'px';
+  sug.style.top = (rect.bottom + 2) + 'px';
+  sug.style.width = rect.width + 'px';
   sug.style.display = 'block';
 }
 
@@ -1658,7 +1671,7 @@ function closeVilleSuggestions() {
   setTimeout(function() {
     var sug = document.getElementById('ville-suggestions');
     if (sug) sug.style.display = 'none';
-  }, 150);
+  }, 300);
 }
 
 function extraireVille(adresse) {
@@ -1923,11 +1936,11 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   // Table 2 colonnes : gauche=logo+nom, droite=FACTURE+num+date
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr>';
   // Colonne gauche
-  h += '<td style="vertical-align:middle;padding:0;">';
-  h += '<div style="display:flex;align-items:center;gap:12px;"><img src="' + LOGO_B64 + '" style="height:48px;width:auto;display:block;"><span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#111;line-height:1;">' + escHtml(s.nom||'Allo ça pique') + '</span></div>';
+  h += '<td style="vertical-align:middle;padding:0;width:55%">';
+  h += '<div style="display:flex;align-items:center;gap:12px;"><img src="' + LOGO_B64 + '" style="height:48px;width:auto;display:block;vertical-align:middle"><span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#111;line-height:48px;vertical-align:middle">' + escHtml(s.nom||'Allo ça pique') + '</span></div>';
   h += '</td>';
   // Colonne droite
-  h += '<td style="vertical-align:middle;text-align:right;padding:0;">';
+  h += '<td style="vertical-align:middle;text-align:right;padding:0;width:45%">';
   h += '<div style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:1.8rem;color:#111;line-height:1.1;">FACTURE</div>';
   var bdcLine = '';
   if (data.clientType === 'Montivilliers' && s.bdcMontivilliers) {
@@ -1971,7 +1984,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   if (data.isSyndic && data.syndicAgence) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;"><tr>';
     h += '<td colspan="3" style="vertical-align:top;padding:14px 16px;background:#eef3fb;border:1.5px solid #091a45;border-radius:8px;">';
-    h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#091a45;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Demandeur (Syndic / Copropriété)</div>';
+    h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#091a45;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Demandeur (Syndicat / Co-propriété)</div>';
     h += '<div style="font-size:0.88rem;line-height:1.8;">';
     h += '<strong>' + escHtml(data.syndicAgence) + '</strong>';
     if (data.syndicAgenceAdresse) h += '<br>' + escHtml(data.syndicAgenceAdresse);
@@ -2111,7 +2124,8 @@ function ouvrirFacture(rdvId) {
   var num = nextFactureNum();
   document.getElementById('facture-modal-title').textContent = 'Nouvelle facture';
   var data = buildDataFacture(r, num, new Date().toLocaleDateString('fr-FR'));
-  document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, r.clientType !== 'Voie publique');
+  var isPartRdv = !r.clientType || r.clientType === 'Particulier';
+  document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, isPartRdv);
   document.getElementById('btn-valider').style.display = 'inline-flex';
   document.getElementById('btn-mail').style.display = 'none';
   // Réinitialiser les aides et le mode de paiement
@@ -2155,8 +2169,9 @@ function voirFacture(factureId) {
   document.getElementById('paiement-section').style.display = 'none';
   // Bouton SMS sur facture archivée
   var btnSms = document.getElementById('btn-sms');
-  if (btnSms) btnSms.style.display = (f && f.tel && f.clientType !== 'Voie publique') ? 'inline-flex' : 'none';
-  var canMail = f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && f.clientType !== 'Voie publique';
+  var isParticulier = !f.clientType || f.clientType === 'Particulier';
+  if (btnSms) btnSms.style.display = (f && f.tel && isParticulier) ? 'inline-flex' : 'none';
+  var canMail = f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && isParticulier;
   document.getElementById('btn-mail').style.display = canMail ? 'inline-flex' : 'none';
   document.getElementById('modal-facture').classList.add('open');
 }
@@ -2264,7 +2279,8 @@ function validerFacture() {
   showToast('✓ Facture archivée !');
 
   // Ouvrir SMS automatiquement si numéro disponible (sauf voie publique)
-  if (r.clientType !== 'Voie publique' && r.tel) {
+  var isPartCurr = !r.clientType || r.clientType === 'Particulier';
+  if (isPartCurr && r.tel) {
     setTimeout(function() { ouvrirSMSFacture(f); }, 600);
   }
 }
@@ -2708,7 +2724,8 @@ function printFacture() {
     + '.f-sig{margin-top:18px;border:2px dashed #aab4cc;border-radius:8px;padding:10px}'
     + '.f-sig p{font-size:.8rem;color:#888;margin-bottom:6px}'
     + '#sigCanvas,input[type=email],.noprint{display:none}'
-    + '@media print{.print-toolbar{display:none}.facture-area{padding-top:20px}}'
+    + '.facture-area{width:100%;max-width:none}'
+    + '@media print{.print-toolbar{display:none}body{margin:0;padding:8mm 10mm}html{width:100%}.facture-area{padding-top:0;width:100%;max-width:none}}'
     + '@media (max-width:600px){.f-parties{grid-template-columns:1fr}.f-header{flex-direction:column;gap:12px}}'
     + '</style>'
     + '</head><body>'
@@ -2829,9 +2846,10 @@ function renderArchives() {
     dayFacts.forEach(function(f) {
       var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
       var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
-      var mailBtn = (f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && f.clientType !== 'Voie publique')
+      var mailBtn = (f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && isPartArch)
         ? '<button class="btn btn-ghost btn-sm" onclick="sendMailById(\'' + f.id + '\')"></button>' : '';
-      var smsBtn = (f.tel && f.clientType !== 'Voie publique')
+      var isPartArch = !f.clientType || f.clientType === 'Particulier';
+      var smsBtn = (f.tel && isPartArch)
         ? '<button class="btn btn-ghost btn-sm" onclick="ouvrirSMSFacture(findById(factures, \''+f.id+'\'))" title="Envoyer par SMS">SMS</button>' : '';
 
       html += '<div class="arch-fact-card">';
@@ -2889,8 +2907,9 @@ function supprimerFacture(factureId) {
 
 // Génère le HTML d'une facture pour téléchargement (avec styles inline pour PDF standalone)
 function genFactureHtmlStandalone(f) {
-  var printStyles = 'body{font-family:Arial,sans-serif;margin:0;padding:20px;background:#fff;color:#111}'
-    + '.facture-wrap{max-width:700px;margin:auto}'
+  var printStyles = 'body{font-family:Arial,sans-serif;margin:0;padding:20px 24px;background:#fff;color:#111}'
+    + '.facture-wrap{max-width:none;width:100%;margin:0}'
+    + '@media print{body{margin:0;padding:10mm 12mm}html,body{width:100%;height:100%}}'
     + '.f-header{display:flex;justify-content:space-between;margin-bottom:24px;align-items:flex-start}'
     + '.f-header-left{display:flex;flex-direction:column;align-items:flex-start;gap:6px}'
     + '.f-header-right{text-align:right}'
@@ -2915,7 +2934,11 @@ function genFactureHtmlStandalone(f) {
     nom: f.nom, adresse: f.adresse, tel: f.tel, email: f.email || '',
     type: f.type, prixHT: f.prixHT, notes: f.notes || '',
     signature: f.signature || '', clientType: f.clientType || '',
-    insecte: f.insecte || ''
+    insecte: f.insecte || '',
+    isSyndic: f.clientType === 'Syndic/Copro',
+    syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
+    syndicAgenceAdresse: f.syndicAgenceAdresse || '',
+    syndicAgenceTel: f.syndicAgenceTel || '', syndicContact: f.syndicContact || ''
   };
   var bodyHtml = buildFactureHtml(data, false, false);
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture ' + f.num + '</title>'
@@ -3050,16 +3073,24 @@ function renderVillesParam() {
   var container = document.getElementById('villes-list-container');
   if (!container) return;
   var custom = settings.villesCustom || [];
-  if (!custom.length) {
-    container.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);margin:0 0 8px">Aucune ville personnalisée ajoutée. Les villes de base sont toujours disponibles.</p>';
-    return;
-  }
-  container.innerHTML = custom.map(function(v, i) {
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #e8edf8">'
-      + '<span style="flex:1;font-size:0.95rem"><strong>' + v.ville + '</strong> <span style="color:var(--muted)">' + v.cp + '</span></span>'
-      + '<button class="btn btn-sm" onclick="supprimerVilleCustom(' + i + ')" style="background:rgba(204,26,58,0.1);color:var(--red);border:1px solid rgba(204,26,58,0.3)">Suppr.</button>'
+  var html = '';
+  html += '<div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:6px">Villes de base</div>';
+  html += VILLES_DEFAULT.map(function(v) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #e8edf8">'
+      + '<span style="flex:1;font-size:0.92rem"><strong>' + v.ville + '</strong> <span style="color:var(--muted);font-size:0.85rem">' + v.cp + '</span></span>'
+      + '<span style="font-size:0.75rem;color:var(--muted);background:#e8edf8;padding:2px 8px;border-radius:4px">base</span>'
       + '</div>';
   }).join('');
+  if (custom.length) {
+    html += '<div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin:14px 0 6px">Villes ajoutées</div>';
+    html += custom.map(function(v, i) {
+      return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #e8edf8">'
+        + '<span style="flex:1;font-size:0.92rem"><strong>' + v.ville + '</strong> <span style="color:var(--muted);font-size:0.85rem">' + v.cp + '</span></span>'
+        + '<button class="btn btn-sm" onclick="supprimerVilleCustom(' + i + ')" style="background:rgba(204,26,58,0.1);color:var(--red);border:1px solid rgba(204,26,58,0.3)">Suppr.</button>'
+        + '</div>';
+    }).join('');
+  }
+  container.innerHTML = html;
 }
 
 function ajouterVilleCustom() {
