@@ -704,7 +704,24 @@ select option { background: var(--surface2); }
       </div>
     </div>
 
-    <!-- 6. Sauvegarde & export -->
+    <!-- 6. Villes -->
+    <div class="param-section">
+      <div class="param-section-header" id="ps-header-villes" onclick="toggleParamSection('villes')">
+        <span class="param-section-title">Villes</span>
+        <span class="param-section-arrow">›</span>
+      </div>
+      <div class="param-section-body" id="ps-body-villes">
+        <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Ces villes apparaissent en suggestion lors de la saisie de l'adresse d'intervention. Les villes de base sont déjà incluses.</p>
+        <div id="villes-list-container"></div>
+        <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+          <input id="s-ville-new" type="text" placeholder="Nom de la ville" style="flex:2;min-width:120px">
+          <input id="s-cp-new" type="text" placeholder="Code postal" maxlength="5" style="flex:1;min-width:80px">
+          <button class="btn btn-primary" onclick="ajouterVilleCustom()" style="white-space:nowrap">+ Ajouter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Sauvegarde & export -->
     <div class="param-section">
       <div class="param-section-header" id="ps-header-backup" onclick="toggleParamSection('backup')">
         <span class="param-section-title">Sauvegarde &amp; export</span>
@@ -754,9 +771,16 @@ select option { background: var(--surface2); }
     <div class="form-grid">
       <div class="form-group"><label>Nom du client *</label><input id="r-nom" type="text" placeholder="Jean Dupont"></div>
       <div class="form-group"><label>Téléphone *</label><input id="r-tel" type="tel" placeholder="06 00 00 00 00"></div>
+      <div class="form-group full" style="position:relative">
+        <label>Ville *</label>
+        <input id="r-ville" type="text" placeholder="Le Havre" autocomplete="off"
+          oninput="onVilleInput(this)" onblur="closeVilleSuggestions()" style="width:100%;box-sizing:border-box">
+        <div id="ville-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:2px solid var(--border);border-radius:0 0 8px 8px;z-index:500;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(9,26,69,0.15)"></div>
+      </div>
       <div class="form-group full">
-        <label>Adresse d'intervention *</label>
-        <input id="r-adresse" type="text" placeholder="12 rue des Acacias, 31000 Toulouse" oninput="updateMapsLink()">
+        <label>Adresse (n° et rue) *</label>
+        <input id="r-rue" type="text" placeholder="12 rue des Acacias" oninput="updateMapsLink()">
+        <input id="r-adresse" type="hidden">
         <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">Ouvrir dans Google Maps</a>
       </div>
       <div class="form-group full">
@@ -779,6 +803,7 @@ select option { background: var(--surface2); }
             <button type="button" class="cascade-btn" onclick="selectClient('Voie publique')">Voie publique</button>
             <button type="button" class="cascade-btn" onclick="selectClient('Montivilliers')">Montivilliers</button>
             <button type="button" class="cascade-btn" onclick="selectClient('Gonfreville')">Gonfreville</button>
+            <button type="button" class="cascade-btn cascade-btn-full" onclick="selectClient('Syndic/Copro')">Syndic / Copropriété</button>
           </div>
         </div>
 
@@ -839,6 +864,24 @@ select option { background: var(--surface2); }
           <textarea id="r-mairie-adresse" placeholder="1 Place de l'Hôtel de Ville, 76600 Le Havre" style="margin-top:5px;min-height:60px"></textarea>
           <label style="font-size:0.78rem;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-top:8px;display:block">Téléphone mairie</label>
           <input id="r-mairie-tel" type="tel" placeholder="02 35 00 00 00" style="margin-top:5px">
+        </div>
+      </div>
+      <!-- Bloc Syndic/Copro -->
+      <div class="form-group full" id="bloc-syndic" style="display:none">
+        <div style="background:#f0f4fa;border:2px solid #091a45;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:#091a45;margin-bottom:12px;font-weight:700">Bon de commande</div>
+          <input id="r-syndic-bdc" type="text" placeholder="N° bon de commande" style="margin-bottom:0">
+        </div>
+        <div style="background:#f0f4fa;border:2px solid #091a45;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:#091a45;margin-bottom:12px;font-weight:700">Demandeur (syndic / agence)</div>
+          <label style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Nom de l'agence *</label>
+          <input id="r-syndic-agence" type="text" placeholder="Agence Dupont Immobilier" style="margin-top:5px;margin-bottom:10px">
+          <label style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Adresse de l'agence</label>
+          <input id="r-syndic-agence-adresse" type="text" placeholder="12 rue de la Paix, 76600 Le Havre" style="margin-top:5px;margin-bottom:10px">
+          <label style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Téléphone de l'agence</label>
+          <input id="r-syndic-agence-tel" type="tel" placeholder="02 35 00 00 00" style="margin-top:5px;margin-bottom:10px">
+          <label style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Nom du demandeur</label>
+          <input id="r-syndic-contact" type="text" placeholder="M. Martin (gestionnaire)" style="margin-top:5px">
         </div>
       </div>
     </div>
@@ -977,6 +1020,20 @@ function initSupabase() {
 
 var SVG_ICONS={home:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>',folder:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4a2 2 0 00-2 2v14a2 2 0 002 2h8v-2H4V5z"/></svg>',settings:'<svg viewBox="0 0 24 24" fill="currentColor" width="1.4em" height="1.4em"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96a6.93 6.93 0 00-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54a7.2 7.2 0 00-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.35 1.04.66 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.2 7.2 0 001.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 110-7.2 3.6 3.6 0 010 7.2z"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',view:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg>',print:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 8H5a3 3 0 00-3 3v6h4v4h12v-4h4v-6a3 3 0 00-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 110-2 1 1 0 010 2zm-1-9H6v4h12V3z"/></svg>',sms:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/></svg>',mail:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>',save:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4zm-5 16a3 3 0 110-6 3 3 0 010 6zm3-10H5V5h10v4z"/></svg>',download:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>',map:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>',search:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5a6.5 6.5 0 10-6.5 6.5c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>',warn:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',check:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>',close:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>',list:'<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>'};
 function icon(name,sz){var s=SVG_ICONS[name]||'';if(sz)s=s.replace(/width="[^"]*"/,'width="'+sz+'"').replace(/height="[^"]*"/,'height="'+sz+'"');return s;}
+
+var VILLES_DEFAULT = [
+  {ville:'Octeville-sur-Mer', cp:'76930'},
+  {ville:'Le Havre', cp:'76600'},
+  {ville:'Le Havre', cp:'76610'},
+  {ville:'Le Havre', cp:'76620'},
+  {ville:'Gonfreville-l\u2019Orcher', cp:'76700'},
+  {ville:'Montivilliers', cp:'76290'},
+  {ville:'Sainte-Adresse', cp:'76310'},
+  {ville:'Fontaine-la-Mallet', cp:'76290'},
+  {ville:'Fontenay', cp:'76290'},
+  {ville:'Saint-Martin-du-Manoir', cp:'76290'}
+];
+var villesDB = []; // chargé depuis settings
 
 var rdvs = [];
 var factures = [];
@@ -1299,11 +1356,14 @@ function renderAgenda() {
       var cellCls = 'agenda-cell' + (ds === todayStr ? ' today-col' : '');
       var chips = '';
       if (rdvByDate[ds]) {
-        rdvByDate[ds].forEach(function(r) {
+        var sortedRdvs = rdvByDate[ds].slice().sort(function(a, b) {
+          return (a.heure || '00:00').localeCompare(b.heure || '00:00');
+        });
+        sortedRdvs.forEach(function(r) {
           var rh = parseInt((r.heure || '').split(':')[0], 10);
           if (rh === heure) {
             var chipCls = 'agenda-rdv-chip ' + (r.factureId ? 'facture' : 'pending');
-            var ville = extraireVille(r.adresse);
+            var ville = r.ville || extraireVille(r.adresse || '');
             var label = escHtml(r.nom) + (r.heure ? ' <strong>' + r.heure + '</strong>' : '')
               + (ville ? '<br><span style="font-size:0.68rem;font-weight:500;opacity:0.85">' + escHtml(ville) + '</span>' : '');
             chips += '<div class="' + chipCls + '" style="white-space:normal" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')" title="' + escHtml(r.nom) + ' — ' + escHtml(ville) + '">' + label + '</div>';
@@ -1315,7 +1375,7 @@ function renderAgenda() {
         rdvByDate[ds].forEach(function(r) {
           if (!r.heure) {
             var chipCls = 'agenda-rdv-chip ' + (r.factureId ? 'facture' : 'pending');
-            var villeNH = extraireVille(r.adresse);
+            var villeNH = r.ville || extraireVille(r.adresse || '');
             chips += '<div class="' + chipCls + '" style="opacity:0.75;white-space:normal" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')" title="Heure non définie — ' + escHtml(r.nom) + '">? ' + escHtml(r.nom)
               + (villeNH ? '<br><span style="font-size:0.68rem;font-weight:500">' + escHtml(villeNH) + '</span>' : '') + '</div>';
           }
@@ -1394,12 +1454,15 @@ function renderMiniAgenda() {
       var isToday = ds === todayStr;
       var chips = '';
       if (rdvByDate[ds]) {
-        rdvByDate[ds].forEach(function(r) {
+        var sortedMini = rdvByDate[ds].slice().sort(function(a, b) {
+          return (a.heure || '00:00').localeCompare(b.heure || '00:00');
+        });
+        sortedMini.forEach(function(r) {
           var rh = parseInt((r.heure || '').split(':')[0], 10);
           if (rh === heure) {
             var col = r.factureId ? '#d0f5ea' : '#fff3d0';
             var colTxt = r.factureId ? '#0a7c5c' : '#7a4800';
-            var villeM = extraireVille(r.adresse);
+            var villeM = r.ville || extraireVille(r.adresse || '');
             chips += '<div style="background:' + col + ';color:' + colTxt + ';border-radius:4px;padding:2px 4px;font-size:0.7rem;font-weight:700;white-space:normal;margin:1px;cursor:pointer" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')"><span style="font-size:0.65rem">' + r.heure + '</span> ' + escHtml(r.nom) + (villeM ? '<br><span style="font-size:0.63rem;font-weight:500;opacity:0.85">' + escHtml(villeM) + '</span>' : '') + '</div>';
           }
         });
@@ -1407,7 +1470,7 @@ function renderMiniAgenda() {
       if (heure === AGENDA_HEURES[0] && rdvByDate[ds]) {
         rdvByDate[ds].forEach(function(r) {
           if (!r.heure) {
-            var villeMNH = extraireVille(r.adresse);
+            var villeMNH = r.ville || extraireVille(r.adresse || '');
             chips += '<div style="background:#fff3d0;color:#7a4800;border-radius:4px;padding:2px 4px;font-size:0.7rem;opacity:0.75;white-space:normal;margin:1px;cursor:pointer" onclick="event.stopPropagation();editRdv(\'' + r.id + '\')">? ' + escHtml(r.nom) + (villeMNH ? '<br><span style="font-size:0.63rem;font-weight:500">' + escHtml(villeMNH) + '</span>' : '') + '</div>';
           }
         });
@@ -1491,12 +1554,17 @@ function openNewRdv() {
   document.getElementById('r-nom').value = '';
   document.getElementById('r-tel').value = '';
   document.getElementById('r-adresse').value = '';
+  var rVille = document.getElementById('r-ville'); if(rVille) rVille.value = '';
+  var rRue = document.getElementById('r-rue'); if(rRue) rRue.value = '';
 
   document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
   setTimePickerValue('');
   document.getElementById('r-email').value = '';
   document.getElementById('r-prix').value = '';
   document.getElementById('r-notes').value = '';
+  ['r-syndic-bdc','r-syndic-agence','r-syndic-agence-adresse','r-syndic-agence-tel','r-syndic-contact'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
   document.getElementById('maps-link').style.display = 'none';
   resetCascade();
   initTimePicker();
@@ -1512,13 +1580,31 @@ function editRdv(id) {
   document.getElementById('rdv-modal-title').textContent = 'Modifier le rendez-vous';
   document.getElementById('r-nom').value = r.nom;
   document.getElementById('r-tel').value = r.tel;
-  document.getElementById('r-adresse').value = r.adresse;
+  // Remplir ville + rue depuis adresse stockée
+  var villeEdit = extraireVille(r.adresse || '');
+  var rueEdit = villeEdit ? (r.adresse || '').substring(villeEdit.length).trim() : (r.adresse || '');
+  var eVille = document.getElementById('r-ville'); if(eVille) eVille.value = villeEdit;
+  var eRue = document.getElementById('r-rue'); if(eRue) eRue.value = rueEdit;
+  document.getElementById('r-adresse').value = r.adresse || '';
   document.getElementById('r-date').value = r.date;
   setTimePickerValue(r.heure || '');
   document.getElementById('r-email').value = r.email || '';
   document.getElementById('r-prix').value = r.prix;
   document.getElementById('r-notes').value = r.notes || '';
   initCascade(r);
+  // Restaurer champs Syndic si applicable
+  if (r.clientType === 'Syndic/Copro') {
+    var setBdc = document.getElementById('r-syndic-bdc');
+    var setAg = document.getElementById('r-syndic-agence');
+    var setAga = document.getElementById('r-syndic-agence-adresse');
+    var setAgt = document.getElementById('r-syndic-agence-tel');
+    var setCt = document.getElementById('r-syndic-contact');
+    if (setBdc) setBdc.value = r.syndicBdc || '';
+    if (setAg) setAg.value = r.syndicAgence || '';
+    if (setAga) setAga.value = r.syndicAgenceAdresse || '';
+    if (setAgt) setAgt.value = r.syndicAgenceTel || '';
+    if (setCt) setCt.value = r.syndicContact || '';
+  }
   updateMapsLink();
   initTimePicker();
   document.getElementById('modal-rdv').classList.add('open');
@@ -1527,6 +1613,53 @@ function editRdv(id) {
 
 // ---- CASCADE INTERVENTION ----
 var _cascade = { client: null, insecte: null, insecteLabel: null, emplacement: null, emplacementLabel: null };
+
+// ===== AUTOCOMPLÉTION VILLES =====
+function getVillesDB() {
+  // Fusionner VILLES_DEFAULT + villes custom des settings
+  var db = VILLES_DEFAULT.slice();
+  var custom = (settings.villesCustom || []);
+  custom.forEach(function(v) { db.push(v); });
+  return db;
+}
+
+function onVilleInput(el) {
+  updateMapsLink();
+  var q = el.value.trim().toLowerCase();
+  var sug = document.getElementById('ville-suggestions');
+  if (!sug) return;
+  if (q.length < 3) { sug.style.display = 'none'; return; }
+  var db = getVillesDB();
+  var matches = db.filter(function(v) {
+    return v.ville.toLowerCase().indexOf(q) >= 0;
+  });
+  if (!matches.length) { sug.style.display = 'none'; return; }
+  sug.innerHTML = matches.map(function(v) {
+    return '<div style="padding:10px 14px;cursor:pointer;font-size:0.95rem;border-bottom:1px solid #e8edf8;color:var(--text)"'
+      + ' onmousedown="choisirVille(\'' + v.ville.replace(/'/g,"\'") + '\',\'' + v.cp + '\')">'
+      + '<strong>' + v.ville + '</strong> <span style="color:var(--muted);font-size:0.85rem">— ' + v.cp + '</span></div>';
+  }).join('');
+  sug.style.display = 'block';
+}
+
+function choisirVille(ville, cp) {
+  var el = document.getElementById('r-ville');
+  if (el) el.value = ville;
+  closeVilleSuggestions();
+  updateMapsLink();
+  // Mettre le focus sur la rue
+  setTimeout(function() {
+    var rue = document.getElementById('r-rue');
+    if (rue) rue.focus();
+  }, 50);
+}
+
+function closeVilleSuggestions() {
+  setTimeout(function() {
+    var sug = document.getElementById('ville-suggestions');
+    if (sug) sug.style.display = 'none';
+  }, 150);
+}
 
 function extraireVille(adresse) {
   if (!adresse) return '';
@@ -1675,9 +1808,12 @@ function onTypeChange() { /* remplacé par cascade */ }
 
 function updateBlocMairie() {
   var isVP = _cascade.client === 'Voie publique';
+  var isSyndic = _cascade.client === 'Syndic/Copro';
   var bloc = document.getElementById('bloc-mairie');
-  if (!bloc) return;
-  bloc.style.display = isVP ? '' : 'none';
+  var blocSyndic = document.getElementById('bloc-syndic');
+  if (bloc) bloc.style.display = isVP ? '' : 'none';
+  if (blocSyndic) blocSyndic.style.display = isSyndic ? '' : 'none';
+  if (!isVP) return;
   if (!isVP) return;
   var adresse = (document.getElementById('r-adresse') || {}).value || '';
   var mairie = detecterMairie(adresse);
@@ -1697,25 +1833,34 @@ function updateBlocMairie() {
 }
 
 function updateMapsLink() {
-  var adr = document.getElementById('r-adresse').value.trim();
+  var ville = (document.getElementById('r-ville') || {value:''}).value.trim();
+  var rue = (document.getElementById('r-rue') || {value:''}).value.trim();
+  // Construire l'adresse complète : ville + rue → stocker dans r-adresse (caché)
+  var full = ville && rue ? ville + ' ' + rue : (rue || ville);
+  var hidden = document.getElementById('r-adresse');
+  if (hidden) hidden.value = full;
   var link = document.getElementById('maps-link');
-  if (adr) {
-    link.href = 'https://maps.google.com/?q=' + encodeURIComponent(adr);
+  if (full) {
+    link.href = 'https://maps.google.com/?q=' + encodeURIComponent(full);
     link.style.display = 'inline-flex';
   } else {
     link.style.display = 'none';
   }
-  // Re-détecter la mairie si voie publique
   updateBlocMairie();
 }
 
 function saveRdv() {
   var nom = document.getElementById('r-nom').value.trim();
   var tel = document.getElementById('r-tel').value.trim();
-  var adresse = document.getElementById('r-adresse').value.trim();
+  // Construire adresse depuis ville + rue avant validation
+  var villeVal = (document.getElementById('r-ville')||{value:''}).value.trim();
+  var rueVal = (document.getElementById('r-rue')||{value:''}).value.trim();
+  var adresse = villeVal && rueVal ? villeVal + ' ' + rueVal : (rueVal || villeVal);
+  var hiddenAdr = document.getElementById('r-adresse');
+  if (hiddenAdr) hiddenAdr.value = adresse;
   var date = document.getElementById('r-date').value;
   var type = document.getElementById('r-type').value;
-  if (!nom || !tel || !adresse || !date || !type) {
+  if (!nom || !tel || !villeVal || !rueVal || !date || !type) {
     showToast('Remplissez tous les champs obligatoires (*)', true);
     if (!type) showToast('Sélectionnez le type d\'intervention complet', true);
     return;
@@ -1723,7 +1868,7 @@ function saveRdv() {
   var existing = editingId ? findById(rdvs, editingId) : null;
   var rdv = {
     id: editingId || String(Date.now()),
-    nom: nom, tel: tel, adresse: adresse, date: date,
+    nom: nom, tel: tel, adresse: adresse, ville: villeVal, date: date,
     heure: document.getElementById('r-heure').value,
     type: type,
     clientType: _cascade.client || document.getElementById('r-client-type').value || '',
@@ -1735,6 +1880,11 @@ function saveRdv() {
     mairieNom: _cascade.client === 'Voie publique' ? (document.getElementById('r-mairie-nom').value.trim()) : '',
     mairieAdresse: _cascade.client === 'Voie publique' ? (document.getElementById('r-mairie-adresse').value.trim()) : '',
     mairieTel: _cascade.client === 'Voie publique' ? (document.getElementById('r-mairie-tel').value.trim()) : '',
+    syndicBdc: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-bdc').value.trim()) : '',
+    syndicAgence: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-agence').value.trim()) : '',
+    syndicAgenceAdresse: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-agence-adresse').value.trim()) : '',
+    syndicAgenceTel: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-agence-tel').value.trim()) : '',
+    syndicContact: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-contact').value.trim()) : '',
     factureId: existing ? existing.factureId : null
   };
   if (editingId) {
@@ -1784,6 +1934,8 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
     bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(s.bdcMontivilliers);
   } else if (data.clientType === 'Gonfreville' && s.bdcGonfreville) {
     bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(s.bdcGonfreville);
+  } else if (data.isSyndic && data.syndicBdc) {
+    bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(data.syndicBdc);
   }
   h += '<div style="font-size:0.85rem;color:#555;line-height:1.7;margin-top:4px;"><strong style="color:#111;">N°</strong> ' + data.num + bdcLine + '<br><strong style="color:#111;">Date :</strong> ' + data.dateStr + '</div>';
   h += '</td>';
@@ -1815,6 +1967,19 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   if (data.email) h += '<br>' + escHtml(data.email);
   h += '</div></td>';
   h += '</tr></table>';
+  // Bloc Demandeur (Syndic/Copro)
+  if (data.isSyndic && data.syndicAgence) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;"><tr>';
+    h += '<td colspan="3" style="vertical-align:top;padding:14px 16px;background:#eef3fb;border:1.5px solid #091a45;border-radius:8px;">';
+    h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#091a45;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Demandeur (Syndic / Copropriété)</div>';
+    h += '<div style="font-size:0.88rem;line-height:1.8;">';
+    h += '<strong>' + escHtml(data.syndicAgence) + '</strong>';
+    if (data.syndicAgenceAdresse) h += '<br>' + escHtml(data.syndicAgenceAdresse);
+    if (data.syndicAgenceTel) h += '<br>Tél : ' + escHtml(data.syndicAgenceTel);
+    if (data.syndicContact) h += '<br>Contact : ' + escHtml(data.syndicContact);
+    h += '</div></td>';
+    h += '</tr></table>';
+  }
 
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;"><thead><tr>'
     + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:0.83rem;font-family:Arial,Helvetica,sans-serif;">Description</th>'
@@ -1901,6 +2066,7 @@ function buildDataFacture(r, num, dateStr) {
     adrClient = r.mairieAdresse || '';
     telClient = r.mairieTel || '';
   }
+  var isSyndic = r.clientType === 'Syndic/Copro';
   return {
     num: num,
     dateStr: dateStr,
@@ -1910,10 +2076,17 @@ function buildDataFacture(r, num, dateStr) {
     email: r.email || '',
     type: descType,
     prixHT: r.prix,
-    notes: isVP ? '' : (r.notes || ''), // les notes ne vont pas dans la description VP
-    clientType: isVP ? '' : (r.clientType || ''), // pas besoin d'afficher "Voie publique" déjà dans description
+    notes: isVP ? '' : (r.notes || ''),
+    clientType: (isVP || isSyndic) ? '' : (r.clientType || ''),
     insecte: r.insecte || '',
-    adresseIntervention: isVP ? r.adresse : null // pour référence dans la facture VP
+    adresseIntervention: isVP ? r.adresse : null,
+    // Syndic
+    syndicBdc: r.syndicBdc || '',
+    syndicAgence: r.syndicAgence || '',
+    syndicAgenceAdresse: r.syndicAgenceAdresse || '',
+    syndicAgenceTel: r.syndicAgenceTel || '',
+    syndicContact: r.syndicContact || '',
+    isSyndic: isSyndic
   };
 }
 
@@ -1972,7 +2145,11 @@ function voirFacture(factureId) {
     type: f.type, prixHT: f.prixHT, notes: f.notes || '',
     aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
     signature: f.signature || '', clientType: f.clientType || '',
-    insecte: f.insecte || '', paiement: f.paiement || ''
+    insecte: f.insecte || '', paiement: f.paiement || '',
+    isSyndic: f.clientType === 'Syndic/Copro',
+    syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
+    syndicAgenceAdresse: f.syndicAgenceAdresse || '',
+    syndicAgenceTel: f.syndicAgenceTel || '', syndicContact: f.syndicContact || ''
   }, false, false);
     document.getElementById('btn-valider').style.display = 'none';
   document.getElementById('paiement-section').style.display = 'none';
@@ -2069,7 +2246,12 @@ function validerFacture() {
     date: r.date || new Date().toISOString().split('T')[0],
     signature: sig,
     paiement: modePaiement,
-    aide: aideChoisie.slice()
+    aide: aideChoisie.slice(),
+    syndicBdc: r.syndicBdc || '',
+    syndicAgence: r.syndicAgence || '',
+    syndicAgenceAdresse: r.syndicAgenceAdresse || '',
+    syndicAgenceTel: r.syndicAgenceTel || '',
+    syndicContact: r.syndicContact || ''
   };
   factures.push(f);
   var idx = rdvs.findIndex(function(x) { return x.id === currentRdvId; });
@@ -2861,6 +3043,43 @@ function renderSettings() {
   if (sbUrl) sbUrl.value = localStorage.getItem('nid_sb_url') || '';
   if (sbKey) sbKey.value = localStorage.getItem('nid_sb_key') || '';
   renderTarifGrid();
+  renderVillesParam();
+}
+
+function renderVillesParam() {
+  var container = document.getElementById('villes-list-container');
+  if (!container) return;
+  var custom = settings.villesCustom || [];
+  if (!custom.length) {
+    container.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);margin:0 0 8px">Aucune ville personnalisée ajoutée. Les villes de base sont toujours disponibles.</p>';
+    return;
+  }
+  container.innerHTML = custom.map(function(v, i) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #e8edf8">'
+      + '<span style="flex:1;font-size:0.95rem"><strong>' + v.ville + '</strong> <span style="color:var(--muted)">' + v.cp + '</span></span>'
+      + '<button class="btn btn-sm" onclick="supprimerVilleCustom(' + i + ')" style="background:rgba(204,26,58,0.1);color:var(--red);border:1px solid rgba(204,26,58,0.3)">Suppr.</button>'
+      + '</div>';
+  }).join('');
+}
+
+function ajouterVilleCustom() {
+  var nom = (document.getElementById('s-ville-new') || {value:''}).value.trim();
+  var cp = (document.getElementById('s-cp-new') || {value:''}).value.trim();
+  if (!nom || !cp) { showToast('Remplissez la ville et le code postal', true); return; }
+  if (!settings.villesCustom) settings.villesCustom = [];
+  settings.villesCustom.push({ville: nom, cp: cp});
+  save();
+  renderVillesParam();
+  document.getElementById('s-ville-new').value = '';
+  document.getElementById('s-cp-new').value = '';
+  showToast('Ville ajoutée !');
+}
+
+function supprimerVilleCustom(idx) {
+  if (!settings.villesCustom) return;
+  settings.villesCustom.splice(idx, 1);
+  save();
+  renderVillesParam();
 }
 
 function toggleParamSection(id) {
