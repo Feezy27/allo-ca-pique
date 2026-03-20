@@ -1926,28 +1926,29 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
 
   // ---- HEADER : ligne haut ----
   var bdcLine = '';
-  if (data.clientType === 'Montivilliers' && s.bdcMontivilliers) {
-    bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(s.bdcMontivilliers);
-  } else if (data.clientType === 'Gonfreville' && s.bdcGonfreville) {
-    bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(s.bdcGonfreville);
-  } else if (data.isSyndic && data.syndicBdc) {
-    bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(data.syndicBdc);
+  if ((data.clientType === 'Montivilliers' && s.bdcMontivilliers) || (data.clientType === 'Gonfreville' && s.bdcGonfreville) || (data.isSyndic && data.syndicBdc)) {
+    var bdcVal = data.clientType === 'Montivilliers' ? s.bdcMontivilliers : (data.clientType === 'Gonfreville' ? s.bdcGonfreville : data.syndicBdc);
+    bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(bdcVal);
   }
   h += '<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">';
-  h += '<tr valign="middle">';
-  h += '<td valign="middle" style="padding:0;">';
+  h += '<tr valign="top">';
+  // Colonne gauche : logo + nom
+  h += '<td valign="top" style="padding:0;">';
   h += '<table border="0" cellpadding="0" cellspacing="0"><tr valign="middle">';
   h += '<td valign="middle" style="padding-right:10px;">';
-  h += '<img src="' + LOGO_B64 + '" height="44" width="44" style="display:block;">';
+  h += '<img src="' + LOGO_B64 + '" height="52" width="52" style="display:block;">';
   h += '</td>';
   h += '<td valign="middle">';
-  h += '<span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:22px;color:#111;white-space:nowrap;">' + escHtml(s.nom||'Allo ça pique') + '</span>';
+  h += '<span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:28px;color:#111;white-space:nowrap;">' + escHtml(s.nom||'Allo ça pique') + '</span>';
   h += '</td>';
   h += '</tr></table>';
   h += '</td>';
-  h += '<td valign="middle" align="right" style="padding:0;">';
-  h += '<span style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:22px;color:#111;">FACTURE</span>';
-  h += '<div style="font-size:12px;color:#555;line-height:1.8;margin-top:3px;"><strong style="color:#111;">N°</strong> ' + data.num + bdcLine + '<br><strong style="color:#111;">Date :</strong> ' + data.dateStr + '</div>';
+  // Colonne droite : N° d'abord, puis FACTURE (gros), puis BC, puis Date
+  h += '<td valign="top" align="right" style="padding:0;">';
+  h += '<div style="font-size:12px;color:#555;line-height:1.8;"><strong style="color:#111;">N°</strong> ' + data.num + '</div>';
+  h += '<div style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:28px;color:#111;line-height:1.2;">FACTURE</div>';
+  if (bdcLine) h += '<div style="font-size:12px;color:#555;line-height:1.8;"><strong style="color:#111;">BC :</strong> ' + escHtml(bdcVal) + '</div>';
+  h += '<div style="font-size:12px;color:#555;line-height:1.8;"><strong style="color:#111;">Date :</strong> ' + data.dateStr + '</div>';
   h += '</td>';
   h += '</tr></table>';
 
