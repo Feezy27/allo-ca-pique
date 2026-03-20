@@ -2858,34 +2858,20 @@ function renderArchives() {
       var isSyndicArch = f.clientType === 'Syndic/Copro';
       var mailBtn = (f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && isPartArch)
         ? '<button class="btn btn-ghost btn-sm" onclick="sendMailById(\'' + f.id + '\')" title="Envoyer par mail"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail</button>' : '';
-      var syndicMailBtn = (isSyndicArch && f.syndicEmail)
-        ? (function(){
-            var subj = encodeURIComponent("Facture " + f.num + " - Intervention nid");
-            var body = encodeURIComponent(
-              "Bonjour,
-
-" +
-              "Veuillez trouver ci-joint la facture " + f.num + " relative à notre intervention.
-
-" +
-              "Facture N° : " + f.num + "
-" +
-              "Client : " + (f.nom || '') + "
-" +
-              "Montant : " + (f.prix || 0).toFixed(2) + " €
-" +
-              "Date : " + new Date(f.date + "T12:00:00").toLocaleDateString("fr-FR") + "
-
-" +
-              "Merci de bien vouloir procéder au règlement à réception.
-
-" +
-              "Cordialement,
-" + (settings.nom || "Allo ça pique")
-            );
-            return '<a href="mailto:' + encodeURIComponent(f.syndicEmail) + '?subject=' + subj + '&body=' + body + '" class="btn btn-ghost btn-sm" title="Envoyer par mail au syndic"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail</a>';
-          })()
-        : '';
+      var syndicMailBtn = '';
+      if (isSyndicArch && f.syndicEmail) {
+        var subj = encodeURIComponent('Facture ' + f.num + ' - Intervention nid');
+        var nl = '%0A';
+        var bodyStr = 'Bonjour,' + nl + nl +
+          'Veuillez trouver ci-joint la facture ' + f.num + ' relative à notre intervention.' + nl + nl +
+          'Facture N° : ' + f.num + nl +
+          'Client : ' + (f.nom || '') + nl +
+          'Montant : ' + (f.prix || 0).toFixed(2) + ' EUR' + nl +
+          'Date : ' + new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR') + nl + nl +
+          'Merci de bien vouloir procéder au règlement à réception.' + nl + nl +
+          'Cordialement,' + nl + (settings.nom || 'Allo ça pique');
+        syndicMailBtn = '<a href="mailto:' + encodeURIComponent(f.syndicEmail) + '?subject=' + subj + '&body=' + bodyStr + '" class="btn btn-ghost btn-sm" title="Envoyer par mail au syndic"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail</a>';
+      }
       var smsBtn = (f.tel && isPartArch)
         ? '<button class="btn btn-ghost btn-sm" onclick="ouvrirSMSFacture(findById(factures, \'' + f.id + '\'))" title="Envoyer par SMS">SMS</button>' : '';
 
