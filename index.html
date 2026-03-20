@@ -1945,8 +1945,8 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '</td>';
   // Colonne droite : N° d'abord, puis FACTURE (gros), puis BC, puis Date
   h += '<td valign="top" align="right" style="padding:0;">';
-  h += '<div style="font-size:12px;color:#555;line-height:1.8;"><strong style="color:#111;">N°</strong> ' + data.num + '</div>';
   h += '<div style="font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:28px;color:#111;line-height:1.2;">FACTURE</div>';
+  h += '<div style="font-size:12px;color:#555;line-height:1.8;margin-top:3px;"><strong style="color:#111;">N°</strong> ' + data.num + '</div>';
   if (bdcLine) h += '<div style="font-size:12px;color:#555;line-height:1.8;"><strong style="color:#111;">BC :</strong> ' + escHtml(bdcVal) + '</div>';
   h += '<div style="font-size:12px;color:#555;line-height:1.8;"><strong style="color:#111;">Date :</strong> ' + data.dateStr + '</div>';
   h += '</td>';
