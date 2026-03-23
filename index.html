@@ -598,7 +598,9 @@ select option { background: var(--surface2); }
     <!-- Filtre Type client -->
     <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
       <button class="arch-type-btn active" onclick="setArchiveType('Particulier')" id="atype-part">Particuliers</button>
-      <button class="arch-type-btn" onclick="setArchiveType('Voie publique')" id="atype-vp">Mairies / Voie publique</button>
+      <button class="arch-type-btn" onclick="setArchiveType('Voie publique')" id="atype-vp">Voie publique</button>
+      <button class="arch-type-btn" onclick="setArchiveType('Montivilliers')" id="atype-monti">Montivilliers</button>
+      <button class="arch-type-btn" onclick="setArchiveType('Gonfreville')" id="atype-gonf">Gonfreville</button>
       <button class="arch-type-btn" onclick="setArchiveType('Syndic/Copro')" id="atype-syndic">Syndic / Copro</button>
     </div>
 
@@ -656,16 +658,23 @@ select option { background: var(--surface2); }
       </div>
     </div>
 
-    <!-- 3. Bons de commande -->
+    <!-- 3. Monti-Gonfreville -->
     <div class="param-section">
       <div class="param-section-header" id="ps-header-bdc" onclick="toggleParamSection('bdc')">
-        <span class="param-section-title">Bons de commande</span>
+        <span class="param-section-title">Monti-Gonfreville</span>
         <span class="param-section-arrow">›</span>
       </div>
       <div class="param-section-body" id="ps-body-bdc">
-        <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Ces numéros apparaîtront sur la facture sous le numéro de facture.</p>
+        <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;color:var(--text);letter-spacing:.05em;margin-bottom:10px">Montivilliers</div>
         <div class="form-grid">
+          <div class="form-group full"><label>Adresse — Montivilliers</label><input id="s-monti-adresse" type="text" placeholder="1 Place du Général de Gaulle, 76290 Montivilliers"></div>
+          <div class="form-group"><label>Téléphone — Montivilliers</label><input id="s-monti-tel" type="tel" placeholder="02 35 00 00 00"></div>
           <div class="form-group"><label>Bon de commande — Montivilliers</label><input id="s-bdc-montivilliers" type="text" placeholder="N° BC Montivilliers..."></div>
+        </div>
+        <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;color:var(--text);letter-spacing:.05em;margin:18px 0 10px 0">Gonfreville-l'Orcher</div>
+        <div class="form-grid">
+          <div class="form-group full"><label>Adresse — Gonfreville</label><input id="s-gonf-adresse" type="text" placeholder="Place de l'Hôtel de Ville, 76700 Gonfreville-l'Orcher"></div>
+          <div class="form-group"><label>Téléphone — Gonfreville</label><input id="s-gonf-tel" type="tel" placeholder="02 35 00 00 00"></div>
           <div class="form-group"><label>Bon de commande — Gonfreville</label><input id="s-bdc-gonfreville" type="text" placeholder="N° BC Gonfreville..."></div>
         </div>
       </div>
@@ -1971,16 +1980,18 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   if (data.email) h += '<br>' + escHtml(data.email);
   h += '</div></td>';
   h += '</tr></table>';
-  // Bloc Demandeur (Syndic/Copro)
-  if (data.isSyndic) {
+  // Bloc Requérant (Syndic/Copro, Montivilliers, Gonfreville)
+  var showRequerant = data.isSyndic || data.isMairie;
+  if (showRequerant) {
+    var reqLabel = 'Requérant';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr>';
     h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
-    h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Demandeur &mdash; Syndicat / Co-propriété</div>';
+    h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">' + reqLabel + '</div>';
     h += '<div style="font-size:0.88rem;line-height:1.7;">';
-    if (data.syndicAgence) h += '<strong>' + escHtml(data.syndicAgence) + '</strong>';
-    if (data.syndicAgenceAdresse) h += '<br>' + escHtml(data.syndicAgenceAdresse);
-    if (data.syndicAgenceTel) h += '<br>Tél : ' + escHtml(data.syndicAgenceTel);
-    if (data.syndicContact) h += '<br>Contact : ' + escHtml(data.syndicContact);
+    // Requérant = toujours la personne sur place (chez qui l'intervention a lieu)
+    if (data.requerantNom) h += '<strong>' + escHtml(data.requerantNom) + '</strong>';
+    if (data.requerantAdresse) h += '<br>' + escHtml(data.requerantAdresse);
+    if (data.requerantTel) h += '<br>Tél : ' + escHtml(data.requerantTel);
     h += '</div></td>';
     h += '</tr></table>';
   }
@@ -2077,19 +2088,51 @@ function buildDataFacture(r, num, dateStr) {
     telClient = r.mairieTel || '';
   }
   var isSyndic = r.clientType === 'Syndic/Copro';
+  var isMonti = r.clientType === 'Montivilliers';
+  var isGonf  = r.clientType === 'Gonfreville';
+  var isMairie = isMonti || isGonf;
+
+  // Pour Monti/Gonf : client = mairie, requérant = personne sur place
+  // Pour Syndic    : client = syndic, requérant = personne sur place
+  // Pour VP        : client = mairie détectée (ancien comportement)
+  var clientNom, clientAdr, clientTel;
+  if (isMonti) {
+    clientNom = 'Mairie de Montivilliers';
+    clientAdr = settings.montiAdresse || '';
+    clientTel = settings.montiTel || '';
+  } else if (isGonf) {
+    clientNom = "Mairie de Gonfreville-l’Orcher";
+    clientAdr = settings.gonfAdresse || '';
+    clientTel = settings.gonfTel || '';
+  } else if (isSyndic) {
+    clientNom = r.syndicAgence || nomClient;
+    clientAdr = r.syndicAgenceAdresse || '';
+    clientTel = r.syndicAgenceTel || '';
+  } else {
+    clientNom = nomClient;
+    clientAdr = adrClient;
+    clientTel = telClient;
+  }
+
   return {
     num: num,
     dateStr: dateStr,
-    nom: nomClient,
-    adresse: adrClient,
-    tel: telClient,
+    nom: clientNom,
+    adresse: clientAdr,
+    tel: clientTel,
     email: r.email || '',
     type: descType,
     prixHT: r.prix,
-    notes: isVP ? '' : (r.notes || ''),
-    clientType: (isVP || isSyndic) ? '' : (r.clientType || ''),
+    notes: (isVP || isMairie) ? '' : (r.notes || ''),
+    clientType: (isVP || isSyndic || isMairie) ? '' : (r.clientType || ''),
     insecte: r.insecte || '',
     adresseIntervention: isVP ? r.adresse : null,
+    // Requérant (personne sur place) pour Monti/Gonf/Syndic
+    requerantNom: (isMairie || isSyndic) ? (r.nom || '') : '',
+    requerantAdresse: (isMairie || isSyndic) ? (isSyndic ? (r.adresse || '') : (adrClient || '')) : '',
+    requerantTel: (isMairie || isSyndic) ? (r.tel || '') : '',
+    isMairie: isMairie,
+    mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : ''),
     // Syndic
     syndicBdc: r.syndicBdc || '',
     syndicAgence: r.syndicAgence || '',
@@ -2097,6 +2140,9 @@ function buildDataFacture(r, num, dateStr) {
     syndicAgenceTel: r.syndicAgenceTel || '',
     syndicContact: r.syndicContact || '',
     syndicEmail: r.syndicEmail || '',
+    requerantNom: data.requerantNom || '', requerantAdresse: data.requerantAdresse || '',
+    requerantTel: data.requerantTel || '', isMairie: data.isMairie || false,
+    mairieNom: data.mairieNom || '',
     syndicEmail: r.syndicEmail || '',
     isSyndic: isSyndic
   };
@@ -2163,7 +2209,10 @@ function voirFacture(factureId) {
     syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
     syndicAgenceAdresse: f.syndicAgenceAdresse || '',
     syndicAgenceTel: f.syndicAgenceTel || '', syndicContact: f.syndicContact || '',
-    syndicEmail: f.syndicEmail || ''
+    syndicEmail: f.syndicEmail || '',
+    requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
+    requerantTel: f.requerantTel || '', isMairie: f.isMairie || false,
+    mairieNom: f.mairieNom || ''
   }, false, false);
     document.getElementById('btn-valider').style.display = 'none';
   document.getElementById('paiement-section').style.display = 'none';
@@ -2747,6 +2796,8 @@ function setArchiveType(type) {
   archiveMonth = null;
   document.getElementById('atype-part').classList.toggle('active', type === 'Particulier');
   document.getElementById('atype-vp').classList.toggle('active', type === 'Voie publique');
+  document.getElementById('atype-monti').classList.toggle('active', type === 'Montivilliers');
+  document.getElementById('atype-gonf').classList.toggle('active', type === 'Gonfreville');
   document.getElementById('atype-syndic').classList.toggle('active', type === 'Syndic/Copro');
   renderArchives();
 }
@@ -2781,7 +2832,9 @@ function renderArchives() {
 
   // Filtrer par type de client
   var filtered = factures.filter(function(f) {
-    if (archiveType === 'Voie publique') return f.clientType === '' || f.clientType === 'Voie publique';
+    if (archiveType === 'Voie publique') return f.clientType === 'Voie publique';
+    if (archiveType === 'Montivilliers') return f.clientType === 'Montivilliers';
+    if (archiveType === 'Gonfreville') return f.clientType === 'Gonfreville';
     if (archiveType === 'Syndic/Copro') return f.clientType === 'Syndic/Copro';
     return !f.clientType || f.clientType === 'Particulier';
   });
@@ -2959,7 +3012,10 @@ function genFactureHtmlStandalone(f) {
     syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
     syndicAgenceAdresse: f.syndicAgenceAdresse || '',
     syndicAgenceTel: f.syndicAgenceTel || '', syndicContact: f.syndicContact || '',
-    syndicEmail: f.syndicEmail || ''
+    syndicEmail: f.syndicEmail || '',
+    requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
+    requerantTel: f.requerantTel || '', isMairie: f.isMairie || false,
+    mairieNom: f.mairieNom || ''
   };
   var bodyHtml = buildFactureHtml(data, false, false);
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture ' + f.num + '</title>'
@@ -3020,7 +3076,9 @@ function telechargerFacture(factureId) {
 // Télécharger toute une journée (factures + photos, dans l'ordre)
 function telechargerJournee(dateStr) {
   var inDay = factures.filter(function(f) {
-    if (archiveType === 'Voie publique') return f.date === dateStr && (f.clientType === '' || f.clientType === 'Voie publique');
+    if (archiveType === 'Voie publique') return f.date === dateStr && f.clientType === 'Voie publique';
+    if (archiveType === 'Montivilliers') return f.date === dateStr && f.clientType === 'Montivilliers';
+    if (archiveType === 'Gonfreville') return f.date === dateStr && f.clientType === 'Gonfreville';
     if (archiveType === 'Syndic/Copro') return f.date === dateStr && f.clientType === 'Syndic/Copro';
     return f.date === dateStr && (!f.clientType || f.clientType === 'Particulier');
   });
@@ -3081,6 +3139,10 @@ function renderSettings() {
   document.getElementById('s-cloudinary-preset').value = settings.cloudinaryPreset || '';
   document.getElementById('s-bdc-montivilliers').value = settings.bdcMontivilliers || '';
   document.getElementById('s-bdc-gonfreville').value = settings.bdcGonfreville || '';
+  document.getElementById('s-monti-adresse').value = settings.montiAdresse || '';
+  document.getElementById('s-monti-tel').value = settings.montiTel || '';
+  document.getElementById('s-gonf-adresse').value = settings.gonfAdresse || '';
+  document.getElementById('s-gonf-tel').value = settings.gonfTel || '';
   document.getElementById('s-aide-depart-pct').value = settings.aideDepartPct !== undefined ? settings.aideDepartPct : 30;
   document.getElementById('s-aide-seine-pct').value = settings.aideSeinePct !== undefined ? settings.aideSeinePct : 30;
   // Supabase config (champs optionnels)
@@ -3183,6 +3245,10 @@ function saveSettings() {
     cloudinaryPreset: document.getElementById('s-cloudinary-preset').value.trim(),
     bdcMontivilliers: document.getElementById('s-bdc-montivilliers').value.trim(),
     bdcGonfreville: document.getElementById('s-bdc-gonfreville').value.trim(),
+    montiAdresse: document.getElementById('s-monti-adresse').value.trim(),
+    montiTel: document.getElementById('s-monti-tel').value.trim(),
+    gonfAdresse: document.getElementById('s-gonf-adresse').value.trim(),
+    gonfTel: document.getElementById('s-gonf-tel').value.trim(),
     aideDepartPct: parseFloat(document.getElementById('s-aide-depart-pct').value) || 30,
     aideSeinePct: parseFloat(document.getElementById('s-aide-seine-pct').value) || 30
   };
