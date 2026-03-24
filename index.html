@@ -804,6 +804,16 @@ select option { background: var(--surface2); }
             <button type="button" class="cascade-btn" onclick="selectClient('Gonfreville')">Gonfreville</button>
             <button type="button" class="cascade-btn cascade-btn-full" onclick="selectClient('Syndic/Copro')">Syndic / Copropriété</button>
           </div>
+          <!-- Sous-menu Mairies -->
+          <div id="sous-menu-mairies" style="display:none;margin-top:8px;background:#f0f4fa;border:2px solid var(--border);border-radius:8px;padding:10px;">
+            <div style="font-size:0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Choisir la mairie</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button type="button" class="cascade-btn" id="smb-monti" onclick="selectClient('Montivilliers')">Montivilliers</button>
+              <button type="button" class="cascade-btn" id="smb-gonf" onclick="selectClient('Gonfreville')">Gonfreville</button>
+              <button type="button" class="cascade-btn" id="smb-havre" onclick="selectClient('Le Havre')">Le Havre</button>
+              <button type="button" class="cascade-btn" id="smb-autres" onclick="selectClient('Voie publique')">Autres</button>
+            </div>
+          </div>
         </div>
 
 
@@ -871,6 +881,14 @@ select option { background: var(--surface2); }
       <div class="form-group full"><label>Notes / Détails</label><textarea id="r-notes" placeholder="Nid sous toiture, accès difficile..."></textarea></div>
 
 
+      <!-- Bloc Le Havre (BDC uniquement) -->
+      <div class="form-group full" id="bloc-havre" style="display:none">
+        <div style="background:#f0f4fa;border:2px solid #091a45;border-radius:10px;padding:14px 16px;">
+          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:#091a45;margin-bottom:12px;font-weight:700">Bon de commande — Le Havre</div>
+          <input id="r-havre-bdc" type="text" placeholder="N° bon de commande" style="margin-bottom:0">
+        </div>
+      </div>
+      <!-- Bloc Autres / Voie publique -->
       <div class="form-group full" id="bloc-mairie" style="display:none">
         <div style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.35);border-radius:10px;padding:14px 16px">
           <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:#f5a623;margin-bottom:10px;font-weight:600">Facturation à la mairie</div>
@@ -887,6 +905,8 @@ select option { background: var(--surface2); }
           <textarea id="r-mairie-adresse" placeholder="1 Place de l'Hôtel de Ville, 76600 Le Havre" style="margin-top:5px;min-height:60px"></textarea>
           <label style="font-size:0.78rem;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-top:8px;display:block">Téléphone mairie</label>
           <input id="r-mairie-tel" type="tel" placeholder="02 35 00 00 00" style="margin-top:5px">
+          <label style="font-size:0.78rem;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-top:10px;display:block">Bon de commande</label>
+          <input id="r-mairie-bdc" type="text" placeholder="N° bon de commande" style="margin-top:5px">
         </div>
       </div>
       <!-- Bloc Syndic/Copro -->
@@ -981,7 +1001,7 @@ select option { background: var(--surface2); }
 
 
 <!-- ===== ECRAN LOGIN ===== -->
-<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="width:100%;max-width:400px">
     <div style="text-align:center;margin-bottom:32px">
       <div style="font-family:Syne;font-weight:800;font-size:1.8rem;color:var(--accent);margin-bottom:8px"> Allo ça pique</div>
@@ -1286,15 +1306,6 @@ function agendaFirstDayOfBlock(blockOffset) {
   return d;
 }
 
-function agendaLundiSemaine(offset) {
-  // Compatibilité — non utilisé directement
-  var d = new Date();
-  var day = d.getDay();
-  var diffToMonday = (day === 0) ? -6 : 1 - day;
-  d.setDate(d.getDate() + diffToMonday + offset * 7);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 function dateToStr(d) {
   var mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -2134,8 +2145,6 @@ function buildDataFacture(r, num, dateStr) {
   // Pour Syndic    : client = syndic, requérant = personne sur place
   // Pour VP        : client = mairie détectée (ancien comportement)
   var clientNom, clientAdr, clientTel;
-  var isHavre = r.clientType === 'Le Havre';
-
   if (isMonti) {
     clientNom = 'Mairie de Montivilliers';
     clientAdr = settings.montiAdresse || '';
