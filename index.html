@@ -408,7 +408,7 @@ select option { background: var(--surface2); }
   }
   #mobile-nav button {
     flex: 1;
-    background: none;
+    background: #fff;
     border: none;
     border-right: 1px solid var(--border);
     color: var(--muted);
@@ -422,12 +422,19 @@ select option { background: var(--surface2); }
     gap: 4px;
     cursor: pointer;
     padding: 10px 4px;
-    transition: all 0.2s;
-    border-top: 3px solid transparent;
+    transition: all 0.15s;
   }
   #mobile-nav button:last-child { border-right: none; }
   #mobile-nav button .nav-icon { font-size: 1.6rem; line-height: 1; }
-  #mobile-nav button.active { color: var(--accent); border-top-color: var(--accent); background: #f0f4fa; font-weight: 700; }
+  #mobile-nav button.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+  }
+  #mobile-nav button.active .nav-icon { color: #fff !important; }
+  #mobile-nav button:not(.active):not([onclick="doLogout()"]) {
+    color: var(--muted);
+  }
 
   main {
     padding: 16px 12px 96px 12px; /* espace pour nav bas */
@@ -601,6 +608,7 @@ select option { background: var(--surface2); }
       <button class="arch-type-btn" onclick="setArchiveType('Voie publique')" id="atype-vp">Voie publique</button>
       <button class="arch-type-btn" onclick="setArchiveType('Montivilliers')" id="atype-monti">Montivilliers</button>
       <button class="arch-type-btn" onclick="setArchiveType('Gonfreville')" id="atype-gonf">Gonfreville</button>
+      <button class="arch-type-btn" onclick="setArchiveType('Le Havre')" id="atype-havre">Le Havre</button>
       <button class="arch-type-btn" onclick="setArchiveType('Syndic/Copro')" id="atype-syndic">Syndic / Copro</button>
     </div>
 
@@ -626,11 +634,11 @@ select option { background: var(--surface2); }
 
     <!-- 1. Informations société (ouvert par défaut) -->
     <div class="param-section">
-      <div class="param-section-header open" id="ps-header-societe" onclick="toggleParamSection('societe')">
+      <div class="param-section-header" id="ps-header-societe" onclick="toggleParamSection('societe')">
         <span class="param-section-title">Informations société</span>
         <span class="param-section-arrow">›</span>
       </div>
-      <div class="param-section-body open" id="ps-body-societe">
+      <div class="param-section-body" id="ps-body-societe">
         <div class="form-grid">
           <div class="form-group"><label>Nom / Raison sociale</label><input id="s-nom" type="text" placeholder="Mon Entreprise"></div>
           <div class="form-group"><label>SIRET</label><input id="s-siret" type="text" placeholder="123 456 789 00012"></div>
@@ -720,11 +728,11 @@ select option { background: var(--surface2); }
 
     <!-- 6. Villes -->
     <div class="param-section">
-      <div class="param-section-header open" id="ps-header-villes" onclick="toggleParamSection('villes')">
+      <div class="param-section-header" id="ps-header-villes" onclick="toggleParamSection('villes')">
         <span class="param-section-title">Villes</span>
         <span class="param-section-arrow">›</span>
       </div>
-      <div class="param-section-body open" id="ps-body-villes">
+      <div class="param-section-body" id="ps-body-villes">
         <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Ces villes apparaissent en suggestion lors de la saisie de l'adresse d'intervention. Les villes de base sont déjà incluses.</p>
         <div id="villes-list-container"></div>
         <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
@@ -758,19 +766,19 @@ select option { background: var(--surface2); }
 <!-- Navigation mobile en bas -->
 <div id="mobile-nav" style="display:none">
   <button class="active" onclick="goTo('dashboard')" id="mnav-dashboard">
-    <span class="nav-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span>Accueil
+    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span>Accueil
   </button>
   <button onclick="goTo('rdvs')" id="mnav-rdvs">
-    <span class="nav-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></span>RDV
+    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></span>RDV
   </button>
   <button onclick="goTo('archives')" id="mnav-archives">
-    <span class="nav-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z"/></svg></span>Factures
+    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z"/></svg></span>Factures
   </button>
   <button onclick="goTo('settings')" id="mnav-settings">
-    <span class="nav-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96a6.93 6.93 0 00-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54a7.2 7.2 0 00-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.35 1.04.66 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.2 7.2 0 001.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 110-7.2 3.6 3.6 0 010 7.2z"/></svg></span>Params
+    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96a6.93 6.93 0 00-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54a7.2 7.2 0 00-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.35 1.04.66 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.2 7.2 0 001.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 110-7.2 3.6 3.6 0 010 7.2z"/></svg></span>Params
   </button>
-  <button onclick="doLogout()" style="color:var(--red)">
-    <span class="nav-icon" style="color:var(--red)"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4a2 2 0 00-2 2v14a2 2 0 002 2h8v-2H4V5z"/></svg></span>Déco
+  <button onclick="doLogout()" style="background:var(--red);color:#fff;">
+    <span class="nav-icon" style="color:#fff;"><svg viewBox="0 0 24 24" fill="currentColor" width="1.6rem" height="1.6rem"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4a2 2 0 00-2 2v14a2 2 0 002 2h8v-2H4V5z"/></svg></span>Déco
   </button>
 </div>
 
@@ -783,30 +791,6 @@ select option { background: var(--surface2); }
     <!-- Mini agenda dans la modale -->
     <div id="rdv-modal-agenda" style="margin-bottom:18px"></div>
     <div class="form-grid">
-      <div class="form-group"><label>Nom du client *</label><input id="r-nom" type="text" placeholder="Jean Dupont"></div>
-      <div class="form-group"><label>Téléphone *</label><input id="r-tel" type="tel" placeholder="06 00 00 00 00"></div>
-      <div class="form-group full">
-        <label>Ville *</label>
-        <input id="r-ville" type="text" placeholder="Le Havre 76600" autocomplete="off"
-          oninput="onVilleInput(this)" onblur="closeVilleSuggestions()" style="width:100%;box-sizing:border-box">
-        <input id="r-ville-cp" type="hidden" value="">
-        <div id="ville-suggestions" style="display:none;margin-top:-2px;background:#fff;border:2px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;box-shadow:0 4px 8px rgba(9,26,69,0.15)"></div>
-      </div>
-      <div class="form-group full">
-        <label>Adresse (n° et rue) *</label>
-        <input id="r-rue" type="text" placeholder="12 rue des Acacias" oninput="updateMapsLink()">
-        <input id="r-adresse" type="hidden">
-        <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">Ouvrir dans Google Maps</a>
-      </div>
-      <div class="form-group full">
-        <label>Date *</label>
-        <input type="date" id="r-date" class="input-date-native">
-      </div>
-      <div class="form-group full">
-        <label>Heure</label>
-        <input type="tel" id="r-heure-tel" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="onHeureInput(this)">
-        <input type="hidden" id="r-heure">
-      </div>
       <div class="form-group full" id="rdv-intervention-bloc">
         <label>Type d'intervention *</label>
 
@@ -857,6 +841,30 @@ select option { background: var(--surface2); }
 
         <input type="hidden" id="r-type">
         <input type="hidden" id="r-client-type">
+      
+      <div class="form-group"><label>Nom du client *</label><input id="r-nom" type="text" placeholder="Jean Dupont"></div>
+      <div class="form-group"><label>Téléphone *</label><input id="r-tel" type="tel" placeholder="06 00 00 00 00"></div>
+      <div class="form-group full">
+        <label>Ville *</label>
+        <input id="r-ville" type="text" placeholder="Le Havre 76600" autocomplete="off"
+          oninput="onVilleInput(this)" onblur="closeVilleSuggestions()" style="width:100%;box-sizing:border-box">
+        <input id="r-ville-cp" type="hidden" value="">
+        <div id="ville-suggestions" style="display:none;margin-top:-2px;background:#fff;border:2px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;box-shadow:0 4px 8px rgba(9,26,69,0.15)"></div>
+      </div>
+      <div class="form-group full">
+        <label>Adresse (n° et rue) *</label>
+        <input id="r-rue" type="text" placeholder="12 rue des Acacias" oninput="updateMapsLink()">
+        <input id="r-adresse" type="hidden">
+        <a id="maps-link" class="maps-link" href="#" target="_blank" style="display:none">Ouvrir dans Google Maps</a>
+      </div>
+      <div class="form-group full">
+        <label>Date *</label>
+        <input type="date" id="r-date" class="input-date-native">
+      </div>
+      <div class="form-group full">
+        <label>Heure</label>
+        <input type="tel" id="r-heure-tel" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="onHeureInput(this)">
+        <input type="hidden" id="r-heure">
       </div>
       <div class="form-group"><label>Prix (€)</label><input id="r-prix" type="number" step="0.01" placeholder="0.00"></div>
       <div class="form-group"><label>Email client</label><input id="r-email" type="email" placeholder="client@mail.fr"></div>
@@ -1810,13 +1818,41 @@ function initCascade(rdv) {
 function fillTypeSelect(selected) { /* remplacé par cascade */ }
 function onTypeChange() { /* remplacé par cascade */ }
 
+function ouvrirSousMenuMairies() {
+  // Highlight le bouton Mairies
+  document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){ b.classList.remove('selected'); });
+  var mairiBtn = document.querySelector('#opts-client .cascade-btn:nth-child(2)');
+  if (mairiBtn) mairiBtn.classList.add('selected');
+  // Afficher le sous-menu
+  var sm = document.getElementById('sous-menu-mairies');
+  if (sm) sm.style.display = sm.style.display === 'none' ? '' : '';
+}
+
 function updateBlocMairie() {
   var isVP = _cascade.client === 'Voie publique';
+  var isHavre = _cascade.client === 'Le Havre';
   var isSyndic = _cascade.client === 'Syndic/Copro';
   var bloc = document.getElementById('bloc-mairie');
+  var blocHavre = document.getElementById('bloc-havre');
   var blocSyndic = document.getElementById('bloc-syndic');
   if (bloc) bloc.style.display = isVP ? '' : 'none';
+  if (blocHavre) blocHavre.style.display = isHavre ? '' : 'none';
   if (blocSyndic) blocSyndic.style.display = isSyndic ? '' : 'none';
+  // Fermer sous-menu si on a choisi une mairie
+  if (isVP || isHavre || _cascade.client === 'Montivilliers' || _cascade.client === 'Gonfreville') {
+    var smb = document.getElementById('sous-menu-mairies');
+    if (smb) smb.style.display = 'none';
+    // Highlight sous-bouton mairie
+    ['smb-monti','smb-gonf','smb-havre','smb-autres'].forEach(function(id){
+      var b = document.getElementById(id); if(b) b.classList.remove('selected');
+    });
+    var map = {'Montivilliers':'smb-monti','Gonfreville':'smb-gonf','Le Havre':'smb-havre','Voie publique':'smb-autres'};
+    var sb = document.getElementById(map[_cascade.client]); if(sb) sb.classList.add('selected');
+    // Highlight bouton Mairies dans le menu principal
+    document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){ b.classList.remove('selected'); });
+    var mairiBtn = document.querySelector('#opts-client .cascade-btn:nth-child(2)');
+    if (mairiBtn) mairiBtn.classList.add('selected');
+  }
   if (!isVP) return;
   var adresse = (document.getElementById('r-adresse') || {}).value || '';
   var mairie = detecterMairie(adresse);
@@ -1887,6 +1923,8 @@ function saveRdv() {
     mairieAdresse: _cascade.client === 'Voie publique' ? (document.getElementById('r-mairie-adresse').value.trim()) : '',
     mairieTel: _cascade.client === 'Voie publique' ? (document.getElementById('r-mairie-tel').value.trim()) : '',
     syndicBdc: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-bdc').value.trim()) : '',
+    havreBdc: _cascade.client === 'Le Havre' ? ((document.getElementById('r-havre-bdc')||{value:''}).value.trim()) : '',
+    mairieBdc: _cascade.client === 'Voie publique' ? ((document.getElementById('r-mairie-bdc')||{value:''}).value.trim()) : '',
     syndicAgence: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-agence').value.trim()) : '',
     syndicAgenceAdresse: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-agence-adresse').value.trim()) : '',
     syndicAgenceTel: _cascade.client === 'Syndic/Copro' ? (document.getElementById('r-syndic-agence-tel').value.trim()) : '',
@@ -2090,12 +2128,14 @@ function buildDataFacture(r, num, dateStr) {
   var isSyndic = r.clientType === 'Syndic/Copro';
   var isMonti = r.clientType === 'Montivilliers';
   var isGonf  = r.clientType === 'Gonfreville';
-  var isMairie = isMonti || isGonf;
+  var isMairie = isMonti || isGonf || isHavre;
 
   // Pour Monti/Gonf : client = mairie, requérant = personne sur place
   // Pour Syndic    : client = syndic, requérant = personne sur place
   // Pour VP        : client = mairie détectée (ancien comportement)
   var clientNom, clientAdr, clientTel;
+  var isHavre = r.clientType === 'Le Havre';
+
   if (isMonti) {
     clientNom = 'Mairie de Montivilliers';
     clientAdr = settings.montiAdresse || '';
@@ -2104,6 +2144,10 @@ function buildDataFacture(r, num, dateStr) {
     clientNom = "Mairie de Gonfreville-l’Orcher";
     clientAdr = settings.gonfAdresse || '';
     clientTel = settings.gonfTel || '';
+  } else if (isHavre) {
+    clientNom = 'Mairie du Havre';
+    clientAdr = settings.havreAdresse || '';
+    clientTel = settings.havreTel || '';
   } else if (isSyndic) {
     clientNom = r.syndicAgence || nomClient;
     clientAdr = r.syndicAgenceAdresse || '';
@@ -2798,6 +2842,8 @@ function setArchiveType(type) {
   document.getElementById('atype-vp').classList.toggle('active', type === 'Voie publique');
   document.getElementById('atype-monti').classList.toggle('active', type === 'Montivilliers');
   document.getElementById('atype-gonf').classList.toggle('active', type === 'Gonfreville');
+  var atHavre = document.getElementById('atype-havre');
+  if (atHavre) atHavre.classList.toggle('active', type === 'Le Havre');
   document.getElementById('atype-syndic').classList.toggle('active', type === 'Syndic/Copro');
   renderArchives();
 }
@@ -2835,6 +2881,7 @@ function renderArchives() {
     if (archiveType === 'Voie publique') return f.clientType === 'Voie publique';
     if (archiveType === 'Montivilliers') return f.clientType === 'Montivilliers';
     if (archiveType === 'Gonfreville') return f.clientType === 'Gonfreville';
+    if (archiveType === 'Le Havre') return f.clientType === 'Le Havre';
     if (archiveType === 'Syndic/Copro') return f.clientType === 'Syndic/Copro';
     return !f.clientType || f.clientType === 'Particulier';
   });
