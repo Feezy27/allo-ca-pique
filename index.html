@@ -666,24 +666,32 @@ select option { background: var(--surface2); }
       </div>
     </div>
 
-    <!-- 3. Monti-Gonfreville -->
+    <!-- 3. Mairies -->
     <div class="param-section">
       <div class="param-section-header" id="ps-header-bdc" onclick="toggleParamSection('bdc')">
-        <span class="param-section-title">Monti-Gonfreville</span>
+        <span class="param-section-title">Mairies</span>
         <span class="param-section-arrow">›</span>
       </div>
       <div class="param-section-body" id="ps-body-bdc">
-        <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;color:var(--text);letter-spacing:.05em;margin-bottom:10px">Montivilliers</div>
+        <!-- Montivilliers -->
+        <div style="font-size:0.85rem;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:.06em;padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:12px">Montivilliers</div>
         <div class="form-grid">
-          <div class="form-group full"><label>Adresse — Montivilliers</label><input id="s-monti-adresse" type="text" placeholder="1 Place du Général de Gaulle, 76290 Montivilliers"></div>
-          <div class="form-group"><label>Téléphone — Montivilliers</label><input id="s-monti-tel" type="tel" placeholder="02 35 00 00 00"></div>
-          <div class="form-group"><label>Bon de commande — Montivilliers</label><input id="s-bdc-montivilliers" type="text" placeholder="N° BC Montivilliers..."></div>
+          <div class="form-group full"><label>Adresse</label><input id="s-monti-adresse" type="text" placeholder="1 Place du Général de Gaulle, 76290 Montivilliers"></div>
+          <div class="form-group"><label>Téléphone</label><input id="s-monti-tel" type="tel" placeholder="02 35 00 00 00"></div>
+          <div class="form-group"><label>Bon de commande</label><input id="s-bdc-montivilliers" type="text" placeholder="N° BC Montivilliers..."></div>
         </div>
-        <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;color:var(--text);letter-spacing:.05em;margin:18px 0 10px 0">Gonfreville-l'Orcher</div>
+        <!-- Gonfreville -->
+        <div style="font-size:0.85rem;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:.06em;padding-bottom:8px;border-bottom:2px solid var(--border);margin:20px 0 12px 0">Gonfreville-l'Orcher</div>
         <div class="form-grid">
-          <div class="form-group full"><label>Adresse — Gonfreville</label><input id="s-gonf-adresse" type="text" placeholder="Place de l'Hôtel de Ville, 76700 Gonfreville-l'Orcher"></div>
-          <div class="form-group"><label>Téléphone — Gonfreville</label><input id="s-gonf-tel" type="tel" placeholder="02 35 00 00 00"></div>
-          <div class="form-group"><label>Bon de commande — Gonfreville</label><input id="s-bdc-gonfreville" type="text" placeholder="N° BC Gonfreville..."></div>
+          <div class="form-group full"><label>Adresse</label><input id="s-gonf-adresse" type="text" placeholder="Place de l'Hôtel de Ville, 76700 Gonfreville-l'Orcher"></div>
+          <div class="form-group"><label>Téléphone</label><input id="s-gonf-tel" type="tel" placeholder="02 35 00 00 00"></div>
+          <div class="form-group"><label>Bon de commande</label><input id="s-bdc-gonfreville" type="text" placeholder="N° BC Gonfreville..."></div>
+        </div>
+        <!-- Le Havre -->
+        <div style="font-size:0.85rem;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:.06em;padding-bottom:8px;border-bottom:2px solid var(--border);margin:20px 0 12px 0">Le Havre</div>
+        <div class="form-grid">
+          <div class="form-group full"><label>Adresse</label><input id="s-havre-adresse" type="text" placeholder="Hôtel de Ville, Place de l'Hôtel de Ville, 76600 Le Havre"></div>
+          <div class="form-group"><label>Téléphone</label><input id="s-havre-tel" type="tel" placeholder="02 35 00 00 00"></div>
         </div>
       </div>
     </div>
@@ -799,9 +807,7 @@ select option { background: var(--surface2); }
           <div class="cascade-label">Type de client</div>
           <div class="cascade-options" id="opts-client">
             <button type="button" class="cascade-btn" onclick="selectClient('Particulier')">Particulier</button>
-            <button type="button" class="cascade-btn" onclick="selectClient('Voie publique')">Voie publique</button>
-            <button type="button" class="cascade-btn" onclick="selectClient('Montivilliers')">Montivilliers</button>
-            <button type="button" class="cascade-btn" onclick="selectClient('Gonfreville')">Gonfreville</button>
+            <button type="button" class="cascade-btn" id="btn-mairies" onclick="ouvrirSousMenuMairies()">Mairies</button>
             <button type="button" class="cascade-btn cascade-btn-full" onclick="selectClient('Syndic/Copro')">Syndic / Copropriété</button>
           </div>
           <!-- Sous-menu Mairies -->
@@ -891,7 +897,7 @@ select option { background: var(--surface2); }
       <!-- Bloc Autres / Voie publique -->
       <div class="form-group full" id="bloc-mairie" style="display:none">
         <div style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.35);border-radius:10px;padding:14px 16px">
-          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:#f5a623;margin-bottom:10px;font-weight:600">Facturation à la mairie</div>
+          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:#f5a623;margin-bottom:10px;font-weight:600">Autres — Facturation mairie</div>
           <div id="mairie-detectee" style="display:none;margin-bottom:10px;font-size:0.88rem;color:#ccc">
             <span id="mairie-nom-display"></span><br>
             <span id="mairie-adr-display" style="color:#aaa;font-size:0.82rem"></span>
@@ -1831,13 +1837,11 @@ function fillTypeSelect(selected) { /* remplacé par cascade */ }
 function onTypeChange() { /* remplacé par cascade */ }
 
 function ouvrirSousMenuMairies() {
-  // Highlight le bouton Mairies
   document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){ b.classList.remove('selected'); });
-  var mairiBtn = document.querySelector('#opts-client .cascade-btn:nth-child(2)');
+  var mairiBtn = document.getElementById('btn-mairies');
   if (mairiBtn) mairiBtn.classList.add('selected');
-  // Afficher le sous-menu
   var sm = document.getElementById('sous-menu-mairies');
-  if (sm) sm.style.display = sm.style.display === 'none' ? '' : '';
+  if (sm) sm.style.display = '';
 }
 
 function updateBlocMairie() {
@@ -3306,6 +3310,8 @@ function saveSettings() {
     montiTel: document.getElementById('s-monti-tel').value.trim(),
     gonfAdresse: document.getElementById('s-gonf-adresse').value.trim(),
     gonfTel: document.getElementById('s-gonf-tel').value.trim(),
+    havreAdresse: (document.getElementById('s-havre-adresse')||{value:''}).value.trim(),
+    havreTel: (document.getElementById('s-havre-tel')||{value:''}).value.trim(),
     aideDepartPct: parseFloat(document.getElementById('s-aide-depart-pct').value) || 30,
     aideSeinePct: parseFloat(document.getElementById('s-aide-seine-pct').value) || 30
   };
