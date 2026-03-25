@@ -583,13 +583,20 @@ select option { background: var(--surface2); }
 <div class="page" id="page-archives">
 <div class="section-header"><h2>Factures archivées</h2></div>
 <!-- Filtre Type client -->
-<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
 <button class="arch-type-btn active" onclick="setArchiveType('Particulier')" id="atype-part">Particuliers</button>
-<button class="arch-type-btn" onclick="setArchiveType('Voie publique')" id="atype-vp">Voie publique</button>
-<button class="arch-type-btn" onclick="setArchiveType('Montivilliers')" id="atype-monti">Montivilliers</button>
-<button class="arch-type-btn" onclick="setArchiveType('Gonfreville')" id="atype-gonf">Gonfreville</button>
-<button class="arch-type-btn" onclick="setArchiveType('Le Havre')" id="atype-havre">Le Havre</button>
+<button class="arch-type-btn" onclick="toggleArchiveMairies()" id="atype-mairies">Mairies</button>
 <button class="arch-type-btn" onclick="setArchiveType('Syndic/Copro')" id="atype-syndic">Syndic / Copro</button>
+</div>
+<!-- Sous-menu Mairies archives -->
+<div id="arch-sous-menu-mairies" style="display:none;margin-bottom:18px;background:#f0f4fa;border:2px solid var(--border);border-radius:8px;padding:10px;">
+<div style="font-size:0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Choisir la mairie</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<button type="button" class="cascade-btn" id="atype-monti" onclick="setArchiveType('Montivilliers')">Montivilliers</button>
+<button type="button" class="cascade-btn" id="atype-gonf" onclick="setArchiveType('Gonfreville')">Gonfreville</button>
+<button type="button" class="cascade-btn" id="atype-havre" onclick="setArchiveType('Le Havre')">Le Havre</button>
+<button type="button" class="cascade-btn" id="atype-vp" onclick="setArchiveType('Voie publique')">Autres</button>
+</div>
 </div>
 <!-- Recherche par nom -->
 <div style="margin-bottom:14px">
@@ -1428,7 +1435,7 @@ function miniAgendaClickCell(dateStr, heure) {
 function renderRdvs() {
   var filterEl = document.getElementById('rdv-filter-date');
   var filterDate = filterEl ? filterEl.value : '';
-  var list = rdvs.slice();
+  var list = rdvs.filter(function(r) { return !r.factureId; });
   if (filterDate) list = list.filter(function(r) { return r.date === filterDate; });
   list.sort(function(a,b) {
     var dc = (a.date||'').localeCompare(b.date||'');
@@ -1634,6 +1641,10 @@ function resetCascade() {
 
 function selectClient(val) {
   _cascade.client = val;
+  var sm = document.getElementById('sous-menu-mairies');
+  if (sm) sm.style.display = 'none';
+  var mairiBtn = document.getElementById('btn-mairies');
+  if (mairiBtn) mairiBtn.classList.remove('selected');
   document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){
     b.classList.remove('selected');
     var onclick = b.getAttribute('onclick') || '';
@@ -1726,11 +1737,17 @@ function fillTypeSelect(selected) { /* remplacé par cascade */ }
 function onTypeChange() { /* remplacé par cascade */ }
 
 function ouvrirSousMenuMairies() {
-  document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){ b.classList.remove('selected'); });
-  var mairiBtn = document.getElementById('btn-mairies');
-  if (mairiBtn) mairiBtn.classList.add('selected');
   var sm = document.getElementById('sous-menu-mairies');
-  if (sm) sm.style.display = '';
+  var mairiBtn = document.getElementById('btn-mairies');
+  var isOpen = sm && sm.style.display !== 'none';
+  if (isOpen) {
+    if (sm) sm.style.display = 'none';
+    if (mairiBtn) mairiBtn.classList.remove('selected');
+  } else {
+    document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){ b.classList.remove('selected'); });
+    if (mairiBtn) mairiBtn.classList.add('selected');
+    if (sm) sm.style.display = '';
+  }
 }
 
 function updateBlocMairie() {
@@ -2676,16 +2693,35 @@ function printFacture() {
   w.document.close();
 }
 
+var MAIRIE_TYPES = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Voie publique'];
+
+function toggleArchiveMairies() {
+  var sm = document.getElementById('arch-sous-menu-mairies');
+  var btn = document.getElementById('atype-mairies');
+  var isOpen = sm && sm.style.display !== 'none';
+  if (isOpen) {
+    sm.style.display = 'none';
+    btn.classList.remove('active');
+  } else {
+    sm.style.display = '';
+    btn.classList.add('active');
+  }
+}
+
 function setArchiveType(type) {
   archiveType = type;
   archiveMonth = null;
+  var isMairie = MAIRIE_TYPES.indexOf(type) >= 0;
   document.getElementById('atype-part').classList.toggle('active', type === 'Particulier');
-  document.getElementById('atype-vp').classList.toggle('active', type === 'Voie publique');
-  document.getElementById('atype-monti').classList.toggle('active', type === 'Montivilliers');
-  document.getElementById('atype-gonf').classList.toggle('active', type === 'Gonfreville');
-  var atHavre = document.getElementById('atype-havre');
-  if (atHavre) atHavre.classList.toggle('active', type === 'Le Havre');
+  document.getElementById('atype-mairies').classList.toggle('active', isMairie);
   document.getElementById('atype-syndic').classList.toggle('active', type === 'Syndic/Copro');
+  var sm = document.getElementById('arch-sous-menu-mairies');
+  if (sm) sm.style.display = isMairie ? '' : 'none';
+  ['atype-monti','atype-gonf','atype-havre','atype-vp'].forEach(function(id) {
+    var b = document.getElementById(id); if (b) b.classList.remove('selected');
+  });
+  var map = {'Montivilliers':'atype-monti','Gonfreville':'atype-gonf','Le Havre':'atype-havre','Voie publique':'atype-vp'};
+  if (map[type]) { var b = document.getElementById(map[type]); if (b) b.classList.add('selected'); }
   renderArchives();
 }
 
