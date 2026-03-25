@@ -1641,11 +1641,23 @@ function resetCascade() {
 
 function selectClient(val) {
   _cascade.client = val;
+  var MAIRIE_VALS = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Voie publique'];
+  var isMairieVal = MAIRIE_VALS.indexOf(val) >= 0;
   var sm = document.getElementById('sous-menu-mairies');
-  if (sm) sm.style.display = 'none';
   var mairiBtn = document.getElementById('btn-mairies');
-  if (mairiBtn) mairiBtn.classList.remove('selected');
+  if (isMairieVal) {
+    if (sm) sm.style.display = '';
+    if (mairiBtn) mairiBtn.classList.add('selected');
+  } else {
+    if (sm) sm.style.display = 'none';
+    if (mairiBtn) mairiBtn.classList.remove('selected');
+  }
   document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){
+    b.classList.remove('selected');
+    var onclick = b.getAttribute('onclick') || '';
+    if (onclick.indexOf("'" + val + "'") >= 0 || onclick.indexOf('"' + val + '"') >= 0) b.classList.add('selected');
+  });
+  document.querySelectorAll('#sous-menu-mairies .cascade-btn').forEach(function(b){
     b.classList.remove('selected');
     var onclick = b.getAttribute('onclick') || '';
     if (onclick.indexOf("'" + val + "'") >= 0 || onclick.indexOf('"' + val + '"') >= 0) b.classList.add('selected');
@@ -2026,6 +2038,7 @@ function buildDataFacture(r, num, dateStr) {
   var isSyndic = r.clientType === 'Syndic/Copro';
   var isMonti = r.clientType === 'Montivilliers';
   var isGonf  = r.clientType === 'Gonfreville';
+  var isHavre = r.clientType === 'Le Havre';
   var isMairie = isMonti || isGonf || isHavre;
 
   var clientNom, clientAdr, clientTel;
@@ -2068,16 +2081,12 @@ function buildDataFacture(r, num, dateStr) {
     requerantAdresse: (isMairie || isSyndic) ? (isSyndic ? (r.adresse || '') : (adrClient || '')) : '',
     requerantTel: (isMairie || isSyndic) ? (r.tel || '') : '',
     isMairie: isMairie,
-    mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : ''),
+    mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : (isHavre ? 'Le Havre' : '')),
     syndicBdc: r.syndicBdc || '',
     syndicAgence: r.syndicAgence || '',
     syndicAgenceAdresse: r.syndicAgenceAdresse || '',
     syndicAgenceTel: r.syndicAgenceTel || '',
     syndicContact: r.syndicContact || '',
-    syndicEmail: r.syndicEmail || '',
-    requerantNom: data.requerantNom || '', requerantAdresse: data.requerantAdresse || '',
-    requerantTel: data.requerantTel || '', isMairie: data.isMairie || false,
-    mairieNom: data.mairieNom || '',
     syndicEmail: r.syndicEmail || '',
     isSyndic: isSyndic
   };
@@ -2703,6 +2712,8 @@ function toggleArchiveMairies() {
     sm.style.display = 'none';
     btn.classList.remove('active');
   } else {
+    document.getElementById('atype-part').classList.remove('active');
+    document.getElementById('atype-syndic').classList.remove('active');
     sm.style.display = '';
     btn.classList.add('active');
   }
