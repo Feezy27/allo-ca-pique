@@ -911,24 +911,7 @@ select option { background: var(--surface2); }
 <button class="close-btn" onclick="closeModal('modal-facture')">✕</button>
 </div>
 <div id="facture-content"></div>
-<!-- Boutons aide frelon asiatique (affichés uniquement avant validation) -->
-<div id="aide-section" style="display:none;margin-top:16px">
-<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Aide à la destruction (optionnel)</div>
-<div style="display:flex;gap:10px;flex-wrap:wrap">
-<button id="aide-depart" class="paiement-btn" onclick="choisirAide('departement')" style="flex:1;min-width:120px">Département</button>
-<button id="aide-seine" class="paiement-btn" onclick="choisirAide('seine')" style="flex:1;min-width:140px">Seine Métropole</button>
-</div>
-</div>
-<!-- Choix mode de paiement (visible uniquement avant validation) -->
-<div id="paiement-section" style="display:none;margin-top:20px">
-<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mode de paiement</div>
-<div class="paiement-btns">
-<button class="paiement-btn" id="pay-virement" onclick="choisirPaiement('virement')">Virement</button>
-<button class="paiement-btn" id="pay-cheque"   onclick="choisirPaiement('cheque')">Chèque</button>
-<button class="paiement-btn" id="pay-espece"   onclick="choisirPaiement('espece')">Espèces</button>
-</div>
-<div class="paiement-required" id="paiement-required">⚠️ Veuillez choisir un mode de paiement avant de valider</div>
-</div>
+<!-- aide-section et paiement-section injectés dynamiquement avant la signature -->
 <div class="facture-action-bar" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:18px">
 <button class="facture-action-btn" onclick="closeModal('modal-facture')">✕<span>Fermer</span></button>
 <button class="facture-action-btn" onclick="voirFactureCourante()"><svg viewBox="0 0 24 24" fill="currentColor" width="1.3em" height="1.3em"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg><span>Voir</span></button>
@@ -1772,16 +1755,17 @@ function updateBlocMairie() {
   if (bloc) bloc.style.display = isVP ? '' : 'none';
   if (blocHavre) blocHavre.style.display = isHavre ? '' : 'none';
   if (blocSyndic) blocSyndic.style.display = isSyndic ? '' : 'none';
-  if (isVP || isHavre || _cascade.client === 'Montivilliers' || _cascade.client === 'Gonfreville') {
+  var MAIRIE_VALS_UBM = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Voie publique'];
+  if (MAIRIE_VALS_UBM.indexOf(_cascade.client) >= 0) {
     var smb = document.getElementById('sous-menu-mairies');
-    if (smb) smb.style.display = 'none';
+    if (smb) smb.style.display = '';
+    var smbMap = {'Montivilliers':'smb-monti','Gonfreville':'smb-gonf','Le Havre':'smb-havre','Voie publique':'smb-autres'};
     ['smb-monti','smb-gonf','smb-havre','smb-autres'].forEach(function(id){
       var b = document.getElementById(id); if(b) b.classList.remove('selected');
     });
-    var map = {'Montivilliers':'smb-monti','Gonfreville':'smb-gonf','Le Havre':'smb-havre','Voie publique':'smb-autres'};
-    var sb = document.getElementById(map[_cascade.client]); if(sb) sb.classList.add('selected');
+    var sb = document.getElementById(smbMap[_cascade.client]); if(sb) sb.classList.add('selected');
     document.querySelectorAll('#opts-client .cascade-btn').forEach(function(b){ b.classList.remove('selected'); });
-    var mairiBtn = document.querySelector('#opts-client .cascade-btn:nth-child(2)');
+    var mairiBtn = document.getElementById('btn-mairies');
     if (mairiBtn) mairiBtn.classList.add('selected');
   }
   if (!isVP) return;
@@ -1997,11 +1981,26 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<div style="font-size:0.75rem;color:#888;border-top:1px solid #eee;padding-top:10px;margin-top:10px;font-family:Arial,Helvetica,sans-serif;">' + escHtml(s.mention || 'TVA non applicable, art. 293B du CGI') + paiementLine + '</div>';
 
   if (withSigCanvas) {
-    h += '<div style="margin-top:18px;border:2px dashed #ddd;border-radius:8px;padding:10px;"><p style="font-size:0.8rem;color:#888;margin-bottom:6px;">Signature du client :</p>';
-    h += '<canvas id="sigCanvas" width="560" height="110" onclick="openSigFullscreen()" style="cursor:pointer" title="Cliquez pour signer en plein écran"></canvas>';
+    h += '<div id="aide-section" style="display:none;margin-top:16px">';
+    h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Aide à la destruction (optionnel)</div>';
+    h += '<div style="display:flex;gap:10px;flex-wrap:wrap">';
+    h += '<button id="aide-depart" class="paiement-btn" onclick="choisirAide(\'departement\')" style="flex:1;min-width:120px">Département</button>';
+    h += '<button id="aide-seine" class="paiement-btn" onclick="choisirAide(\'seine\')" style="flex:1;min-width:140px">Seine Métropole</button>';
+    h += '</div></div>';
+    h += '<div id="paiement-section" style="display:block;margin-top:16px">';
+    h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mode de paiement</div>';
+    h += '<div class="paiement-btns">';
+    h += '<button class="paiement-btn" id="pay-virement" onclick="choisirPaiement(\'virement\')">Virement</button>';
+    h += '<button class="paiement-btn" id="pay-cheque" onclick="choisirPaiement(\'cheque\')">Chèque</button>';
+    h += '<button class="paiement-btn" id="pay-espece" onclick="choisirPaiement(\'espece\')">Espèces</button>';
+    h += '</div>';
+    h += '<div class="paiement-required" id="paiement-required">⚠️ Veuillez choisir un mode de paiement avant de valider</div>';
+    h += '</div>';
+    h += '<div style="margin-top:16px;border:2px dashed #ddd;border-radius:8px;padding:10px;"><p style="font-size:0.8rem;color:#888;margin-bottom:6px;">Signature du client :</p>';
+    h += '<canvas id="sigCanvas" width="560" height="110" style="pointer-events:none;display:block;opacity:0.7" title="Utilisez le bouton ci-dessous pour signer"></canvas>';
     h += '<div style="margin-top:8px;display:flex;gap:8px;align-items:center">';
     h += '<button onclick="clearSig()" style="font-size:0.8rem;padding:4px 10px;background:#eee;border:none;border-radius:4px;cursor:pointer">Effacer</button>';
-    h += '<button onclick="openSigFullscreen()" class="sig-tap-hint" style="display:none;font-size:0.82rem;padding:6px 14px;background:#f5a623;color:#0f1117;border:none;border-radius:8px;font-weight:600;cursor:pointer">✍️ Signer (plein écran)</button>';
+    h += '<button onclick="openSigFullscreen()" style="font-size:0.82rem;padding:6px 14px;background:#f5a623;color:#0f1117;border:none;border-radius:8px;font-weight:600;cursor:pointer">✍️ Signer (plein écran)</button>';
     h += '</div>';
     h += '</div>';
     if (withEmailInput) {
@@ -2514,11 +2513,10 @@ function setTimePickerValue(val) {
 function initSig() {
   var canvas = document.getElementById('sigCanvas');
   if (!canvas) return;
-  makeCanvasDrawable(canvas, null);
-  if (window.innerWidth < 769) {
-    canvas.onclick = function(e) { e.preventDefault(); openSigFullscreen(); };
-    canvas.style.cursor = 'pointer';
-  }
+  canvas.onclick = function(e) { e.preventDefault(); openSigFullscreen(); };
+  canvas.style.cursor = 'pointer';
+  canvas.style.pointerEvents = 'none';
+  setTimeout(function() { canvas.style.pointerEvents = 'auto'; }, 100);
 }
 
 function clearSig() {
