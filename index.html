@@ -1899,25 +1899,25 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '</td>';
   h += '</tr></table>';
 
-  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr>';
-  h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
-  h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Prestataire</div>';
-  h += '<div style="font-size:0.88rem;line-height:1.7;">';
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;table-layout:fixed;"><tr>';
+  h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;width:50%;">';
+  h += '<div style="font-size:12px;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">Prestataire</div>';
+  h += '<div style="font-size:13px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;color:#111;">';
   h += '<strong>' + escHtml(s.nom||'') + '</strong><br>';
   h += escHtml(s.adresse||'') + '<br>';
   h += escHtml(s.ville||'') + '<br>';
-  if (s.tel) h += '<span style="color:#111;">' + escHtml(s.tel) + '</span><br>';
+  if (s.tel) h += escHtml(s.tel) + '<br>';
   if (s.email) h += escHtml(s.email) + '<br>';
-  h += 'SIRET : ' + escHtml(s.siret||'');
+  h += 'SIRET : ' + escHtml(s.siret||'');
   h += '</div></td>';
-  h += '<td style="width:28px;min-width:28px;"></td>';
-  h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
-  h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">Client</div>';
-  h += '<div style="font-size:0.88rem;line-height:1.7;">';
+  h += '<td style="width:20px;min-width:20px;"></td>';
+  h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;width:50%;">';
+  h += '<div style="font-size:12px;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">Client</div>';
+  h += '<div style="font-size:13px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;color:#111;">';
   h += '<strong>' + escHtml(data.nom) + '</strong>';
-  if (data.clientType) h += '<br><span style="font-size:0.78rem;color:#888;background:#e8e8e8;padding:1px 6px;border-radius:4px;">' + escHtml(data.clientType) + '</span>';
-  h += '<br>' + escHtml(data.adresse);
-  h += '<br><span style="color:#111;text-decoration:none;">Tél : <span style="color:#111;">' + escHtml(data.tel) + '</span></span>';
+  if (data.clientType) h += '<br><span style="font-size:11px;color:#888;background:#e8e8e8;padding:1px 6px;border-radius:4px;">' + escHtml(data.clientType) + '</span>';
+  h += '<br>' + escHtml(data.adresse||'');
+  h += '<br>Tél : ' + escHtml(data.tel||'');
   if (data.email) h += '<br>' + escHtml(data.email);
   h += '</div></td>';
   h += '</tr></table>';
@@ -1936,12 +1936,12 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   }
 
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;"><thead><tr>'
-    + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:0.83rem;font-family:Arial,Helvetica,sans-serif;">Description</th>'
-    + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:0.83rem;font-family:Arial,Helvetica,sans-serif;">Qté</th>'
-    + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:0.83rem;font-family:Arial,Helvetica,sans-serif;">Prix HT</th>'
-    + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:0.83rem;font-family:Arial,Helvetica,sans-serif;">Total</th>'
+    + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Description</th>'
+    + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Qté</th>'
+    + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Prix HT</th>'
+    + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Total</th>'
     + '</tr></thead><tbody>';
-  h += '<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + escHtml(data.type) + (data.notes ? '<br><small style="color:#888">' + escHtml(data.notes) + '</small>' : '') + '</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">1</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + prixHT.toFixed(2) + ' €</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:0.88rem;">' + prixHT.toFixed(2) + ' €</td></tr>';
+  h += '<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + escHtml(data.type) + (data.notes ? '<br><small style="color:#888">' + escHtml(data.notes) + '</small>' : '') + '</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">1</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + prixHT.toFixed(2) + ' €</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + prixHT.toFixed(2) + ' €</td></tr>';
   h += '</tbody></table>';
 
   var aides = Array.isArray(data.aide) ? data.aide : (data.aide ? [data.aide] : []);
@@ -2010,7 +2010,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
       h += '</div>';
     }
   } else if (data.signature) {
-    h += '<div style="margin-top:18px;border:2px dashed #ddd;border-radius:8px;padding:10px;"><p style="font-size:0.8rem;color:#888;margin-bottom:6px;">Signature du client :</p><img src="' + data.signature + '" style="max-width:100%;border:1px solid #ddd;border-radius:6px;display:block"></div>';
+    h += '<div style="margin-top:18px;padding:6px 0;"><p style="font-size:0.8rem;color:#888;margin-bottom:4px;">Signature du client :</p><img src="' + data.signature + '" style="max-width:260px;display:block;"></div>';
   }
   h += '</div>';
   return h;
@@ -2157,7 +2157,8 @@ function voirFacture(factureId) {
     mairieNom: f.mairieNom || ''
   }, false, false);
     document.getElementById('btn-valider').style.display = 'none';
-  document.getElementById('paiement-section').style.display = 'none';
+  var psEl = document.getElementById('paiement-section');
+  if (psEl) psEl.style.display = 'none';
   var btnSms = document.getElementById('btn-sms');
   var isParticulier = !f.clientType || f.clientType === 'Particulier';
   if (btnSms) btnSms.style.display = (f && f.tel && isParticulier) ? 'inline-flex' : 'none';
@@ -2250,7 +2251,12 @@ function validerFacture() {
     syndicAgence: r.syndicAgence || '',
     syndicAgenceAdresse: r.syndicAgenceAdresse || '',
     syndicAgenceTel: r.syndicAgenceTel || '',
-    syndicContact: r.syndicContact || ''
+    syndicContact: r.syndicContact || '',
+    requerantNom: data.requerantNom || '',
+    requerantAdresse: data.requerantAdresse || '',
+    requerantTel: data.requerantTel || '',
+    isMairie: data.isMairie || false,
+    mairieNom: data.mairieNom || ''
   };
   factures.push(f);
   var idx = rdvs.findIndex(function(x) { return x.id === currentRdvId; });
@@ -2680,7 +2686,7 @@ function printFacture() {
     + '.f-total-line{font-size:.88rem;color:#555;margin-bottom:3px}'
     + '.f-total-ttc{font-size:1.25rem;font-weight:700;color:#0d2257;margin-top:6px}'
     + '.f-mention{font-size:.78rem;color:#555;border-top:1px solid #ccd6e8;padding-top:10px;margin-top:10px}'
-    + '.f-sig{margin-top:18px;border:2px dashed #aab4cc;border-radius:8px;padding:10px}'
+    + '.f-sig{margin-top:18px;padding:6px 0}'
     + '.f-sig p{font-size:.8rem;color:#888;margin-bottom:6px}'
     + '#sigCanvas,input[type=email],.noprint{display:none}'
     + '.facture-area{width:100%;max-width:none}'
