@@ -1945,6 +1945,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '</tbody></table>';
 
   var aides = Array.isArray(data.aide) ? data.aide : (data.aide ? [data.aide] : []);
+  if (aides.length === 0 && withSigCanvas) { h += '<div id="aide-display-block" style="display:none"></div>'; }
   if (aides.length > 0) {
     var pctDepart = (s.aideDepartPct !== undefined ? s.aideDepartPct : 30);
     var pctSeine  = (s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30);
@@ -1952,7 +1953,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
     var aideAmtSeine  = aides.indexOf('seine')       >= 0 ? prixHT * pctSeine  / 100 : 0;
     var totalAideAmt  = aideAmtDepart + aideAmtSeine;
     total = prixHT - totalAideAmt;
-    h += '<div style="margin:16px 0;background:#fffbf0;border:2px solid #f5a623;border-radius:10px;padding:14px 18px">';
+    h += '<div id="aide-display-block" style="margin:16px 0;background:#fffbf0;border:2px solid #f5a623;border-radius:10px;padding:14px 18px">';
     h += '<div style="font-weight:700;font-size:0.93rem;color:#b36b00;margin-bottom:10px">Aides à la destruction — Frelon asiatique</div>';
     h += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
     h += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
@@ -1972,7 +1973,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   }
 
   h += '<div style="text-align:right;margin-bottom:16px;margin-top:8px;">';
-  h += '<div style="font-size:1.2rem;font-weight:700;color:#111;font-family:Arial,Helvetica,sans-serif;">Total client : ' + total.toFixed(2) + ' €</div></div>';
+  h += '<div id="facture-total-display" style="font-size:1.2rem;font-weight:700;color:#111;font-family:Arial,Helvetica,sans-serif;">Total client : ' + total.toFixed(2) + ' €</div></div>';
   var paiementLabels = { virement: 'Virement bancaire', cheque: 'Chèque', espece: 'Espèces' };
   var paiementLabel = data.paiement ? paiementLabels[data.paiement] || '' : '';
   var paiementLine = paiementLabel
@@ -2175,12 +2176,33 @@ function choisirAide(val) {
     if (btn) btn.classList.toggle('active', aideChoisie.indexOf(a) >= 0);
   });
   var rdv = currentRdvId ? rdvs.find(function(r) { return r.id === currentRdvId; }) : null;
-  if (rdv) {
-    var data = buildDataFacture(rdv, nextFactureNum(), new Date().toLocaleDateString('fr-FR'));
-    data.aide = aideChoisie.slice();
-    document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, rdv.clientType !== 'Voie publique');
-    setTimeout(initSig, 80);
+  if (!rdv) return;
+  var s = settings;
+  var prixHT = rdv.prix || 0;
+  var pctD = (s.aideDepartPct !== undefined ? s.aideDepartPct : 30);
+  var pctS = (s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30);
+  var aideAmtD = aideChoisie.indexOf('departement') >= 0 ? prixHT * pctD / 100 : 0;
+  var aideAmtS = aideChoisie.indexOf('seine')       >= 0 ? prixHT * pctS / 100 : 0;
+  var totalAide = aideAmtD + aideAmtS;
+  var total = prixHT - totalAide;
+  var aideBlock = document.getElementById('aide-display-block');
+  if (aideChoisie.length > 0) {
+    var html = '<div style="margin:16px 0;background:#fffbf0;border:2px solid #f5a623;border-radius:10px;padding:14px 18px">';
+    html += '<div style="font-weight:700;font-size:0.93rem;color:#b36b00;margin-bottom:10px">Aides à la destruction — Frelon asiatique</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
+    html += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
+    if (aideChoisie.indexOf('departement') >= 0)
+      html += '<tr><td style="padding:4px 0;color:#333">Aide département (− ' + pctD + ' %)</td><td style="text-align:right;font-weight:600;color:#111">− ' + aideAmtD.toFixed(2) + ' €</td></tr>';
+    if (aideChoisie.indexOf('seine') >= 0)
+      html += '<tr><td style="padding:4px 0;color:#333">Aide Seine Métropole (− ' + pctS + ' %)</td><td style="text-align:right;font-weight:600;color:#111">− ' + aideAmtS.toFixed(2) + ' €</td></tr>';
+    html += '<tr style="border-top:2px solid #f5a623"><td style="padding:8px 0 4px;font-weight:700;color:#111">Reste à charge client</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#111;padding:8px 0 4px">' + total.toFixed(2) + ' €</td></tr>';
+    html += '</table></div>';
+    if (aideBlock) { aideBlock.innerHTML = html; aideBlock.style.display = ''; }
+  } else {
+    if (aideBlock) { aideBlock.innerHTML = ''; aideBlock.style.display = 'none'; }
   }
+  var totalEl = document.getElementById('facture-total-display');
+  if (totalEl) totalEl.textContent = 'Total client : ' + total.toFixed(2) + ' €';
 }
 
 function choisirPaiement(mode) {
@@ -2661,44 +2683,29 @@ function printFacture() {
     + '<title>Facture</title>'
     + '<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">'
     + '<style>'
-    + 'body{font-family:"DM Sans",sans-serif;margin:0;padding:0;background:#fff;color:#111}'
+    + '*{box-sizing:border-box}'
+    + 'body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;background:#fff;color:#111}'
     + '.print-toolbar{position:fixed;top:0;left:0;right:0;background:#091a45;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;z-index:999}'
     + '.print-toolbar h2{color:#fff;font-family:"Syne",sans-serif;font-size:1rem;margin:0}'
     + '.print-toolbar-btns{display:flex;gap:8px}'
     + '.print-btn{padding:9px 18px;border:none;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}'
     + '.print-btn-print{background:#f5a623;color:#091a45}'
     + '.print-btn-close{background:rgba(255,255,255,0.15);color:#fff}'
-    + '.facture-area{width:100%;padding:80px 20px 30px}'
-    + '.facture-wrap{width:100%;max-width:none}'
-    + '.f-title{font-family:"Syne",sans-serif;font-size:2rem;color:#0d2257;font-weight:800}'
-    + '.f-header{display:flex;justify-content:space-between;margin-bottom:24px;align-items:flex-start}'
-    + '.f-company-name{font-family:"Syne",sans-serif;font-weight:800;font-size:1rem;color:#0d2257}'
-    + '.f-meta{font-size:.88rem;color:#333;line-height:1.7}'
-    + '.f-meta strong{color:#0d2257}'
-    + '.f-parties{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}'
-    + '.f-party{background:#f0f4fa;border-radius:8px;padding:14px;border:1px solid #0d2257}'
-    + '.f-party h4{font-size:.75rem;text-transform:uppercase;color:#4a5a80;margin-bottom:8px;font-weight:700}'
-    + '.f-party p{font-size:.9rem;line-height:1.6;color:#111}'
-    + '.f-table{width:100%;border-collapse:collapse;margin-bottom:18px}'
-    + '.f-table th{background:#0d2257;color:#fff;padding:9px 12px;text-align:left;font-size:.85rem}'
-    + '.f-table td{padding:10px 12px;border-bottom:1px solid #e0e8f0;font-size:.9rem}'
-    + '.f-total{text-align:right;margin-bottom:16px}'
-    + '.f-total-line{font-size:.88rem;color:#555;margin-bottom:3px}'
-    + '.f-total-ttc{font-size:1.25rem;font-weight:700;color:#0d2257;margin-top:6px}'
-    + '.f-mention{font-size:.78rem;color:#555;border-top:1px solid #ccd6e8;padding-top:10px;margin-top:10px}'
-    + '.f-sig{margin-top:18px;padding:6px 0}'
-    + '.f-sig p{font-size:.8rem;color:#888;margin-bottom:6px}'
-    + '#sigCanvas,input[type=email],.noprint{display:none}'
-    + '.facture-area{width:100%;max-width:none}'
-    + '@media print{.print-toolbar{display:none}body{margin:0;padding:8mm 10mm}html{width:100%}.facture-area{padding-top:0;width:100%;max-width:none}}'
-    + '@media (max-width:600px){.f-parties{grid-template-columns:1fr}.f-header{flex-direction:column;gap:12px}}'
+    + '.facture-area{width:100%;max-width:780px;margin:0 auto;padding:72px 16px 24px}'
+    + '#sigCanvas,input[type=email],.noprint,#paiement-section,#aide-section,.paiement-btn,.facture-action-btn,button{display:none!important}'
+    + '@page{margin:8mm 8mm 8mm 8mm}'
+    + '@media print{'
+    + '.print-toolbar{display:none}'
+    + 'body{margin:0;padding:0}'
+    + '.facture-area{padding:0;max-width:100%;margin:0;width:100%}'
+    + '}'
     + '</style>'
     + '</head><body>'
     + '<div class="print-toolbar">'
-    + '  <h2> Facture</h2>'
+    + '  <h2>Facture</h2>'
     + '  <div class="print-toolbar-btns">'
-    + '    <button class="print-btn print-btn-print" onclick="window.print()">️ Imprimer / PDF</button>'
-    + '    <button class="print-btn print-btn-close" onclick="window.close()">✕ Fermer</button>'
+    + '    <button class="print-btn print-btn-print" onclick="window.print()">Imprimer / PDF</button>'
+    + '    <button class="print-btn print-btn-close" onclick="window.close()">Fermer</button>'
     + '  </div>'
     + '</div>'
     + '<div class="facture-area">' + content + '</div>'
@@ -2979,16 +2986,26 @@ function telechargerFacture(factureId) {
   var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
 
   var html = genFactureHtmlStandalone(f);
-  dlFile('Facture_' + f.num + '_' + escFilename(f.nom) + '.html', html, 'text/html');
+  var w = window.open('', '_blank');
+  if (!w) {
+    var wj = window.open('', '_blank');
+    if (wj) { wj.document.write(html); wj.document.close(); setTimeout(function(){ wj.print(); }, 300); }
+    else { dlFile('Facture_' + f.num + '_' + escFilename(f.nom) + '.html', html, 'text/html'); }
+    showToast('Facture téléchargée');
+    return;
+  }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function() { w.print(); }, 400);
 
   if (photoUrl) {
     setTimeout(function() {
       var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
       dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
-    }, 600);
-    showToast('⬇️ Facture + photo en cours...');
+    }, 800);
+    showToast('📄 Facture prête — photo en cours...');
   } else {
-    showToast('⬇️ Facture téléchargée (pas de photo)');
+    showToast('📄 Facture prête à enregistrer en PDF');
   }
 }
 
