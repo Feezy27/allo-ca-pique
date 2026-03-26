@@ -554,8 +554,8 @@ select option { background: var(--surface2); }
 <div class="stats-grid">
 <div class="stat-card"><div class="stat-val" id="stat-rdv">0</div><div class="stat-label">RDV à venir</div></div>
 <div class="stat-card"><div class="stat-val" id="stat-fact">0</div><div class="stat-label">Factures émises</div></div>
-<div class="stat-card"><div class="stat-val" id="stat-ca">0 €</div><div class="stat-label">Chiffre d'affaires</div></div>
-<div class="stat-card"><div class="stat-val" id="stat-benef">0 €</div><div class="stat-label">Bénéfice net <span style="font-size:0.7rem;font-weight:400;color:var(--muted)">(-26%)</span></div></div>
+<div class="stat-card" onclick="ouvrirHistorique('ca')" style="cursor:pointer;"><div class="stat-val" id="stat-ca">0 €</div><div class="stat-label">Chiffre d'affaires</div></div>
+<div class="stat-card" onclick="ouvrirHistorique('benef')" style="cursor:pointer;"><div class="stat-val" id="stat-benef">0 €</div><div class="stat-label">Bénéfice net <span style="font-size:0.7rem;font-weight:400;color:var(--muted)">(-26%)</span></div></div>
 </div>
 <h2 style="margin-bottom:16px">Prochains rendez-vous</h2>
 <div id="dash-rdvs"></div>
@@ -933,6 +933,17 @@ select option { background: var(--surface2); }
 </div>
 </div>
 
+
+<!-- Modale historique annuel CA / Bénéfice -->
+<div class="modal-overlay" id="modal-historique">
+<div class="modal" style="max-width:420px">
+<div class="modal-header">
+<h3 id="histo-title">Historique</h3>
+<button class="close-btn" onclick="closeModal('modal-historique')">✕</button>
+</div>
+<div id="histo-content" style="min-height:80px;"></div>
+</div>
+</div>
 <div id="toast"></div>
 <!-- Modale aperçu impression / PDF -->
 <div id="modal-print" style="display:none;position:fixed;inset:0;z-index:500;background:#fff;flex-direction:column;">
@@ -1050,6 +1061,7 @@ var villesDB = []; // chargé depuis settings
 var rdvs = [];
 var factures = [];
 var settings = {};
+var annualStats = []; // [{year, ca, benef}]
 var INSECTES = [
   {id:'frelon-asiatique', label:'Frelon asiatique'},
   {id:'frelon-europeen', label:'Frelon européen'},
@@ -1125,6 +1137,7 @@ async function save() {
       factures: factures,
       settings: settings,
       tarifs: tarifs,
+      annualStats: annualStats,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
     if (res.error) throw res.error;
@@ -1145,6 +1158,7 @@ async function loadUserData() {
       factures = res.data.factures || [];
       settings = res.data.settings || {};
       tarifs = res.data.tarifs || JSON.parse(JSON.stringify(TARIFS_DEFAULT));
+      annualStats = res.data.annualStats || [];
     } else {
       rdvs = []; factures = []; settings = { nom: 'Allo ça pique' }; tarifs = JSON.parse(JSON.stringify(TARIFS_DEFAULT));
     }
@@ -1212,6 +1226,70 @@ function renderDashboard() {
     el.innerHTML = '<div class="empty"><div class="empty-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" width="3rem" height="3rem"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></div><p>Aucun RDV à venir</p></div>';
   } else {
     el.innerHTML = upcoming.slice(0,5).map(makeRdvCard).join('');
+  }
+}
+
+function ouvrirHistorique(type) {
+  var isCa = type === 'ca';
+  document.getElementById('histo-title').textContent = isCa ? "Chiffre d'affaires par année" : 'Bénéfice net par année';
+
+  // Année courante
+  var currentYear = new Date().getFullYear();
+  var caCurrent = factures.reduce(function(s,f) { return s + (f.prixHT || f.prix || 0); }, 0);
+  var benefCurrent = caCurrent * 0.74;
+
+  // Construire la liste complète : archives + année courante
+  var allYears = annualStats.slice(); // copie
+  var existsCurrent = allYears.some(function(s) { return s.year === currentYear; });
+  if (!existsCurrent) {
+    allYears.push({ year: currentYear, ca: caCurrent, benef: benefCurrent, current: true });
+  } else {
+    allYears = allYears.map(function(s) {
+      return s.year === currentYear ? Object.assign({}, s, { ca: caCurrent, benef: benefCurrent, current: true }) : s;
+    });
+  }
+  allYears.sort(function(a,b) { return b.year - a.year; });
+
+  var html = '';
+  if (allYears.length === 0) {
+    html = '<p style="color:var(--muted);text-align:center;padding:24px 0">Aucune donnée disponible</p>';
+  } else {
+    html = '<table style="width:100%;border-collapse:collapse;">';
+    html += '<tr style="border-bottom:2px solid var(--border);">';
+    html += '<th style="text-align:left;padding:8px 12px;font-size:0.8rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Année</th>';
+    html += '<th style="text-align:right;padding:8px 12px;font-size:0.8rem;text-transform:uppercase;color:var(--muted);font-weight:700;">' + (isCa ? "Chiffre d'affaires" : 'Bénéfice net') + '</th>';
+    html += '</tr>';
+    allYears.forEach(function(s) {
+      var val = isCa ? s.ca : s.benef;
+      var isCurr = s.current;
+      html += '<tr style="border-bottom:1px solid #e8edf8;">';
+      html += '<td style="padding:12px 12px;font-size:1rem;font-weight:' + (isCurr ? '700' : '500') + ';color:var(--text);">'
+        + s.year
+        + (isCurr ? ' <span style="font-size:0.7rem;color:var(--accent);font-weight:600;background:#e8edf8;padding:2px 7px;border-radius:10px;vertical-align:middle">en cours</span>' : '')
+        + '</td>';
+      html += '<td style="text-align:right;padding:12px 12px;font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;color:var(--accent);">' + val.toFixed(0) + ' €</td>';
+      html += '</tr>';
+    });
+    html += '</table>';
+  }
+
+  document.getElementById('histo-content').innerHTML = html;
+  document.getElementById('modal-historique').classList.add('open');
+}
+
+function checkAnnualArchive() {
+  // Appelée au chargement : si on est le 1er janvier, archiver l'année précédente
+  var now = new Date();
+  var lastYear = now.getFullYear() - 1;
+  var alreadyArchived = annualStats.some(function(s) { return s.year === lastYear; });
+  if (now.getMonth() === 0 && now.getDate() === 1 && !alreadyArchived) {
+    // Calculer les stats de l'année écoulée depuis les factures
+    var caLast = factures
+      .filter(function(f) { return f.date && f.date.startsWith(String(lastYear)); })
+      .reduce(function(s,f) { return s + (f.prixHT || f.prix || 0); }, 0);
+    var benefLast = caLast * 0.74;
+    annualStats.push({ year: lastYear, ca: caLast, benef: benefLast });
+    save();
   }
 }
 
@@ -1898,14 +1976,14 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   var total = prixHT;
 
   var LOGO_B64 = LOGO_B64_GLOBAL;
-  var h = '<div style="background:#fff;color:#111;padding:32px 36px;font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;" x-apple-data-detectors="false">';
+  var h = '<div style="background:#fff;color:#111;padding:12px 20px 20px;font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;" x-apple-data-detectors="false">';
 
   var bdcLine = '';
   if ((data.clientType === 'Montivilliers' && s.bdcMontivilliers) || (data.clientType === 'Gonfreville' && s.bdcGonfreville) || (data.isSyndic && data.syndicBdc)) {
     var bdcVal = data.clientType === 'Montivilliers' ? s.bdcMontivilliers : (data.clientType === 'Gonfreville' ? s.bdcGonfreville : data.syndicBdc);
     bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(bdcVal);
   }
-  h += '<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">';
+  h += '<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">';
   h += '<tr valign="top">';
   h += '<td valign="top" style="padding:0;">';
   h += '<table border="0" cellpadding="0" cellspacing="0"><tr valign="middle">';
@@ -1925,11 +2003,10 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '</td>';
   h += '</tr></table>';
 
-  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;table-layout:fixed;"><tr>';
-  h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;width:50%;">';
-  h += '<div style="font-size:12px;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">Prestataire</div>';
-  h += '<div style="font-size:13px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;color:#111;">';
-  h += '<strong>' + escHtml(s.nom||'') + '</strong><br>';
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;table-layout:fixed;"><tr>';
+  h += '<td style="vertical-align:top;padding:10px 14px;background:#f7f7f7;border-radius:8px;width:50%;">';
+  h += '<div style="font-size:13px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;color:#111;">';
+  h += '<span style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.06em;font-weight:700;">Prestataire :</span> <strong>' + escHtml(s.nom||'') + '</strong><br>';
   h += escHtml(s.adresse||'') + '<br>';
   h += escHtml(s.ville||'') + '<br>';
   if (s.tel) h += escHtml(s.tel) + '<br>';
@@ -1937,11 +2014,9 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += 'SIRET : ' + escHtml(s.siret||'');
   h += '</div></td>';
   h += '<td style="width:20px;min-width:20px;"></td>';
-  h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;width:50%;">';
-  h += '<div style="font-size:12px;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">Client</div>';
-  h += '<div style="font-size:13px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;color:#111;">';
-  h += '<strong>' + escHtml(data.nom) + '</strong>';
-
+  h += '<td style="vertical-align:top;padding:10px 14px;background:#f7f7f7;border-radius:8px;width:50%;">';
+  h += '<div style="font-size:13px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;color:#111;">';
+  h += '<span style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.06em;font-weight:700;">Client :</span> <strong>' + escHtml(data.nom) + '</strong>';
   h += '<br>' + escHtml(data.adresse||'');
   h += '<br>Tél : ' + escHtml(data.tel||'');
   if (data.email) h += '<br>' + escHtml(data.email);
@@ -1950,11 +2025,11 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   var showRequerant = data.isSyndic || data.isMairie;
   if (showRequerant) {
     var reqLabel = 'Requérant';
-    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr>';
-    h += '<td style="vertical-align:top;padding:14px 16px;background:#f7f7f7;border-radius:8px;">';
-    h += '<div style="font-size:0.7rem;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:8px;font-weight:700;">' + reqLabel + '</div>';
-    h += '<div style="font-size:0.88rem;line-height:1.7;">';
-    if (data.requerantNom) h += '<strong>' + escHtml(data.requerantNom) + '</strong>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><tr>';
+    h += '<td style="vertical-align:top;padding:10px 14px;background:#f7f7f7;border-radius:8px;">';
+    h += '<div style="font-size:13px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;color:#111;">';
+    h += '<span style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.06em;font-weight:700;">Requérant :</span>';
+    if (data.requerantNom) h += ' <strong>' + escHtml(data.requerantNom) + '</strong>';
     if (data.requerantAdresse) h += '<br>' + escHtml(data.requerantAdresse);
     if (data.requerantTel) h += '<br>Tél : ' + escHtml(data.requerantTel);
     h += '</div></td>';
@@ -3399,6 +3474,7 @@ function purgeOldRdvs() {
 async function afterLogin() {
   showToast('⏳ Chargement des données...');
   await loadUserData();
+  checkAnnualArchive();
   purgeOldRdvs();
   hideLoginScreen();
   initEmailJS();
