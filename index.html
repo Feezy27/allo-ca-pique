@@ -516,9 +516,7 @@ select option { background: var(--surface2); }
   .cascade-btn { padding: 14px 10px; font-size: 0.95rem; min-height: 52px; text-align: center; justify-content: center; }
 }
 
-@media (min-width: 769px) {
-  #mobile-nav { display: none; }
-}
+
 @media print {
   #modal-print > div:first-child { display: none !important; }
   #modal-print { display: block !important; position: static !important; overflow: visible !important; }
@@ -531,19 +529,22 @@ select option { background: var(--surface2); }
 }
 
 /* ===== LAYOUT PC (>= 900px) ===== */
-@media (min-width: 900px) {
 
-  /* Cacher la nav mobile du bas */
+
+/* ===== LAYOUT PC (>= 700px) ===== */
+@media (min-width: 700px) {
+
+  /* Cacher TOUTE nav mobile */
   #mobile-nav { display: none !important; }
 
-  /* Cacher la nav horizontale du haut */
+  /* Cacher nav horizontale du haut */
   nav { display: none !important; }
 
   /* Header */
   header { padding: 0 32px; height: 64px; }
   .logo img { max-height: 44px !important; }
 
-  /* Wrapper global : sidebar + contenu */
+  /* Wrapper global */
   #app-body { display: flex; min-height: calc(100vh - 64px); }
 
   /* Sidebar */
@@ -587,17 +588,17 @@ select option { background: var(--surface2); }
   #app-content { flex: 1; overflow-y: auto; }
   main { max-width: 980px; padding: 32px 40px; }
 
-  /* 4 cartes stats sur PC */
+  /* 4 cartes stats */
   .stats-grid { grid-template-columns: repeat(4, 1fr); }
 
-  /* Modales plus larges */
+  /* Modales */
   .modal { padding: 32px 36px; }
 
-  /* RDV en ligne */
+  /* RDV */
   .rdv-card { flex-direction: row; align-items: center; }
   .rdv-actions { flex-wrap: nowrap; }
 
-  /* Archive : afficher tableau */
+  /* Archives */
   .archive-table { display: table !important; }
   .archive-cards { display: none !important; }
 }
