@@ -678,6 +678,7 @@ select option { background: var(--surface2); }
 <div class="section-header"><h2>Factures archivées</h2></div>
 <!-- Filtre Type client -->
 <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+<button class="arch-type-btn" onclick="setArchiveType('Toutes')" id="atype-all">Toutes</button>
 <button class="arch-type-btn active" onclick="setArchiveType('Particulier')" id="atype-part">Particuliers</button>
 <button class="arch-type-btn" onclick="toggleArchiveMairies()" id="atype-mairies">Mairies</button>
 <button class="arch-type-btn" onclick="setArchiveType('Syndic/Copro')" id="atype-syndic">Syndic / Copro</button>
@@ -2716,7 +2717,7 @@ function ouvrirSMSFacture(f) {
       var mairiePaie = ['Montivilliers','Gonfreville','Le Havre'].indexOf(f.clientType || '') >= 0;
       var ribLine = '';
       if (f.paiement === 'virement' && !mairiePaie && s.ribIban) {
-        ribLine = nl + '\uD83C\uDFE6 Coordonn\u00E9es bancaires pour le virement :' + nl
+        ribLine = nl + nl + 'Coordonn\u00E9es bancaires pour le virement :' + nl
           + (s.ribTitulaire ? 'Titulaire : ' + s.ribTitulaire + nl : '')
           + 'IBAN : ' + s.ribIban + nl
           + (s.ribBic ? 'BIC : ' + s.ribBic + nl : '')
@@ -3120,11 +3121,13 @@ function setArchiveType(type) {
   archiveType = type;
   archiveMonth = null;
   var isMairie = MAIRIE_TYPES.indexOf(type) >= 0;
+  var allBtn = document.getElementById('atype-all');
+  if (allBtn) allBtn.classList.toggle('active', type === 'Toutes');
   document.getElementById('atype-part').classList.toggle('active', type === 'Particulier');
   document.getElementById('atype-mairies').classList.toggle('active', isMairie);
   document.getElementById('atype-syndic').classList.toggle('active', type === 'Syndic/Copro');
   var sm = document.getElementById('arch-sous-menu-mairies');
-  if (sm) sm.style.display = isMairie ? '' : 'none';
+  if (sm) sm.style.display = (isMairie && type !== 'Toutes') ? '' : 'none';
   ['atype-monti','atype-gonf','atype-havre','atype-vp'].forEach(function(id) {
     var b = document.getElementById(id); if (b) b.classList.remove('selected');
   });
@@ -3161,6 +3164,7 @@ function renderArchives() {
   }
 
   var filtered = factures.filter(function(f) {
+    if (archiveType === 'Toutes') return true;
     if (archiveType === 'Voie publique') return f.clientType === 'Voie publique';
     if (archiveType === 'Montivilliers') return f.clientType === 'Montivilliers';
     if (archiveType === 'Gonfreville') return f.clientType === 'Gonfreville';
@@ -3192,11 +3196,16 @@ function renderArchives() {
     el.innerHTML = '';
     return;
   }
-  monthsEl.innerHTML = months.map(function(ym) {
-    var active = (ym === archiveMonth) ? ' active' : '';
-    return '<button class="arch-month-btn' + active + '" onclick="setArchiveMonth(\'' + ym + '\')">'
-      + moisFR(ym) + ' <span style="font-size:0.72rem;opacity:0.7">(' + monthSet[ym] + ')</span></button>';
-  }).join('');
+  monthsEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'
+    + '<div style="display:flex;flex-wrap:wrap;gap:8px;">'
+    + months.map(function(ym) {
+        var active = (ym === archiveMonth) ? ' active' : '';
+        return '<button class="arch-month-btn' + active + '" onclick="setArchiveMonth(\'' + ym + '\')">'
+          + moisFR(ym) + ' <span style="font-size:0.72rem;opacity:0.7">(' + monthSet[ym] + ')</span></button>';
+      }).join('')
+    + '</div>'
+    + (archiveMonth ? '<button class="day-dl-btn" onclick="telechargerMois(\'' + archiveMonth + '\')" style="white-space:nowrap"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Télécharger le mois</button>' : '')
+    + '</div>';
 
   var inMonth = filtered.filter(function(f) { return f.date.substring(0,7) === archiveMonth; });
   inMonth.sort(function(a,b) { return b.date.localeCompare(a.date) || b.num.localeCompare(a.num); });
@@ -3455,6 +3464,31 @@ function telechargerJournee(dateStr) {
     } else {
       setTimeout(next, 800);
     }
+  }
+  next();
+}
+
+function telechargerMois(ym) {
+  var inMonth = factures.filter(function(f) {
+    if (!f.date || f.date.substring(0,7) !== ym) return false;
+    if (archiveType === 'Toutes') return true;
+    if (archiveType === 'Voie publique') return f.clientType === 'Voie publique';
+    if (archiveType === 'Montivilliers') return f.clientType === 'Montivilliers';
+    if (archiveType === 'Gonfreville') return f.clientType === 'Gonfreville';
+    if (archiveType === 'Le Havre') return f.clientType === 'Le Havre';
+    if (archiveType === 'Syndic/Copro') return f.clientType === 'Syndic/Copro';
+    return !f.clientType || f.clientType === 'Particulier';
+  });
+  inMonth.sort(function(a,b) { return a.date.localeCompare(b.date) || a.num.localeCompare(b.num); });
+  if (inMonth.length === 0) { showToast('Aucune facture ce mois', true); return; }
+  showToast('⬇️ Téléchargement de ' + inMonth.length + ' facture(s)...');
+  var idx = 0;
+  function next() {
+    if (idx >= inMonth.length) { showToast('✅ Mois téléchargé !'); return; }
+    var f = inMonth[idx]; idx++;
+    var html = genFactureHtmlStandalone(f);
+    dlFile(buildFilename(f), html, 'text/html');
+    setTimeout(next, 600);
   }
   next();
 }
