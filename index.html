@@ -725,7 +725,23 @@ select option { background: var(--surface2); }
 </div>
 </div>
 </div>
-<!-- 2. Aides frelon asiatique -->
+<!-- 2. RIB -->
+<div class="param-section">
+<div class="param-section-header" id="ps-header-rib" onclick="toggleParamSection('rib')">
+<span class="param-section-title">RIB — Coordonnées bancaires</span>
+<span class="param-section-arrow">›</span>
+</div>
+<div class="param-section-body" id="ps-body-rib">
+<p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Ces informations seront ajoutées automatiquement dans les SMS et mails lorsque le mode de paiement <strong>Virement</strong> est sélectionné (hors Montivilliers, Gonfreville, Le Havre).</p>
+<div class="form-grid">
+<div class="form-group full"><label>Titulaire du compte</label><input id="s-rib-titulaire" type="text" placeholder="Philippe Dupont"></div>
+<div class="form-group full"><label>IBAN</label><input id="s-rib-iban" type="text" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" style="font-family:monospace;letter-spacing:.05em"></div>
+<div class="form-group"><label>BIC / SWIFT</label><input id="s-rib-bic" type="text" placeholder="XXXXXXXX"></div>
+<div class="form-group"><label>Banque</label><input id="s-rib-banque" type="text" placeholder="Crédit Agricole"></div>
+</div>
+</div>
+</div>
+<!-- 3. Aides frelon asiatique -->
 <div class="param-section">
 <div class="param-section-header" id="ps-header-aides" onclick="toggleParamSection('aides')">
 <span class="param-section-title">Aides frelon asiatique</span>
@@ -1858,19 +1874,18 @@ function selectClient(val) {
   // Remplissage automatique ville pour Montivilliers et Gonfreville
   var villeInput = document.getElementById('r-ville');
   var villeCpInput = document.getElementById('r-ville-cp');
-  if (val === 'Montivilliers' && villeInput && !villeInput.value) {
-    var montiVille = settings.montiVille || 'Montivilliers 76290';
-    villeInput.value = montiVille;
-    if (villeCpInput) {
-      var parts = montiVille.trim().split(' ');
-      villeCpInput.value = parts[parts.length - 1] || '76290';
-    }
-  } else if (val === 'Gonfreville' && villeInput && !villeInput.value) {
-    var gonfVille = settings.gonfVille || "Gonfreville-l'Orcher 76700";
-    villeInput.value = gonfVille;
-    if (villeCpInput) {
-      var parts = gonfVille.trim().split(' ');
-      villeCpInput.value = parts[parts.length - 1] || '76700';
+  if (villeInput) {
+    if (val === 'Montivilliers') {
+      var montiVille = settings.montiVille || 'Montivilliers 76290';
+      villeInput.value = montiVille;
+      if (villeCpInput) { var partsM = montiVille.trim().split(' '); villeCpInput.value = partsM[partsM.length - 1] || '76290'; }
+    } else if (val === 'Gonfreville') {
+      var gonfVille = settings.gonfVille || "Gonfreville-l'Orcher 76700";
+      villeInput.value = gonfVille;
+      if (villeCpInput) { var partsG = gonfVille.trim().split(' '); villeCpInput.value = partsG[partsG.length - 1] || '76700'; }
+    } else {
+      villeInput.value = '';
+      if (villeCpInput) villeCpInput.value = '';
     }
   }
 
@@ -2697,8 +2712,17 @@ function ouvrirSMSFacture(f) {
       var paiementLabels = { virement: 'virement bancaire', cheque: 'chèque', espece: 'espèces' };
       var modePaie = f.paiement ? paiementLabels[f.paiement] || f.paiement : 'réception de facture';
       var dateStr = new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR');
-            var nl = '\n';
-      var msg = 'Bonjour ' + f.nom + ',' + nl + nl + 'Votre facture suite \u00E0 notre intervention (' + f.type + ') du ' + dateStr + ' est disponible :' + nl + nl + 'Facture N\u00B0 ' + f.num + nl + 'Montant : ' + (f.prix || 0).toFixed(2) + ' \u20AC' + nl + 'R\u00E8glement par ' + modePaie + nl + nl + '\uD83D\uDD17 Voir la facture : ' + lienFacture + nl + nl + 'Merci de votre confiance.' + nl + '\u2014 ' + (s.nom || 'Allo \u00E7a pique') + ' \uD83D\uDC1D' + (s.tel ? ' \u00B7 ' + s.tel : '');
+      var nl = '\n';
+      var mairiePaie = ['Montivilliers','Gonfreville','Le Havre'].indexOf(f.clientType || '') >= 0;
+      var ribLine = '';
+      if (f.paiement === 'virement' && !mairiePaie && s.ribIban) {
+        ribLine = nl + '\uD83C\uDFE6 Coordonn\u00E9es bancaires pour le virement :' + nl
+          + (s.ribTitulaire ? 'Titulaire : ' + s.ribTitulaire + nl : '')
+          + 'IBAN : ' + s.ribIban + nl
+          + (s.ribBic ? 'BIC : ' + s.ribBic + nl : '')
+          + (s.ribBanque ? 'Banque : ' + s.ribBanque : '');
+      }
+      var msg = 'Bonjour ' + f.nom + ',' + nl + nl + 'Votre facture suite \u00E0 notre intervention (' + f.type + ') du ' + dateStr + ' est disponible :' + nl + nl + 'Facture N\u00B0 ' + f.num + nl + 'Montant : ' + (f.prix || 0).toFixed(2) + ' \u20AC' + nl + 'R\u00E8glement par ' + modePaie + ribLine + nl + nl + '\uD83D\uDD17 Voir la facture : ' + lienFacture + nl + nl + 'Merci de votre confiance.' + nl + '\u2014 ' + (s.nom || 'Allo \u00E7a pique') + ' \uD83D\uDC1D' + (s.tel ? ' \u00B7 ' + s.tel : '');
 
       window.location.href = 'sms:' + tel + '&body=' + encodeURIComponent(msg);
       showToast('SMS SMS prêt à envoyer !');
@@ -2757,6 +2781,15 @@ function sendMailForFacture(f) {
       var imageUrl = result.data.url;
 
       showToast(' Envoi du mail...');
+      var mairiePaieMail = ['Montivilliers','Gonfreville','Le Havre'].indexOf(f.clientType || '') >= 0;
+      var ribMail = '';
+      if (f.paiement === 'virement' && !mairiePaieMail && s.ribIban) {
+        ribMail = '\nCoordonnées bancaires pour le virement :'
+          + (s.ribTitulaire ? '\nTitulaire : ' + s.ribTitulaire : '')
+          + '\nIBAN : ' + s.ribIban
+          + (s.ribBic ? '\nBIC : ' + s.ribBic : '')
+          + (s.ribBanque ? '\nBanque : ' + s.ribBanque : '');
+      }
       emailjs.send(s.ejsSvc, s.ejsTpl, {
         to_email: f.email,
         to_name: f.nom,
@@ -2768,7 +2801,8 @@ function sendMailForFacture(f) {
         adresse: f.adresse,
         contact_tel: s.tel || '',
         contact_email: s.email || '',
-        facture_image_url: imageUrl
+        facture_image_url: imageUrl,
+        rib_info: ribMail
       }).then(function() {
         showToast('✅ Facture envoyée à ' + f.email + ' !');
       }).catch(function(err) {
@@ -3500,6 +3534,10 @@ function renderSettings() {
   document.getElementById('s-tel').value = settings.tel || '';
   document.getElementById('s-email').value = settings.email || '';
   document.getElementById('s-mention').value = settings.mention || 'TVA non applicable, art. 293B du CGI';
+  document.getElementById('s-rib-titulaire').value = settings.ribTitulaire || '';
+  document.getElementById('s-rib-iban').value = settings.ribIban || '';
+  document.getElementById('s-rib-bic').value = settings.ribBic || '';
+  document.getElementById('s-rib-banque').value = settings.ribBanque || '';
   document.getElementById('s-ejs-pub').value = settings.ejsPub || '';
   document.getElementById('s-ejs-svc').value = settings.ejsSvc || '';
   document.getElementById('s-ejs-tpl').value = settings.ejsTpl || '';
@@ -3610,6 +3648,10 @@ function saveSettings() {
     tel: document.getElementById('s-tel').value.trim(),
     email: document.getElementById('s-email').value.trim(),
     mention: document.getElementById('s-mention').value.trim(),
+    ribTitulaire: document.getElementById('s-rib-titulaire').value.trim(),
+    ribIban: document.getElementById('s-rib-iban').value.trim(),
+    ribBic: document.getElementById('s-rib-bic').value.trim(),
+    ribBanque: document.getElementById('s-rib-banque').value.trim(),
     ejsPub: document.getElementById('s-ejs-pub').value.trim(),
     ejsSvc: document.getElementById('s-ejs-svc').value.trim(),
     ejsTpl: document.getElementById('s-ejs-tpl').value.trim(),
