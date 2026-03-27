@@ -12,6 +12,7 @@
 <title>Allo ça pique — Gestion Interventions</title>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -3071,16 +3072,43 @@ function printFacture() {
   document.body.style.overflow = 'hidden';
 }
 
-function partageFact() {
+async function partageFact() {
   if (window.innerWidth >= 700) {
-    // PC : télécharger directement en HTML
+    // PC : générer PDF directement via html2canvas + jsPDF
     var inner = document.getElementById('modal-print-inner');
     if (!inner) return;
-    var html = genFactureHtmlPc(inner.innerHTML);
-    var num = (inner.querySelector && inner.querySelector('[data-num]')) ? inner.querySelector('[data-num]').dataset.num : 'facture';
-    dlFile('Facture.html', html, 'text/html');
-    closePrintModal();
-    showToast('⬇️ Facture téléchargée !');
+    var btn = document.querySelector('#modal-print button[onclick="partageFact()"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Génération…'; }
+    try {
+      var canvas = await html2canvas(inner, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      var imgData = canvas.toDataURL('image/jpeg', 0.95);
+      var jsPDFLib = window.jspdf && window.jspdf.jsPDF;
+      if (!jsPDFLib) throw new Error('jsPDF non chargé');
+      var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
+      var pageW = pdf.internal.pageSize.getWidth();
+      var pageH = pdf.internal.pageSize.getHeight();
+      var imgW = pageW;
+      var imgH = (canvas.height * pageW) / canvas.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
+      var remaining = imgH - pageH;
+      var offset = -pageH;
+      while (remaining > 0) {
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH);
+        offset -= pageH;
+        remaining -= pageH;
+      }
+      var f = currentFactureId ? findById(factures, currentFactureId) : null;
+      var fname = f ? 'Facture_' + f.num + '.pdf' : 'Facture.pdf';
+      pdf.save(fname);
+      closePrintModal();
+      showToast('⬇️ Facture PDF téléchargée !');
+    } catch(e) {
+      console.error('PDF error:', e);
+      showToast('Erreur génération PDF', true);
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = '⬆️ Partager / PDF'; }
+    }
   } else {
     // Mobile : impression → PDF
     window.print();
