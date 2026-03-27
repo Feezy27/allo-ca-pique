@@ -1854,6 +1854,26 @@ function selectClient(val) {
   applyCascadeGrid('opts-insecte');
   applyCascadeGrid('opts-client');
   document.getElementById('r-client-type').value = val;
+
+  // Remplissage automatique ville pour Montivilliers et Gonfreville
+  var villeInput = document.getElementById('r-ville');
+  var villeCpInput = document.getElementById('r-ville-cp');
+  if (val === 'Montivilliers' && villeInput && !villeInput.value) {
+    var montiVille = settings.montiVille || 'Montivilliers 76290';
+    villeInput.value = montiVille;
+    if (villeCpInput) {
+      var parts = montiVille.trim().split(' ');
+      villeCpInput.value = parts[parts.length - 1] || '76290';
+    }
+  } else if (val === 'Gonfreville' && villeInput && !villeInput.value) {
+    var gonfVille = settings.gonfVille || "Gonfreville-l'Orcher 76700";
+    villeInput.value = gonfVille;
+    if (villeCpInput) {
+      var parts = gonfVille.trim().split(' ');
+      villeCpInput.value = parts[parts.length - 1] || '76700';
+    }
+  }
+
   updateBlocMairie();
 }
 
@@ -2298,17 +2318,37 @@ function buildDataFacture(r, num, dateStr) {
   };
 }
 
-function nextFactureNum() {
+function getFacturePrefix(clientType) {
+  var ct = clientType || '';
+  if (ct === 'Montivilliers') return 'FM';
+  if (ct === 'Gonfreville')   return 'FG';
+  if (ct === 'Le Havre')      return 'FLH';
+  return 'F'; // Particulier, Syndic/Copro, Voie publique, et défaut
+}
+
+function nextFactureNum(clientType) {
   var year = new Date().getFullYear();
-  var prefix = 'F' + year + '-';
+  var pfx = getFacturePrefix(clientType);
+  var suffix = '-' + year;
   var max = 0;
   factures.forEach(function(f) {
-    if (f.num && f.num.startsWith(prefix)) {
-      var n = parseInt(f.num.slice(prefix.length), 10);
-      if (!isNaN(n) && n > max) max = n;
+    if (!f.num || !f.num.endsWith(suffix)) return;
+    var base = f.num.slice(0, f.num.length - suffix.length); // ex: "F004" ou "FM001"
+    if (pfx === 'F') {
+      // Série F uniquement : commence par F suivi d'un chiffre (exclut FM, FG, FLH)
+      if (/^F[0-9]/.test(base)) {
+        var n = parseInt(base.slice(1), 10);
+        if (!isNaN(n) && n > max) max = n;
+      }
+    } else {
+      // Série FM, FG, FLH : commence exactement par le préfixe
+      if (base.startsWith(pfx) && /^[0-9]+$/.test(base.slice(pfx.length))) {
+        var n = parseInt(base.slice(pfx.length), 10);
+        if (!isNaN(n) && n > max) max = n;
+      }
     }
   });
-  return prefix + String(max + 1).padStart(3, '0');
+  return pfx + String(max + 1).padStart(3, '0') + suffix;
 }
 
 function ouvrirFacture(rdvId) {
@@ -2316,7 +2356,7 @@ function ouvrirFacture(rdvId) {
   if (!r) return;
   currentRdvId = rdvId;
   currentFactureId = null;
-  var num = nextFactureNum();
+  var num = nextFactureNum(r.clientType);
   document.getElementById('facture-modal-title').textContent = 'Nouvelle facture';
   var data = buildDataFacture(r, num, new Date().toLocaleDateString('fr-FR'));
   var isPartRdv = !r.clientType || r.clientType === 'Particulier';
@@ -2546,7 +2586,7 @@ function validerFacture() {
   if (fEmailEl) emailClient = fEmailEl.value.trim();
 
   var prixHT = r.prix;
-  var num = nextFactureNum();
+  var num = nextFactureNum(r.clientType);
   var rdvDateStr = r.date ? new Date(r.date + 'T12:00:00').toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
   var data = buildDataFacture(r, num, rdvDateStr);
   data.aide = aideChoisie.slice();
@@ -2997,10 +3037,26 @@ function printFacture() {
 }
 
 function partageFact() {
-  // Sur iOS : ouvre la facture dans un onglet, puis l'utilisateur tape
-  // le bouton Partager (carré+flèche) → "Imprimer" → pincer pour agrandir → PDF
-  // Ou : Partager → "Enregistrer en PDF" selon la version iOS
-  window.print();
+  if (window.innerWidth >= 700) {
+    // PC : télécharger directement en HTML
+    var inner = document.getElementById('modal-print-inner');
+    if (!inner) return;
+    var html = genFactureHtmlPc(inner.innerHTML);
+    var num = (inner.querySelector && inner.querySelector('[data-num]')) ? inner.querySelector('[data-num]').dataset.num : 'facture';
+    dlFile('Facture.html', html, 'text/html');
+    closePrintModal();
+    showToast('⬇️ Facture téléchargée !');
+  } else {
+    // Mobile : impression → PDF
+    window.print();
+  }
+}
+
+function genFactureHtmlPc(bodyHtml) {
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture</title>'
+    + '<style>*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:24px;background:#fff;color:#111}'
+    + '@page{size:A4;margin:10mm}'
+    + '</style></head><body>' + bodyHtml + '</body></html>';
 }
 
 function closePrintModal() {
@@ -3302,17 +3358,32 @@ function telechargerFacture(factureId) {
     requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
     requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '', isMairie: f.isMairie || false, mairieNom: f.mairieNom || ''
   };
-  var inner = document.getElementById('modal-print-inner');
-  inner.innerHTML = buildFactureHtml(data, false, false);
-  var modal = document.getElementById('modal-print');
-  modal.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  if (photoUrl) {
-    setTimeout(function() {
-      var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
-      dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
-    }, 400);
-    showToast('📄 Photo téléchargée séparément');
+
+  if (window.innerWidth >= 700) {
+    // PC : téléchargement direct HTML
+    var html = genFactureHtmlStandalone(f);
+    dlFile(buildFilename(f), html, 'text/html');
+    showToast('⬇️ Facture téléchargée !');
+    if (photoUrl) {
+      setTimeout(function() {
+        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
+        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
+      }, 400);
+    }
+  } else {
+    // Mobile : modale d'aperçu
+    var inner = document.getElementById('modal-print-inner');
+    inner.innerHTML = buildFactureHtml(data, false, false);
+    var modal = document.getElementById('modal-print');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (photoUrl) {
+      setTimeout(function() {
+        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
+        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
+      }, 400);
+      showToast('📄 Photo téléchargée séparément');
+    }
   }
 }
 
@@ -3338,7 +3409,7 @@ function telechargerJournee(dateStr) {
     var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
 
     var html = genFactureHtmlStandalone(f);
-    dlFile('Facture_' + f.num + '_' + escFilename(f.nom) + '.html', html, 'text/html');
+    dlFile(buildFilename(f), html, 'text/html');
 
     if (photoUrl) {
       setTimeout(function() {
@@ -3358,28 +3429,67 @@ function escFilename(str) {
   return String(str||'').replace(/[^a-zA-Z0-9\u00C0-\u024F\-_]/g, '_').substring(0, 30);
 }
 
+function getCategoryPrefix(f) {
+  var ct = f.clientType || '';
+  if (ct === 'Montivilliers') return 'Mairie_Montivilliers';
+  if (ct === 'Gonfreville')   return 'Mairie_Gonfreville';
+  if (ct === 'Le Havre')      return 'Mairie_LeHavre';
+  if (ct === 'Voie publique') return 'Mairie_Autres';
+  if (ct === 'Syndic/Copro')  return 'Syndic_' + escFilename(f.syndicAgence || f.nom || 'Copro');
+  return 'Particulier';
+}
+
+function nextCategoryIndex(f) {
+  var prefix = getCategoryPrefix(f);
+  var year = new Date().getFullYear();
+  var count = 0;
+  factures.forEach(function(x) {
+    if (x.date && x.date.startsWith(String(year))) {
+      if (getCategoryPrefix(x) === prefix) count++;
+    }
+  });
+  return String(count).padStart(3, '0');
+}
+
+function buildFilename(f) {
+  // Le numéro de facture est déjà préfixé (FM001-2026, F001-2026, etc.)
+  // On ajoute juste le nom du client pour les non-mairies
+  var ct = f.clientType || '';
+  var isMairie = (ct === 'Montivilliers' || ct === 'Gonfreville' || ct === 'Le Havre' || ct === 'Voie publique');
+  var nom = isMairie ? '' : ('_' + escFilename(f.nom || ''));
+  return f.num + nom + '.html';
+}
+
 function voirEtImprimer(id) {
   var f = findById(factures, id);
   if (!f) return;
-  var data = {
-    num: f.num, dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
-    nom: f.nom, adresse: f.adresse, ville: f.ville || '', tel: f.tel, email: f.email || '',
-    type: f.type, prixHT: f.prixHT, notes: f.notes || '',
-    aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
-    signature: f.signature || '', clientType: f.clientType || '',
-    insecte: f.insecte || '', paiement: f.paiement || '',
-    isSyndic: f.clientType === 'Syndic/Copro',
-    syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
-    syndicAgenceAdresse: f.syndicAgenceAdresse || '', syndicAgenceTel: f.syndicAgenceTel || '',
-    syndicContact: f.syndicContact || '', syndicEmail: f.syndicEmail || '',
-    requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
-    requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '', isMairie: f.isMairie || false, mairieNom: f.mairieNom || ''
-  };
-  var inner = document.getElementById('modal-print-inner');
-  inner.innerHTML = buildFactureHtml(data, false, false);
-  var modal = document.getElementById('modal-print');
-  modal.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
+  if (window.innerWidth >= 700) {
+    // PC : téléchargement direct
+    var html = genFactureHtmlStandalone(f);
+    dlFile(buildFilename(f), html, 'text/html');
+    showToast('⬇️ Facture téléchargée !');
+  } else {
+    // Mobile : modale d'aperçu
+    var data = {
+      num: f.num, dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
+      nom: f.nom, adresse: f.adresse, ville: f.ville || '', tel: f.tel, email: f.email || '',
+      type: f.type, prixHT: f.prixHT, notes: f.notes || '',
+      aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
+      signature: f.signature || '', clientType: f.clientType || '',
+      insecte: f.insecte || '', paiement: f.paiement || '',
+      isSyndic: f.clientType === 'Syndic/Copro',
+      syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
+      syndicAgenceAdresse: f.syndicAgenceAdresse || '', syndicAgenceTel: f.syndicAgenceTel || '',
+      syndicContact: f.syndicContact || '', syndicEmail: f.syndicEmail || '',
+      requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
+      requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '', isMairie: f.isMairie || false, mairieNom: f.mairieNom || ''
+    };
+    var inner = document.getElementById('modal-print-inner');
+    inner.innerHTML = buildFactureHtml(data, false, false);
+    var modal = document.getElementById('modal-print');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
 }
 
 function renderSettings() {
