@@ -2239,16 +2239,16 @@ function buildFactureHtmlMobile(f) {
   var total = prixHT - aideAmtD - aideAmtS;
   var paiementLabels = { virement: 'Virement bancaire', cheque: 'Chèque', espece: 'Espèces' };
 
-  var h = '<div style="font-family:'DM Sans',sans-serif;color:#111;padding:4px 0;">';
+  var h = '<div style="font-family:Arial,Helvetica,sans-serif;color:#111;padding:4px 0;">';
 
   // Header : logo + nom + FACTURE
   h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:2px solid #091a45;padding-bottom:12px;">';
   h += '<div style="display:flex;align-items:center;gap:10px;">';
   h += '<img src="' + LOGO_B64_GLOBAL + '" height="40" width="40" style="display:block;border-radius:4px;">';
-  h += '<div><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:#091a45;">' + escHtml(s.nom||'Allo ça pique') + '</div></div>';
+  h += '<div><div style="font-family:Arial,sans-serif;font-weight:800;font-size:1.1rem;color:#091a45;">' + escHtml(s.nom||'Allo ça pique') + '</div></div>';
   h += '</div>';
   h += '<div style="text-align:right;">';
-  h += '<div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;color:#091a45;">FACTURE</div>';
+  h += '<div style="font-family:Arial,sans-serif;font-weight:800;font-size:1.3rem;color:#091a45;">FACTURE</div>';
   h += '<div style="font-size:0.78rem;color:#555;line-height:1.6;"><strong>N°</strong> ' + escHtml(f.num||'') + '</div>';
   if (f.syndicBdc || (f.clientType === 'Montivilliers' && s.bdcMontivilliers) || (f.clientType === 'Gonfreville' && s.bdcGonfreville)) {
     var bdcVal = f.syndicBdc || (f.clientType === 'Montivilliers' ? s.bdcMontivilliers : s.bdcGonfreville) || '';
@@ -2315,7 +2315,7 @@ function buildFactureHtmlMobile(f) {
   }
 
   // Total
-  h += '<div style="text-align:right;font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:#091a45;margin-bottom:10px;">Total : ' + total.toFixed(2) + ' €</div>';
+  h += '<div style="text-align:right;font-family:Arial,sans-serif;font-weight:800;font-size:1.2rem;color:#091a45;margin-bottom:10px;">Total : ' + total.toFixed(2) + ' €</div>';
 
   // Mention + paiement
   h += '<div style="font-size:0.75rem;color:#888;border-top:1px solid #e8edf8;padding-top:8px;margin-bottom:10px;">';
