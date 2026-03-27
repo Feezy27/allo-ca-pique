@@ -1131,13 +1131,13 @@ async function save() {
   var ind = document.getElementById('save-indicator');
   if (ind) ind.classList.add('visible');
   try {
+    var settingsToSave = Object.assign({}, settings, { _annualStats: annualStats });
     var res = await supabaseClient.from('user_data').upsert({
       user_id: uid,
       rdvs: rdvs,
       factures: factures,
-      settings: settings,
+      settings: settingsToSave,
       tarifs: tarifs,
-      annualStats: annualStats,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
     if (res.error) throw res.error;
@@ -1156,9 +1156,11 @@ async function loadUserData() {
     if (res.data) {
       rdvs = res.data.rdvs || [];
       factures = res.data.factures || [];
-      settings = res.data.settings || {};
+      var rawSettings = res.data.settings || {};
+      annualStats = rawSettings._annualStats || [];
+      delete rawSettings._annualStats;
+      settings = rawSettings;
       tarifs = res.data.tarifs || JSON.parse(JSON.stringify(TARIFS_DEFAULT));
-      annualStats = res.data.annualStats || [];
     } else {
       rdvs = []; factures = []; settings = { nom: 'Allo ça pique' }; tarifs = JSON.parse(JSON.stringify(TARIFS_DEFAULT));
     }
@@ -2226,14 +2228,119 @@ function ouvrirFacture(rdvId) {
   setTimeout(initSig, 120);
 }
 
+function buildFactureHtmlMobile(f) {
+  var s = settings;
+  var aides = Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []);
+  var prixHT = f.prixHT || 0;
+  var pctD = (s.aideDepartPct !== undefined ? s.aideDepartPct : 30);
+  var pctS = (s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30);
+  var aideAmtD = aides.indexOf('departement') >= 0 ? prixHT * pctD / 100 : 0;
+  var aideAmtS = aides.indexOf('seine') >= 0 ? prixHT * pctS / 100 : 0;
+  var total = prixHT - aideAmtD - aideAmtS;
+  var paiementLabels = { virement: 'Virement bancaire', cheque: 'Chèque', espece: 'Espèces' };
+
+  var h = '<div style="font-family:'DM Sans',sans-serif;color:#111;padding:4px 0;">';
+
+  // Header : logo + nom + FACTURE
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:2px solid #091a45;padding-bottom:12px;">';
+  h += '<div style="display:flex;align-items:center;gap:10px;">';
+  h += '<img src="' + LOGO_B64_GLOBAL + '" height="40" width="40" style="display:block;border-radius:4px;">';
+  h += '<div><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:#091a45;">' + escHtml(s.nom||'Allo ça pique') + '</div></div>';
+  h += '</div>';
+  h += '<div style="text-align:right;">';
+  h += '<div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;color:#091a45;">FACTURE</div>';
+  h += '<div style="font-size:0.78rem;color:#555;line-height:1.6;"><strong>N°</strong> ' + escHtml(f.num||'') + '</div>';
+  if (f.syndicBdc || (f.clientType === 'Montivilliers' && s.bdcMontivilliers) || (f.clientType === 'Gonfreville' && s.bdcGonfreville)) {
+    var bdcVal = f.syndicBdc || (f.clientType === 'Montivilliers' ? s.bdcMontivilliers : s.bdcGonfreville) || '';
+    if (bdcVal) h += '<div style="font-size:0.78rem;color:#555;"><strong>BC :</strong> ' + escHtml(bdcVal) + '</div>';
+  }
+  h += '<div style="font-size:0.78rem;color:#555;"><strong>Date :</strong> ' + escHtml(f.dateStr||new Date(f.date+'T12:00:00').toLocaleDateString('fr-FR')) + '</div>';
+  h += '</div></div>';
+
+  // Blocs infos
+  var cellStyle = 'background:#f0f4fa;border-radius:8px;padding:10px 12px;font-size:0.85rem;line-height:1.6;';
+  var labelStyle = 'font-size:0.68rem;text-transform:uppercase;color:#4a5a80;font-weight:700;letter-spacing:.05em;';
+
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
+  // Prestataire
+  h += '<div style="' + cellStyle + '">';
+  h += '<div style="' + labelStyle + '">Prestataire</div>';
+  h += '<strong>' + escHtml(s.nom||'') + '</strong><br>';
+  h += escHtml(s.adresse||'') + '<br>' + escHtml(s.ville||'') + '<br>';
+  if (s.tel) h += escHtml(s.tel) + '<br>';
+  h += 'SIRET : ' + escHtml(s.siret||'');
+  h += '</div>';
+  // Client
+  h += '<div style="' + cellStyle + '">';
+  h += '<div style="' + labelStyle + '">Client</div>';
+  h += '<strong>' + escHtml(f.nom||'') + '</strong><br>';
+  if (f.adresse) h += escHtml(f.adresse) + '<br>';
+  if (f.tel) h += 'Tél : ' + escHtml(f.tel);
+  h += '</div>';
+  h += '</div>';
+
+  // Requérant si mairie/syndic
+  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Voie publique'].indexOf(f.clientType) >= 0;
+  var isSyndic = f.clientType === 'Syndic/Copro' || f.isSyndic;
+  if ((isMairie || isSyndic) && f.requerantNom) {
+    h += '<div style="' + cellStyle + 'margin-bottom:10px;">';
+    h += '<div style="' + labelStyle + '">Requérant</div>';
+    h += '<strong>' + escHtml(f.requerantNom) + '</strong>';
+    if (f.requerantAdresse) h += '<br>' + escHtml(f.requerantAdresse);
+    if (f.requerantTel) h += '<br>Tél : ' + escHtml(f.requerantTel);
+    h += '</div>';
+  }
+
+  // Tableau prestation
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:0.85rem;">';
+  h += '<thead><tr>';
+  h += '<th style="background:#f5a623;color:#fff;padding:7px 8px;text-align:left;border-radius:6px 0 0 0;">Description</th>';
+  h += '<th style="background:#f5a623;color:#fff;padding:7px 6px;text-align:center;white-space:nowrap;">Qté</th>';
+  h += '<th style="background:#f5a623;color:#fff;padding:7px 8px;text-align:right;white-space:nowrap;border-radius:0 6px 0 0;">Total</th>';
+  h += '</tr></thead><tbody>';
+  h += '<tr><td style="padding:8px 8px;border-bottom:1px solid #e8edf8;">' + escHtml(f.type||'') + (f.notes ? '<br><small style="color:#888">' + escHtml(f.notes) + '</small>' : '') + '</td>';
+  h += '<td style="padding:8px 6px;text-align:center;border-bottom:1px solid #e8edf8;">1</td>';
+  h += '<td style="padding:8px 8px;text-align:right;border-bottom:1px solid #e8edf8;font-weight:600;">' + prixHT.toFixed(2) + ' €</td></tr>';
+  h += '</tbody></table>';
+
+  // Aides
+  if (aides.length > 0) {
+    h += '<div style="background:#fffbf0;border:2px solid #f5a623;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.85rem;">';
+    h += '<div style="font-weight:700;color:#b36b00;margin-bottom:6px;">Aides à la destruction</div>';
+    h += '<div style="display:flex;justify-content:space-between;"><span style="color:#555;">Montant HT</span><span style="font-weight:600;">' + prixHT.toFixed(2) + ' €</span></div>';
+    if (aideAmtD) h += '<div style="display:flex;justify-content:space-between;"><span>Aide Département (−' + pctD + '%)</span><span style="font-weight:600;color:#e07000;">−' + aideAmtD.toFixed(2) + ' €</span></div>';
+    if (aideAmtS) h += '<div style="display:flex;justify-content:space-between;"><span>Aide Seine Métropole (−' + pctS + '%)</span><span style="font-weight:600;color:#e07000;">−' + aideAmtS.toFixed(2) + ' €</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;border-top:1px solid #f5a623;margin-top:6px;padding-top:6px;font-weight:700;"><span>Reste à charge</span><span>' + total.toFixed(2) + ' €</span></div>';
+    h += '</div>';
+  }
+
+  // Total
+  h += '<div style="text-align:right;font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:#091a45;margin-bottom:10px;">Total : ' + total.toFixed(2) + ' €</div>';
+
+  // Mention + paiement
+  h += '<div style="font-size:0.75rem;color:#888;border-top:1px solid #e8edf8;padding-top:8px;margin-bottom:10px;">';
+  h += escHtml(s.mention || 'TVA non applicable, art. 293B du CGI');
+  if (f.paiement) h += '<br><strong style="color:#333;">Mode de paiement : ' + escHtml(paiementLabels[f.paiement]||f.paiement) + '</strong>';
+  h += '</div>';
+
+  // Signature
+  if (f.signature) {
+    h += '<div style="margin-top:6px;"><div style="font-size:0.78rem;color:#888;margin-bottom:4px;">Signature du client :</div>';
+    h += '<img src="' + f.signature + '" style="max-width:200px;display:block;"></div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
 function voirFacture(factureId) {
   var f = findById(factures, factureId);
   if (!f) { showToast('Facture introuvable', true); return; }
   currentFactureId = factureId;
   currentRdvId = null;
   document.getElementById('facture-modal-title').textContent = 'Facture ' + f.num;
-  document.getElementById('facture-content').innerHTML = buildFactureHtml({
-    num: f.num,
+  var fView = {
+    num: f.num, date: f.date,
     dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
     nom: f.nom, adresse: f.adresse, tel: f.tel, email: f.email || '',
     type: f.type, prixHT: f.prixHT, notes: f.notes || '',
@@ -2248,7 +2355,8 @@ function voirFacture(factureId) {
     requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
     requerantTel: f.requerantTel || '', isMairie: f.isMairie || false,
     mairieNom: f.mairieNom || ''
-  }, false, false);
+  };
+  document.getElementById('facture-content').innerHTML = buildFactureHtmlMobile(fView);
     document.getElementById('btn-valider').style.display = 'none';
   var psEl = document.getElementById('paiement-section');
   if (psEl) psEl.style.display = 'none';
