@@ -338,13 +338,15 @@ select option { background: var(--surface2); }
 .arch-day-header .day-label {
   font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text);
 }
-.arch-day-header .day-dl-btn {
+.arch-day-header .day-dl-btn,
+.day-dl-btn {
   padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface2); color: var(--muted); font-size: 0.78rem;
   cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
 }
-.arch-day-header .day-dl-btn:hover { border-color: var(--green); color: var(--green); }
+.arch-day-header .day-dl-btn:hover,
+.day-dl-btn:hover { border-color: var(--green); color: var(--green); }
 .arch-fact-card {
   background: var(--surface); border: var(--border-w) solid var(--border); border-radius: var(--r);
   padding: 14px 16px; margin-bottom: 8px; display: flex;
@@ -3410,7 +3412,52 @@ function dlPhoto(url, filename, cb) {
     });
 }
 
-function telechargerFacture(factureId) {
+async function genPdfAndDownload(f) {
+  var data = {
+    num: f.num, dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
+    nom: f.nom, adresse: f.adresse, ville: f.ville || '', tel: f.tel, email: f.email || '',
+    type: f.type, prixHT: f.prixHT, notes: f.notes || '',
+    aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
+    signature: f.signature || '', clientType: f.clientType || '',
+    insecte: f.insecte || '', paiement: f.paiement || '',
+    isSyndic: f.clientType === 'Syndic/Copro',
+    syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
+    syndicAgenceAdresse: f.syndicAgenceAdresse || '', syndicAgenceTel: f.syndicAgenceTel || '',
+    syndicContact: f.syndicContact || '', syndicEmail: f.syndicEmail || '',
+    requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
+    requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '',
+    isMairie: f.isMairie || false, mairieNom: f.mairieNom || ''
+  };
+  var tmpDiv = document.createElement('div');
+  tmpDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;background:#fff;padding:28px 24px;font-family:Arial,Helvetica,sans-serif;color:#111;z-index:-1;';
+  tmpDiv.innerHTML = buildFactureHtml(data, false, false);
+  document.body.appendChild(tmpDiv);
+  try {
+    var canvas = await html2canvas(tmpDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+    var imgData = canvas.toDataURL('image/jpeg', 0.92);
+    var jsPDFLib = window.jspdf && window.jspdf.jsPDF;
+    if (!jsPDFLib) throw new Error('jsPDF non chargé');
+    var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
+    var pageW = pdf.internal.pageSize.getWidth();
+    var pageH = pdf.internal.pageSize.getHeight();
+    var imgW = pageW;
+    var imgH = (canvas.height * pageW) / canvas.width;
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
+    var remaining = imgH - pageH;
+    var offset = -pageH;
+    while (remaining > 0) {
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH);
+      offset -= pageH;
+      remaining -= pageH;
+    }
+    pdf.save(buildFilename(f));
+  } finally {
+    document.body.removeChild(tmpDiv);
+  }
+}
+
+async function telechargerFacture(factureId) {
   var f = findById(factures, factureId);
   if (!f) return;
   var rdvLie = rdvs.find(function(r) { return r.factureId === factureId; });
@@ -3431,10 +3478,14 @@ function telechargerFacture(factureId) {
   };
 
   if (window.innerWidth >= 700) {
-    // PC : téléchargement direct HTML
-    var html = genFactureHtmlStandalone(f);
-    dlFile(buildFilename(f), html, 'text/html');
-    showToast('⬇️ Facture téléchargée !');
+    // PC : générer PDF
+    try {
+      await genPdfAndDownload(f);
+      showToast('⬇️ Facture PDF téléchargée !');
+    } catch(e) {
+      console.error('PDF error:', e);
+      showToast('Erreur génération PDF', true);
+    }
     if (photoUrl) {
       setTimeout(function() {
         var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
@@ -3473,25 +3524,23 @@ function telechargerJournee(dateStr) {
   showToast('⬇️ Téléchargement de ' + inDay.length + ' facture(s)...');
 
   var idx = 0;
-  function next() {
+  async function next() {
     if (idx >= inDay.length) { showToast('✅ Journée téléchargée !'); return; }
     var f = inDay[idx]; idx++;
     var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
     var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
 
-    var html = genFactureHtmlStandalone(f);
-    dlFile(buildFilename(f), html, 'text/html');
+    try { await genPdfAndDownload(f); } catch(e) { console.error('PDF error:', e); }
 
     if (photoUrl) {
-      setTimeout(function() {
-        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
-        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, function() {
-          setTimeout(next, 400);
-        });
-      }, 600);
-    } else {
-      setTimeout(next, 800);
+      await new Promise(function(res) {
+        setTimeout(function() {
+          var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
+          dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, res);
+        }, 400);
+      });
     }
+    setTimeout(next, 600);
   }
   next();
 }
@@ -3511,12 +3560,11 @@ function telechargerMois(ym) {
   if (inMonth.length === 0) { showToast('Aucune facture ce mois', true); return; }
   showToast('⬇️ Téléchargement de ' + inMonth.length + ' facture(s)...');
   var idx = 0;
-  function next() {
+  async function next() {
     if (idx >= inMonth.length) { showToast('✅ Mois téléchargé !'); return; }
     var f = inMonth[idx]; idx++;
-    var html = genFactureHtmlStandalone(f);
-    dlFile(buildFilename(f), html, 'text/html');
-    setTimeout(next, 600);
+    try { await genPdfAndDownload(f); } catch(e) { console.error('PDF error:', e); }
+    setTimeout(next, 700);
   }
   next();
 }
@@ -3548,22 +3596,24 @@ function nextCategoryIndex(f) {
 }
 
 function buildFilename(f) {
-  // Le numéro de facture est déjà préfixé (FM001-2026, F001-2026, etc.)
-  // On ajoute juste le nom du client pour les non-mairies
   var ct = f.clientType || '';
   var isMairie = (ct === 'Montivilliers' || ct === 'Gonfreville' || ct === 'Le Havre' || ct === 'Voie publique');
   var nom = isMairie ? '' : ('_' + escFilename(f.nom || ''));
-  return f.num + nom + '.html';
+  return f.num + nom + '.pdf';
 }
 
-function voirEtImprimer(id) {
+async function voirEtImprimer(id) {
   var f = findById(factures, id);
   if (!f) return;
   if (window.innerWidth >= 700) {
-    // PC : téléchargement direct
-    var html = genFactureHtmlStandalone(f);
-    dlFile(buildFilename(f), html, 'text/html');
-    showToast('⬇️ Facture téléchargée !');
+    // PC : générer PDF
+    try {
+      await genPdfAndDownload(f);
+      showToast('⬇️ Facture PDF téléchargée !');
+    } catch(e) {
+      console.error('PDF error:', e);
+      showToast('Erreur génération PDF', true);
+    }
   } else {
     // Mobile : modale d'aperçu
     var data = {
