@@ -12,7 +12,6 @@
 <title>Allo ça pique — Gestion Interventions</title>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -1305,7 +1304,17 @@ function goTo(page) {
 function voirFactureCourante() {
   if (currentFactureId) {
     var f = findById(factures, currentFactureId);
-    if (f) downloadFacture(f);
+    if (!f) return;
+    if (window.innerWidth >= 700) {
+      genPdfAndDownload(f).then(function() {
+        showToast('⬇️ Facture PDF téléchargée !');
+      }).catch(function(e) {
+        console.error('PDF error:', e);
+        showToast('Erreur génération PDF', true);
+      });
+    } else {
+      printFacture();
+    }
   } else {
     printFacture();
   }
@@ -3074,284 +3083,6 @@ function printFacture() {
   document.body.style.overflow = 'hidden';
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
-//  generatePDFTexte — Génère un PDF texte natif (lisible par les scripts)
-//  Remplace html2canvas qui produisait une image illisible.
-// ═══════════════════════════════════════════════════════════════════
-function generatePDFTexte(f, s) {
-  var jsPDFLib = window.jspdf && window.jspdf.jsPDF;
-  if (!jsPDFLib) throw new Error('jsPDF non chargé');
-
-  var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
-  var W = 210, H = 297, M = 15; // largeur, hauteur, marge (mm)
-  var y = M;
-
-  // Couleurs
-  var BLEU   = [9, 26, 69];
-  var ORANGE = [245, 166, 35];
-  var GRIS   = [85, 85, 85];
-
-  // Calculs montants
-  var aides   = Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []);
-  var prixHT  = f.prixHT || 0;
-  var pctD    = s.aideDepartPct !== undefined ? s.aideDepartPct : 30;
-  var pctS    = s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30;
-  var aideD   = aides.indexOf('departement') >= 0 ? prixHT * pctD / 100 : 0;
-  var aideS   = aides.indexOf('seine')       >= 0 ? prixHT * pctS / 100 : 0;
-  var total   = prixHT - aideD - aideS;
-
-  var paiementLabels = { virement: 'Virement bancaire', cheque: 'Chèque', espece: 'Espèces' };
-
-  // BC
-  var bdcVal = '';
-  if (f.syndicBdc) {
-    bdcVal = f.syndicBdc;
-  } else if (f.clientType === 'Montivilliers' && s.bdcMontivilliers) {
-    bdcVal = s.bdcMontivilliers;
-  } else if (f.clientType === 'Gonfreville' && s.bdcGonfreville) {
-    bdcVal = s.bdcGonfreville;
-  }
-
-  // Date
-  var dateStr = f.dateStr || (f.date ? new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR') : '');
-
-  // ── En-tête ──────────────────────────────────────────────────────
-  // Nom société (gauche)
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(16);
-  pdf.setTextColor.apply(pdf, BLEU);
-  pdf.text(s.nom || 'Allo ça pique', M, y);
-
-  // FACTURE (droite)
-  pdf.setFontSize(18);
-  pdf.text('FACTURE', W - M, y, { align: 'right' });
-
-  y += 6;
-  // Infos facture (droite)
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(9);
-  pdf.setTextColor.apply(pdf, GRIS);
-  pdf.text('N° ' + (f.num || ''), W - M, y, { align: 'right' });
-  y += 5;
-  if (bdcVal) {
-    pdf.text('BC : ' + bdcVal, W - M, y, { align: 'right' });
-    y += 5;
-  }
-  pdf.text('Date : ' + dateStr, W - M, y, { align: 'right' });
-
-  // Ligne de séparation
-  y += 6;
-  pdf.setDrawColor.apply(pdf, BLEU);
-  pdf.setLineWidth(0.5);
-  pdf.line(M, y, W - M, y);
-  y += 8;
-
-  // ── Blocs Prestataire / Client ────────────────────────────────────
-  var colW = (W - 2 * M - 6) / 2;
-  var blockY = y;
-
-  // Fond gris léger
-  pdf.setFillColor(240, 244, 250);
-  pdf.roundedRect(M, y - 2, colW, 28, 2, 2, 'F');
-  pdf.roundedRect(M + colW + 6, y - 2, colW, 28, 2, 2, 'F');
-
-  // Prestataire
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(7);
-  pdf.setTextColor(74, 90, 128);
-  pdf.text('PRESTATAIRE', M + 3, y + 2);
-
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(9);
-  pdf.setTextColor.apply(pdf, BLEU);
-  pdf.text(s.nom || '', M + 3, y + 8);
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8.5);
-  pdf.setTextColor.apply(pdf, GRIS);
-  var pLines = [];
-  if (s.adresse) pLines.push(s.adresse);
-  if (s.ville)   pLines.push(s.ville);
-  if (s.tel)     pLines.push(s.tel);
-  if (s.siret)   pLines.push('SIRET : ' + s.siret);
-  pdf.text(pLines, M + 3, y + 14, { lineHeightFactor: 1.4 });
-
-  // Client
-  var cx = M + colW + 6;
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(7);
-  pdf.setTextColor(74, 90, 128);
-  pdf.text('CLIENT', cx + 3, y + 2);
-
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(9);
-  pdf.setTextColor.apply(pdf, BLEU);
-  pdf.text(f.nom || '', cx + 3, y + 8);
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8.5);
-  pdf.setTextColor.apply(pdf, GRIS);
-  var cLines = [];
-  if (f.adresse) cLines.push(f.adresse);
-  if (f.ville)   cLines.push(f.ville);
-  if (f.tel)     cLines.push('Tél : ' + f.tel);
-  pdf.text(cLines, cx + 3, y + 14, { lineHeightFactor: 1.4 });
-
-  y += 34;
-
-  // ── Requérant (si mairie / syndic) ───────────────────────────────
-  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Voie publique'].indexOf(f.clientType) >= 0;
-  var isSyndic = f.clientType === 'Syndic/Copro' || f.isSyndic;
-  if ((isMairie || isSyndic) && f.requerantNom) {
-    pdf.setFillColor(240, 244, 250);
-    pdf.roundedRect(M, y - 2, W - 2 * M, 16, 2, 2, 'F');
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(7);
-    pdf.setTextColor(74, 90, 128);
-    pdf.text('REQUÉRANT', M + 3, y + 2);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9);
-    pdf.setTextColor.apply(pdf, BLEU);
-    pdf.text(f.requerantNom, M + 3, y + 8);
-    var rRight = [];
-    if (f.requerantAdresse) rRight.push(f.requerantAdresse + (f.requerantVille ? ', ' + f.requerantVille : ''));
-    if (f.requerantTel)     rRight.push('Tél : ' + f.requerantTel);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8.5);
-    pdf.setTextColor.apply(pdf, GRIS);
-    pdf.text(rRight, M + 3, y + 13);
-    y += 22;
-  }
-
-  // ── Tableau prestation ────────────────────────────────────────────
-  // En-tête tableau
-  pdf.setFillColor.apply(pdf, ORANGE);
-  pdf.rect(M, y, W - 2 * M, 8, 'F');
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(9);
-  pdf.setTextColor(255, 255, 255);
-  pdf.text('Description', M + 3, y + 5.5);
-  pdf.text('Qté', M + 120, y + 5.5, { align: 'center' });
-  pdf.text('Total', W - M - 3, y + 5.5, { align: 'right' });
-
-  // Ligne prestation
-  y += 8;
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(9);
-  pdf.setTextColor(17, 17, 17);
-  var descLines = pdf.splitTextToSize(f.type || '', 100);
-  pdf.text(descLines, M + 3, y + 5);
-  pdf.text('1', M + 120, y + 5, { align: 'center' });
-  pdf.setFont('helvetica', 'bold');
-  pdf.text(prixHT.toFixed(2) + ' €', W - M - 3, y + 5, { align: 'right' });
-  if (f.notes) {
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8);
-    pdf.setTextColor.apply(pdf, GRIS);
-    pdf.text(f.notes, M + 3, y + 10);
-    y += 5;
-  }
-  y += 14;
-  pdf.setDrawColor(232, 237, 248);
-  pdf.setLineWidth(0.3);
-  pdf.line(M, y - 2, W - M, y - 2);
-
-  // ── Aides ─────────────────────────────────────────────────────────
-  if (aides.length > 0) {
-    y += 2;
-    // Fond jaune pâle
-    var aideH = 12 + (aideD ? 6 : 0) + (aideS ? 6 : 0) + 8;
-    pdf.setFillColor(255, 251, 240);
-    pdf.setDrawColor.apply(pdf, ORANGE);
-    pdf.setLineWidth(0.4);
-    pdf.roundedRect(M, y, W - 2 * M, aideH, 2, 2, 'FD');
-
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9);
-    pdf.setTextColor(179, 107, 0);
-    pdf.text('Aides à la destruction', M + 4, y + 6);
-
-    var ay = y + 12;
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8.5);
-    pdf.setTextColor.apply(pdf, GRIS);
-    pdf.text('Montant HT', M + 4, ay);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(17, 17, 17);
-    pdf.text(prixHT.toFixed(2) + ' €', W - M - 4, ay, { align: 'right' });
-
-    if (aideD) {
-      ay += 6;
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor.apply(pdf, GRIS);
-      pdf.text('Aide Département (−' + pctD + '%)', M + 4, ay);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(224, 112, 0);
-      pdf.text('−' + aideD.toFixed(2) + ' €', W - M - 4, ay, { align: 'right' });
-    }
-    if (aideS) {
-      ay += 6;
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor.apply(pdf, GRIS);
-      pdf.text('Aide Seine Métropole (−' + pctS + '%)', M + 4, ay);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(224, 112, 0);
-      pdf.text('−' + aideS.toFixed(2) + ' €', W - M - 4, ay, { align: 'right' });
-    }
-
-    // Reste à charge
-    ay += 8;
-    pdf.setDrawColor.apply(pdf, ORANGE);
-    pdf.setLineWidth(0.3);
-    pdf.line(M + 4, ay - 4, W - M - 4, ay - 4);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9.5);
-    pdf.setTextColor(17, 17, 17);
-    pdf.text('Reste à charge client', M + 4, ay);
-    pdf.text(total.toFixed(2) + ' €', W - M - 4, ay, { align: 'right' });
-
-    y += aideH + 4;
-  }
-
-  // ── Total client ──────────────────────────────────────────────────
-  y += 4;
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(13);
-  pdf.setTextColor.apply(pdf, BLEU);
-  pdf.text('Total client : ' + total.toFixed(2) + ' €', W - M, y, { align: 'right' });
-  y += 10;
-
-  // ── Mentions légales + paiement ───────────────────────────────────
-  pdf.setDrawColor(232, 237, 248);
-  pdf.setLineWidth(0.3);
-  pdf.line(M, y, W - M, y);
-  y += 5;
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8);
-  pdf.setTextColor.apply(pdf, GRIS);
-  pdf.text(s.mention || 'TVA non applicable, art. 293B du CGI', M, y);
-  if (f.paiement) {
-    y += 5;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(51, 51, 51);
-    pdf.text('Mode de paiement : ' + (paiementLabels[f.paiement] || f.paiement), M, y);
-  }
-
-  // ── Signature ─────────────────────────────────────────────────────
-  if (f.signature) {
-    y += 8;
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8);
-    pdf.setTextColor.apply(pdf, GRIS);
-    pdf.text('Signature du client :', M, y);
-    y += 3;
-    try { pdf.addImage(f.signature, 'PNG', M, y, 50, 20); } catch(e) {}
-  }
-
-  return pdf;
-}
-
 async function partageFact() {
   if (window.innerWidth >= 700) {
     // PC : générer PDF directement via html2canvas + jsPDF
@@ -3360,10 +3091,25 @@ async function partageFact() {
     var btn = document.querySelector('#modal-print button[onclick="partageFact()"]');
     if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Génération…'; }
     try {
+      var canvas = await html2canvas(inner, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      var imgData = canvas.toDataURL('image/jpeg', 0.95);
+      var jsPDFLib = await loadJsPDF();
+      var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
+      var pageW = pdf.internal.pageSize.getWidth();
+      var pageH = pdf.internal.pageSize.getHeight();
+      var imgW = pageW;
+      var imgH = (canvas.height * pageW) / canvas.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
+      var remaining = imgH - pageH;
+      var offset = -pageH;
+      while (remaining > 0) {
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH);
+        offset -= pageH;
+        remaining -= pageH;
+      }
       var f = currentFactureId ? findById(factures, currentFactureId) : null;
-      if (!f) throw new Error('Facture introuvable');
-      var pdf = generatePDFTexte(f, settings);
-      var fname = 'Facture_' + (f.num || 'sans_num') + '.pdf';
+      var fname = f ? 'Facture_' + f.num + '.pdf' : 'Facture.pdf';
       pdf.save(fname);
       closePrintModal();
       showToast('⬇️ Facture PDF téléchargée !');
@@ -3674,6 +3420,20 @@ function dlPhoto(url, filename, cb) {
     });
 }
 
+async function loadJsPDF() {
+  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  return new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = function() {
+      if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
+      else reject(new Error('jsPDF non disponible après chargement'));
+    };
+    s.onerror = function() { reject(new Error('Impossible de charger jsPDF')); };
+    document.head.appendChild(s);
+  });
+}
+
 async function genPdfAndDownload(f) {
   var data = {
     num: f.num, dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
@@ -3695,8 +3455,24 @@ async function genPdfAndDownload(f) {
   tmpDiv.innerHTML = buildFactureHtml(data, false, false);
   document.body.appendChild(tmpDiv);
   try {
-    var pdfDoc = generatePDFTexte(f, settings);
-    pdfDoc.save(buildFilename(f));
+    var canvas = await html2canvas(tmpDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+    var imgData = canvas.toDataURL('image/jpeg', 0.92);
+    var jsPDFLib = await loadJsPDF();
+    var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
+    var pageW = pdf.internal.pageSize.getWidth();
+    var pageH = pdf.internal.pageSize.getHeight();
+    var imgW = pageW;
+    var imgH = (canvas.height * pageW) / canvas.width;
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
+    var remaining = imgH - pageH;
+    var offset = -pageH;
+    while (remaining > 0) {
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH);
+      offset -= pageH;
+      remaining -= pageH;
+    }
+    pdf.save(buildFilename(f));
   } finally {
     document.body.removeChild(tmpDiv);
   }
