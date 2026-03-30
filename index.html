@@ -2162,10 +2162,19 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<div style="font-size:13px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;color:#111;">';
   h += '<span style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.06em;font-weight:700;">Client :</span> <strong>' + escHtml(data.nom) + '</strong>';
   var isParticulier = !data.clientType || data.clientType === 'Particulier';
-  if (isParticulier && data.adresse && data.ville) {
-    var rueAff = data.adresse.indexOf(data.ville) === 0 ? data.adresse.substring(data.ville.length).trim() : data.adresse;
+  if (isParticulier && data.adresse) {
+    var rueAff = '', villeAff = '';
+    if (data.ville && data.adresse.indexOf(data.ville) === 0) {
+      rueAff = data.adresse.substring(data.ville.length).trim();
+      villeAff = data.ville;
+    } else {
+      var cpMatch = data.adresse.match(/^(.*?\d{5})\s+(.+)$/);
+      if (cpMatch) { villeAff = cpMatch[1]; rueAff = cpMatch[2]; }
+      else { villeAff = data.ville || ''; rueAff = ''; }
+    }
     if (rueAff) h += '<br>' + escHtml(rueAff);
-    h += '<br>' + escHtml(data.ville);
+    if (villeAff) h += '<br>' + escHtml(villeAff);
+    else if (!rueAff) h += '<br>' + escHtml(data.adresse);
   } else {
     if (data.adresse) h += '<br>' + escHtml(data.adresse);
     if (data.ville) h += '<br>' + escHtml(data.ville);
