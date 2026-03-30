@@ -3442,7 +3442,7 @@ function genFactureHtmlStandalone(f) {
     + '<button onclick="window.print()" style="background:#f5a623;color:#091a45;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:0.95rem;cursor:pointer">Enregistrer en PDF</button>'
     + '<button onclick="window.close()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:0.95rem;cursor:pointer">Fermer</button>'
     + '</div></div>';
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture ' + f.num + '</title>'
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Facture ' + f.num + '</title>'
     + '<style>' + printStyles + '</style></head><body>' + toolbar + '<div style="padding:72px 20px 24px;max-width:760px;margin:0 auto">' + bodyHtml + '</div></body></html>';
 }
 
