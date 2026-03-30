@@ -2161,8 +2161,15 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<td style="vertical-align:top;padding:10px 14px;background:#f7f7f7;border-radius:8px;width:50%;">';
   h += '<div style="font-size:13px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;color:#111;">';
   h += '<span style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.06em;font-weight:700;">Client :</span> <strong>' + escHtml(data.nom) + '</strong>';
-  if (data.adresse) h += '<br>' + escHtml(data.adresse);
-  if (data.ville) h += '<br>' + escHtml(data.ville);
+  var isParticulier = !data.clientType || data.clientType === 'Particulier';
+  if (isParticulier && data.adresse && data.ville) {
+    var rueAff = data.adresse.indexOf(data.ville) === 0 ? data.adresse.substring(data.ville.length).trim() : data.adresse;
+    if (rueAff) h += '<br>' + escHtml(rueAff);
+    h += '<br>' + escHtml(data.ville);
+  } else {
+    if (data.adresse) h += '<br>' + escHtml(data.adresse);
+    if (data.ville) h += '<br>' + escHtml(data.ville);
+  }
   h += '<br>Tél : ' + escHtml(data.tel||'');
   if (data.email) h += '<br>' + escHtml(data.email);
   h += '</div></td>';
