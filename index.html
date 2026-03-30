@@ -519,15 +519,13 @@ select option { background: var(--surface2); }
 }
 
 
+#ios-print-zone { display: none; }
 @media print {
-  html, body { margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; background: #fff !important; }
-  body > *:not(#modal-print) { display: none !important; }
-  #modal-print { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: auto !important; width: 100% !important; height: auto !important; overflow: visible !important; background: #fff !important; z-index: auto !important; }
-  #modal-print > div:first-child { display: none !important; }
-  #modal-print-content { overflow: visible !important; padding: 0 !important; background: #fff !important; height: auto !important; }
-  #modal-print-inner { box-shadow: none !important; border-radius: 0 !important; padding: 8px !important; max-width: 100% !important; margin: 0 !important; font-size: 11px !important; height: auto !important; overflow: visible !important; }
-  #modal-print-inner table { font-size: 11px !important; }
-  #modal-print-inner img { max-width: 180px !important; max-height: 60px !important; }
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  body > * { display: none !important; }
+  #ios-print-zone { display: block !important; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; padding: 8px; }
+  #ios-print-zone table { font-size: 11px !important; }
+  #ios-print-zone img { max-width: 180px !important; max-height: 60px !important; }
   @page { size: A4 portrait; margin: 8mm; }
 }
 
@@ -1068,6 +1066,7 @@ select option { background: var(--surface2); }
 <div id="modal-print-inner" style="max-width:760px;margin:0 auto;background:#fff;padding:28px 24px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.08);"></div>
 </div>
 </div>
+<div id="ios-print-zone"></div>
 <div id="save-indicator"> Sauvegarde…</div>
 
 <!-- ===== SIGNATURE PLEIN ÉCRAN (mobile) ===== -->
@@ -3102,15 +3101,21 @@ function prendrePhoto(rdvId) {
 
 function printFacture() {
   var src = document.getElementById('facture-content').innerHTML;
-  var inner = document.getElementById('modal-print-inner');
-  if (!inner) return;
-  inner.innerHTML = src;
+  // Préparer le contenu (nettoyer les éléments non imprimables)
+  var tmp = document.createElement('div');
+  tmp.innerHTML = src;
   ['#sigCanvas','#paiement-section','#aide-section'].forEach(function(sel) {
-    var el = inner.querySelector(sel); if (el) el.style.display = 'none';
+    var el = tmp.querySelector(sel); if (el) el.remove();
   });
-  inner.querySelectorAll('.paiement-btn,.facture-action-btn,button,input[type=email]').forEach(function(el) {
-    el.style.display = 'none';
+  tmp.querySelectorAll('.paiement-btn,.facture-action-btn,button,input[type=email]').forEach(function(el) {
+    el.remove();
   });
+  // Injecter dans le container print dédié (pas de display:none inline → iOS Safari l'imprime)
+  var zone = document.getElementById('ios-print-zone');
+  zone.innerHTML = tmp.innerHTML;
+  // Aussi mettre à jour modal-print-inner pour le bouton Partager/PDF
+  var inner = document.getElementById('modal-print-inner');
+  if (inner) inner.innerHTML = tmp.innerHTML;
   var modal = document.getElementById('modal-print');
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -3169,6 +3174,8 @@ function closePrintModal() {
   var modal = document.getElementById('modal-print');
   if (modal) modal.style.display = 'none';
   document.body.style.overflow = '';
+  var zone = document.getElementById('ios-print-zone');
+  if (zone) zone.innerHTML = '';
 }
 
 var MAIRIE_TYPES = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Voie publique'];
