@@ -1709,42 +1709,47 @@ function openNewRdv() {
 }
 
 function editRdv(id) {
-  var r = findById(rdvs, id);
-  if (!r) return;
-  editingId = id;
-  document.getElementById('rdv-modal-title').textContent = 'Modifier le rendez-vous';
-  document.getElementById('r-nom').value = r.nom;
-  document.getElementById('r-tel').value = r.tel;
-  var villeEdit = extraireVille(r.adresse || '');
-  var rueEdit = villeEdit ? (r.adresse || '').substring(villeEdit.length).trim() : (r.adresse || '');
-  var eVille = document.getElementById('r-ville'); if(eVille) eVille.value = villeEdit;
-  var eVilleCP = document.getElementById('r-ville-cp'); if(eVilleCP) eVilleCP.value = r.villeCP || '';
-  var eRue = document.getElementById('r-rue'); if(eRue) eRue.value = rueEdit;
-  document.getElementById('r-adresse').value = r.adresse || '';
-  document.getElementById('r-date').value = r.date;
-  setTimePickerValue(r.heure || '');
-  document.getElementById('r-email').value = r.email || '';
-  document.getElementById('r-prix').value = r.prix;
-  document.getElementById('r-notes').value = r.notes || '';
-  initCascade(r);
-  if (r.clientType === 'Syndic/Copro') {
-    var setBdc = document.getElementById('r-syndic-bdc');
-    var setAg = document.getElementById('r-syndic-agence');
-    var setAga = document.getElementById('r-syndic-agence-adresse');
-    var setAgt = document.getElementById('r-syndic-agence-tel');
-    var setCt = document.getElementById('r-syndic-contact');
-    if (setBdc) setBdc.value = r.syndicBdc || '';
-    if (setAg) setAg.value = r.syndicAgence || '';
-    if (setAga) setAga.value = r.syndicAgenceAdresse || '';
-    if (setAgt) setAgt.value = r.syndicAgenceTel || '';
-    if (setCt) setCt.value = r.syndicContact || '';
-    var setEm = document.getElementById('r-syndic-email');
-    if (setEm) setEm.value = r.syndicEmail || '';
+  try {
+    var r = findById(rdvs, id);
+    if (!r) { showToast('RDV introuvable : ' + id, true); return; }
+    editingId = id;
+    document.getElementById('rdv-modal-title').textContent = 'Modifier le rendez-vous';
+    document.getElementById('r-nom').value = r.nom;
+    document.getElementById('r-tel').value = r.tel;
+    var villeEdit = extraireVille(r.adresse || '');
+    var rueEdit = villeEdit ? (r.adresse || '').substring(villeEdit.length).trim() : (r.adresse || '');
+    var eVille = document.getElementById('r-ville'); if(eVille) eVille.value = villeEdit;
+    var eVilleCP = document.getElementById('r-ville-cp'); if(eVilleCP) eVilleCP.value = r.villeCP || '';
+    var eRue = document.getElementById('r-rue'); if(eRue) eRue.value = rueEdit;
+    document.getElementById('r-adresse').value = r.adresse || '';
+    document.getElementById('r-date').value = r.date;
+    setTimePickerValue(r.heure || '');
+    document.getElementById('r-email').value = r.email || '';
+    document.getElementById('r-prix').value = r.prix;
+    document.getElementById('r-notes').value = r.notes || '';
+    initCascade(r);
+    if (r.clientType === 'Syndic/Copro') {
+      var setBdc = document.getElementById('r-syndic-bdc');
+      var setAg = document.getElementById('r-syndic-agence');
+      var setAga = document.getElementById('r-syndic-agence-adresse');
+      var setAgt = document.getElementById('r-syndic-agence-tel');
+      var setCt = document.getElementById('r-syndic-contact');
+      if (setBdc) setBdc.value = r.syndicBdc || '';
+      if (setAg) setAg.value = r.syndicAgence || '';
+      if (setAga) setAga.value = r.syndicAgenceAdresse || '';
+      if (setAgt) setAgt.value = r.syndicAgenceTel || '';
+      if (setCt) setCt.value = r.syndicContact || '';
+      var setEm = document.getElementById('r-syndic-email');
+      if (setEm) setEm.value = r.syndicEmail || '';
+    }
+    updateMapsLink();
+    initTimePicker();
+    document.getElementById('modal-rdv').classList.add('open');
+    renderMiniAgenda();
+  } catch(e) {
+    showToast('Erreur Modifier : ' + e.message, true);
+    console.error('editRdv crash:', e);
   }
-  updateMapsLink();
-  initTimePicker();
-  document.getElementById('modal-rdv').classList.add('open');
-  renderMiniAgenda();
 }
 
 var _cascade = { client: null, insecte: null, insecteLabel: null, emplacement: null, emplacementLabel: null };
