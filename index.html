@@ -337,15 +337,13 @@ select option { background: var(--surface2); }
 .arch-day-header .day-label {
   font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text);
 }
-.arch-day-header .day-dl-btn,
-.day-dl-btn {
+.arch-day-header .day-dl-btn {
   padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface2); color: var(--muted); font-size: 0.78rem;
   cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
-  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
 }
-.arch-day-header .day-dl-btn:hover,
-.day-dl-btn:hover { border-color: var(--green); color: var(--green); }
+.arch-day-header .day-dl-btn:hover { border-color: var(--green); color: var(--green); }
 .arch-fact-card {
   background: var(--surface); border: var(--border-w) solid var(--border); border-radius: var(--r);
   padding: 14px 16px; margin-bottom: 8px; display: flex;
@@ -519,13 +517,14 @@ select option { background: var(--surface2); }
 }
 
 
-#ios-print-zone { display: none; }
 @media print {
-  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-  body > * { display: none !important; }
-  #ios-print-zone { display: block !important; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; padding: 8px; }
-  #ios-print-zone table { font-size: 11px !important; }
-  #ios-print-zone img { max-width: 180px !important; max-height: 60px !important; }
+  #modal-print > div:first-child { display: none !important; }
+  #modal-print { display: block !important; position: static !important; overflow: visible !important; }
+  #modal-print-content { overflow: visible !important; padding: 0 !important; background: #fff !important; }
+  #modal-print-inner { box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; max-width: 100% !important; margin: 0 !important; font-size: 11px !important; }
+  #modal-print-inner table { font-size: 11px !important; }
+  #modal-print-inner img { max-width: 180px !important; max-height: 60px !important; }
+  body > *:not(#modal-print) { display: none !important; }
   @page { size: A4 portrait; margin: 8mm; }
 }
 
@@ -1055,7 +1054,7 @@ select option { background: var(--surface2); }
 <div style="background:#091a45;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;flex-shrink:0;">
 <div>
 <div style="color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;">Aperçu facture</div>
-<div style="color:rgba(255,255,255,0.65);font-size:0.72rem;margin-top:2px;">Ouvrir → Partager → Enregistrer en PDF</div>
+<div style="color:rgba(255,255,255,0.65);font-size:0.72rem;margin-top:2px;">iOS : Imprimer → pincer les pages → PDF</div>
 </div>
 <div style="display:flex;gap:8px;">
 <button onclick="partageFact()" style="background:#f5a623;color:#091a45;border:none;border-radius:8px;padding:10px 16px;font-weight:700;font-size:0.9rem;cursor:pointer;">⬆️ Partager / PDF</button>
@@ -1066,7 +1065,6 @@ select option { background: var(--surface2); }
 <div id="modal-print-inner" style="max-width:760px;margin:0 auto;background:#fff;padding:28px 24px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.08);"></div>
 </div>
 </div>
-<div id="ios-print-zone"></div>
 <div id="save-indicator"> Sauvegarde…</div>
 
 <!-- ===== SIGNATURE PLEIN ÉCRAN (mobile) ===== -->
@@ -1304,19 +1302,7 @@ function goTo(page) {
 function voirFactureCourante() {
   if (currentFactureId) {
     var f = findById(factures, currentFactureId);
-    if (!f) return;
-    if (window.innerWidth >= 700) {
-      genPdfAndDownload(f).then(function() {
-        showToast('⬇️ Facture PDF téléchargée !');
-      }).catch(function(e) {
-        console.error('PDF error:', e);
-        showToast('Erreur génération PDF', true);
-      });
-    } else {
-      var html = genFactureHtmlStandalone(f);
-      var win = window.open('', '_blank');
-      if (win) { win.document.open(); win.document.write(html); win.document.close(); }
-    }
+    if (f) downloadFacture(f);
   } else {
     printFacture();
   }
@@ -1732,7 +1718,7 @@ function editRdv(id) {
   var villeEdit = extraireVille(r.adresse || '');
   var rueEdit = villeEdit ? (r.adresse || '').substring(villeEdit.length).trim() : (r.adresse || '');
   var eVille = document.getElementById('r-ville'); if(eVille) eVille.value = villeEdit;
-  var eVilleCP = document.getElementById('r-ville-cp'); if(eVilleCP) eVilleCP.value = rdv.villeCP || '';
+  var eVilleCP = document.getElementById('r-ville-cp'); if(eVilleCP) eVilleCP.value = r.villeCP || '';
   var eRue = document.getElementById('r-rue'); if(eRue) eRue.value = rueEdit;
   document.getElementById('r-adresse').value = r.adresse || '';
   document.getElementById('r-date').value = r.date;
@@ -2163,24 +2149,8 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<td style="vertical-align:top;padding:10px 14px;background:#f7f7f7;border-radius:8px;width:50%;">';
   h += '<div style="font-size:13px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;color:#111;">';
   h += '<span style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.06em;font-weight:700;">Client :</span> <strong>' + escHtml(data.nom) + '</strong>';
-  var isParticulier = !data.clientType || data.clientType === 'Particulier';
-  if (isParticulier && data.adresse) {
-    var rueAff = '', villeAff = '';
-    if (data.ville && data.adresse.indexOf(data.ville) === 0) {
-      rueAff = data.adresse.substring(data.ville.length).trim();
-      villeAff = data.ville;
-    } else {
-      var cpMatch = data.adresse.match(/^(.*?\d{5})\s+(.+)$/);
-      if (cpMatch) { villeAff = cpMatch[1]; rueAff = cpMatch[2]; }
-      else { villeAff = data.ville || ''; rueAff = ''; }
-    }
-    if (rueAff) h += '<br>' + escHtml(rueAff);
-    if (villeAff) h += '<br>' + escHtml(villeAff);
-    else if (!rueAff) h += '<br>' + escHtml(data.adresse);
-  } else {
-    if (data.adresse) h += '<br>' + escHtml(data.adresse);
-    if (data.ville) h += '<br>' + escHtml(data.ville);
-  }
+  if (data.adresse) h += '<br>' + escHtml(data.adresse);
+  if (data.ville) h += '<br>' + escHtml(data.ville);
   h += '<br>Tél : ' + escHtml(data.tel||'');
   if (data.email) h += '<br>' + escHtml(data.email);
   h += '</div></td>';
@@ -2463,24 +2433,8 @@ function buildFactureHtmlMobile(f) {
   h += '<div style="' + cellStyle + '">';
   h += '<div style="' + labelStyle + '">Client</div>';
   h += '<strong>' + escHtml(f.nom||'') + '</strong><br>';
-  var isPartMobile = !f.clientType || f.clientType === 'Particulier';
-  if (isPartMobile && f.adresse) {
-    var rueM = '', villeM = '';
-    if (f.ville && f.adresse.indexOf(f.ville) === 0) {
-      rueM = f.adresse.substring(f.ville.length).trim();
-      villeM = f.ville;
-    } else {
-      var cpM = f.adresse.match(/^(.*?\d{5})\s+(.+)$/);
-      if (cpM) { villeM = cpM[1]; rueM = cpM[2]; }
-      else { villeM = f.ville || ''; rueM = ''; }
-    }
-    if (rueM) h += escHtml(rueM) + '<br>';
-    if (villeM) h += escHtml(villeM) + '<br>';
-    else if (!rueM) h += escHtml(f.adresse) + '<br>';
-  } else {
-    if (f.adresse) h += escHtml(f.adresse) + '<br>';
-    if (f.ville) h += escHtml(f.ville) + '<br>';
-  }
+  if (f.adresse) h += escHtml(f.adresse) + '<br>';
+  if (f.ville) h += escHtml(f.ville) + '<br>';
   if (f.tel) h += 'Tél : ' + escHtml(f.tel);
   h += '</div>';
   h += '</div>';
@@ -3103,74 +3057,33 @@ function prendrePhoto(rdvId) {
 
 function printFacture() {
   var src = document.getElementById('facture-content').innerHTML;
-  // Préparer le contenu (nettoyer les éléments non imprimables)
-  var tmp = document.createElement('div');
-  tmp.innerHTML = src;
-  ['#sigCanvas','#paiement-section','#aide-section'].forEach(function(sel) {
-    var el = tmp.querySelector(sel); if (el) el.remove();
-  });
-  tmp.querySelectorAll('.paiement-btn,.facture-action-btn,button,input[type=email]').forEach(function(el) {
-    el.remove();
-  });
-  // Injecter dans le container print dédié (pas de display:none inline → iOS Safari l'imprime)
-  var zone = document.getElementById('ios-print-zone');
-  zone.innerHTML = tmp.innerHTML;
-  // Aussi mettre à jour modal-print-inner pour le bouton Partager/PDF
   var inner = document.getElementById('modal-print-inner');
-  if (inner) inner.innerHTML = tmp.innerHTML;
+  if (!inner) return;
+  inner.innerHTML = src;
+  ['#sigCanvas','#paiement-section','#aide-section'].forEach(function(sel) {
+    var el = inner.querySelector(sel); if (el) el.style.display = 'none';
+  });
+  inner.querySelectorAll('.paiement-btn,.facture-action-btn,button,input[type=email]').forEach(function(el) {
+    el.style.display = 'none';
+  });
   var modal = document.getElementById('modal-print');
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
 
-async function partageFact() {
+function partageFact() {
   if (window.innerWidth >= 700) {
-    // PC : générer PDF directement via html2canvas + jsPDF
+    // PC : télécharger directement en HTML
     var inner = document.getElementById('modal-print-inner');
     if (!inner) return;
-    var btn = document.querySelector('#modal-print button[onclick="partageFact()"]');
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Génération…'; }
-    try {
-      var canvas = await html2canvas(inner, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
-      var imgData = canvas.toDataURL('image/jpeg', 0.95);
-      var jsPDFLib = await loadJsPDF();
-      var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
-      var pageW = pdf.internal.pageSize.getWidth();
-      var pageH = pdf.internal.pageSize.getHeight();
-      var imgW = pageW;
-      var imgH = (canvas.height * pageW) / canvas.width;
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
-      var remaining = imgH - pageH;
-      var offset = -pageH;
-      while (remaining > 0) {
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH);
-        offset -= pageH;
-        remaining -= pageH;
-      }
-      var f = currentFactureId ? findById(factures, currentFactureId) : null;
-      var fname = f ? 'Facture_' + f.num + '.pdf' : 'Facture.pdf';
-      pdf.save(fname);
-      closePrintModal();
-      showToast('⬇️ Facture PDF téléchargée !');
-    } catch(e) {
-      console.error('PDF error:', e);
-      showToast('Erreur génération PDF', true);
-    } finally {
-      if (btn) { btn.disabled = false; btn.innerHTML = '⬆️ Partager / PDF'; }
-    }
-  } else {
-    // Mobile iOS : ouvrir dans un nouvel onglet avec document.write (blob URL bloqué sur iOS)
-    var f = currentFactureId ? findById(factures, currentFactureId) : null;
-    if (!f) return;
-    var html = genFactureHtmlStandalone(f);
-    var win = window.open('', '_blank');
-    if (win) {
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
-    }
+    var html = genFactureHtmlPc(inner.innerHTML);
+    var num = (inner.querySelector && inner.querySelector('[data-num]')) ? inner.querySelector('[data-num]').dataset.num : 'facture';
+    dlFile('Facture.html', html, 'text/html');
     closePrintModal();
+    showToast('⬇️ Facture téléchargée !');
+  } else {
+    // Mobile : impression → PDF
+    window.print();
   }
 }
 
@@ -3185,8 +3098,6 @@ function closePrintModal() {
   var modal = document.getElementById('modal-print');
   if (modal) modal.style.display = 'none';
   document.body.style.overflow = '';
-  var zone = document.getElementById('ios-print-zone');
-  if (zone) zone.innerHTML = '';
 }
 
 var MAIRIE_TYPES = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Voie publique'];
@@ -3442,7 +3353,7 @@ function genFactureHtmlStandalone(f) {
     + '<button onclick="window.print()" style="background:#f5a623;color:#091a45;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:0.95rem;cursor:pointer">Enregistrer en PDF</button>'
     + '<button onclick="window.close()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:0.95rem;cursor:pointer">Fermer</button>'
     + '</div></div>';
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Facture ' + f.num + '</title>'
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture ' + f.num + '</title>'
     + '<style>' + printStyles + '</style></head><body>' + toolbar + '<div style="padding:72px 20px 24px;max-width:760px;margin:0 auto">' + bodyHtml + '</div></body></html>';
 }
 
@@ -3471,65 +3382,7 @@ function dlPhoto(url, filename, cb) {
     });
 }
 
-async function loadJsPDF() {
-  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
-  return new Promise(function(resolve, reject) {
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload = function() {
-      if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
-      else reject(new Error('jsPDF non disponible après chargement'));
-    };
-    s.onerror = function() { reject(new Error('Impossible de charger jsPDF')); };
-    document.head.appendChild(s);
-  });
-}
-
-async function genPdfAndDownload(f) {
-  var data = {
-    num: f.num, dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
-    nom: f.nom, adresse: f.adresse, ville: f.ville || '', tel: f.tel, email: f.email || '',
-    type: f.type, prixHT: f.prixHT, notes: f.notes || '',
-    aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
-    signature: f.signature || '', clientType: f.clientType || '',
-    insecte: f.insecte || '', paiement: f.paiement || '',
-    isSyndic: f.clientType === 'Syndic/Copro',
-    syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
-    syndicAgenceAdresse: f.syndicAgenceAdresse || '', syndicAgenceTel: f.syndicAgenceTel || '',
-    syndicContact: f.syndicContact || '', syndicEmail: f.syndicEmail || '',
-    requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
-    requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '',
-    isMairie: f.isMairie || false, mairieNom: f.mairieNom || ''
-  };
-  var tmpDiv = document.createElement('div');
-  tmpDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;background:#fff;padding:28px 24px;font-family:Arial,Helvetica,sans-serif;color:#111;z-index:-1;';
-  tmpDiv.innerHTML = buildFactureHtml(data, false, false);
-  document.body.appendChild(tmpDiv);
-  try {
-    var canvas = await html2canvas(tmpDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
-    var imgData = canvas.toDataURL('image/jpeg', 0.92);
-    var jsPDFLib = await loadJsPDF();
-    var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
-    var pageW = pdf.internal.pageSize.getWidth();
-    var pageH = pdf.internal.pageSize.getHeight();
-    var imgW = pageW;
-    var imgH = (canvas.height * pageW) / canvas.width;
-    pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
-    var remaining = imgH - pageH;
-    var offset = -pageH;
-    while (remaining > 0) {
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH);
-      offset -= pageH;
-      remaining -= pageH;
-    }
-    pdf.save(buildFilename(f));
-  } finally {
-    document.body.removeChild(tmpDiv);
-  }
-}
-
-async function telechargerFacture(factureId) {
+function telechargerFacture(factureId) {
   var f = findById(factures, factureId);
   if (!f) return;
   var rdvLie = rdvs.find(function(r) { return r.factureId === factureId; });
@@ -3550,14 +3403,10 @@ async function telechargerFacture(factureId) {
   };
 
   if (window.innerWidth >= 700) {
-    // PC : générer PDF
-    try {
-      await genPdfAndDownload(f);
-      showToast('⬇️ Facture PDF téléchargée !');
-    } catch(e) {
-      console.error('PDF error:', e);
-      showToast('Erreur génération PDF', true);
-    }
+    // PC : téléchargement direct HTML
+    var html = genFactureHtmlStandalone(f);
+    dlFile(buildFilename(f), html, 'text/html');
+    showToast('⬇️ Facture téléchargée !');
     if (photoUrl) {
       setTimeout(function() {
         var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
@@ -3565,10 +3414,12 @@ async function telechargerFacture(factureId) {
       }, 400);
     }
   } else {
-    // Mobile : ouvrir dans un nouvel onglet
-    var html = genFactureHtmlStandalone(f);
-    var win = window.open('', '_blank');
-    if (win) { win.document.open(); win.document.write(html); win.document.close(); }
+    // Mobile : modale d'aperçu
+    var inner = document.getElementById('modal-print-inner');
+    inner.innerHTML = buildFactureHtml(data, false, false);
+    var modal = document.getElementById('modal-print');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
     if (photoUrl) {
       setTimeout(function() {
         var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
@@ -3594,23 +3445,25 @@ function telechargerJournee(dateStr) {
   showToast('⬇️ Téléchargement de ' + inDay.length + ' facture(s)...');
 
   var idx = 0;
-  async function next() {
+  function next() {
     if (idx >= inDay.length) { showToast('✅ Journée téléchargée !'); return; }
     var f = inDay[idx]; idx++;
     var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
     var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
 
-    try { await genPdfAndDownload(f); } catch(e) { console.error('PDF error:', e); }
+    var html = genFactureHtmlStandalone(f);
+    dlFile(buildFilename(f), html, 'text/html');
 
     if (photoUrl) {
-      await new Promise(function(res) {
-        setTimeout(function() {
-          var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
-          dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, res);
-        }, 400);
-      });
+      setTimeout(function() {
+        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
+        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, function() {
+          setTimeout(next, 400);
+        });
+      }, 600);
+    } else {
+      setTimeout(next, 800);
     }
-    setTimeout(next, 600);
   }
   next();
 }
@@ -3630,11 +3483,12 @@ function telechargerMois(ym) {
   if (inMonth.length === 0) { showToast('Aucune facture ce mois', true); return; }
   showToast('⬇️ Téléchargement de ' + inMonth.length + ' facture(s)...');
   var idx = 0;
-  async function next() {
+  function next() {
     if (idx >= inMonth.length) { showToast('✅ Mois téléchargé !'); return; }
     var f = inMonth[idx]; idx++;
-    try { await genPdfAndDownload(f); } catch(e) { console.error('PDF error:', e); }
-    setTimeout(next, 700);
+    var html = genFactureHtmlStandalone(f);
+    dlFile(buildFilename(f), html, 'text/html');
+    setTimeout(next, 600);
   }
   next();
 }
@@ -3666,29 +3520,43 @@ function nextCategoryIndex(f) {
 }
 
 function buildFilename(f) {
+  // Le numéro de facture est déjà préfixé (FM001-2026, F001-2026, etc.)
+  // On ajoute juste le nom du client pour les non-mairies
   var ct = f.clientType || '';
   var isMairie = (ct === 'Montivilliers' || ct === 'Gonfreville' || ct === 'Le Havre' || ct === 'Voie publique');
   var nom = isMairie ? '' : ('_' + escFilename(f.nom || ''));
-  return f.num + nom + '.pdf';
+  return f.num + nom + '.html';
 }
 
-async function voirEtImprimer(id) {
+function voirEtImprimer(id) {
   var f = findById(factures, id);
   if (!f) return;
   if (window.innerWidth >= 700) {
-    // PC : générer PDF
-    try {
-      await genPdfAndDownload(f);
-      showToast('⬇️ Facture PDF téléchargée !');
-    } catch(e) {
-      console.error('PDF error:', e);
-      showToast('Erreur génération PDF', true);
-    }
-  } else {
-    // Mobile : ouvrir dans un nouvel onglet
+    // PC : téléchargement direct
     var html = genFactureHtmlStandalone(f);
-    var win = window.open('', '_blank');
-    if (win) { win.document.open(); win.document.write(html); win.document.close(); }
+    dlFile(buildFilename(f), html, 'text/html');
+    showToast('⬇️ Facture téléchargée !');
+  } else {
+    // Mobile : modale d'aperçu
+    var data = {
+      num: f.num, dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
+      nom: f.nom, adresse: f.adresse, ville: f.ville || '', tel: f.tel, email: f.email || '',
+      type: f.type, prixHT: f.prixHT, notes: f.notes || '',
+      aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
+      signature: f.signature || '', clientType: f.clientType || '',
+      insecte: f.insecte || '', paiement: f.paiement || '',
+      isSyndic: f.clientType === 'Syndic/Copro',
+      syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
+      syndicAgenceAdresse: f.syndicAgenceAdresse || '', syndicAgenceTel: f.syndicAgenceTel || '',
+      syndicContact: f.syndicContact || '', syndicEmail: f.syndicEmail || '',
+      requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
+      requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '', isMairie: f.isMairie || false, mairieNom: f.mairieNom || ''
+    };
+    var inner = document.getElementById('modal-print-inner');
+    inner.innerHTML = buildFactureHtml(data, false, false);
+    var modal = document.getElementById('modal-print');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
   }
 }
 
