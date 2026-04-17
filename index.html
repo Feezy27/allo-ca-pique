@@ -1742,8 +1742,12 @@ function editRdv(id) {
       var setEm = document.getElementById('r-syndic-email');
       if (setEm) setEm.value = r.syndicEmail || '';
     }
+    // Restaurer ville et heure APRÈS initCascade/initTimePicker qui les effacent
+    var eVille2 = document.getElementById('r-ville'); if(eVille2) eVille2.value = villeEdit;
+    var eVilleCP2 = document.getElementById('r-ville-cp'); if(eVilleCP2) eVilleCP2.value = r.villeCP || '';
+    var eRue2 = document.getElementById('r-rue'); if(eRue2) eRue2.value = rueEdit;
+    setTimePickerValue(r.heure || '');
     updateMapsLink();
-    initTimePicker();
     document.getElementById('modal-rdv').classList.add('open');
     renderMiniAgenda();
   } catch(e) {
