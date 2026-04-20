@@ -2309,8 +2309,12 @@ function buildDataFacture(r, num, dateStr) {
     insecte: r.insecte || '',
     adresseIntervention: isVP ? r.adresse : null,
     requerantNom: (isMairie || isSyndic) ? (r.nom || '') : '',
-    requerantAdresse: (isMairie || isSyndic) ? (r.rue || '') : '',
-    requerantVille: (isMairie || isSyndic) ? ((r.ville || '') + (r.villeCP ? ' ' + r.villeCP : '')) : '',
+    requerantAdresse: (isMairie || isSyndic) ? (function() {
+      if (!r.adresse) return '';
+      var v = r.ville || '';
+      return (v && r.adresse.indexOf(v) === 0) ? r.adresse.substring(v.length).trim() : r.adresse;
+    })() : '',
+    requerantVille: (isMairie || isSyndic) ? (r.ville || '') : '',
     requerantTel: (isMairie || isSyndic) ? (r.tel || '') : '',
     isMairie: isMairie,
     mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : (isHavre ? 'Le Havre' : '')),
