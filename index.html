@@ -1296,18 +1296,13 @@ function voirFactureCourante() {
   if (currentFactureId) {
     var f = findById(factures, currentFactureId);
     if (!f) return;
-    if (window.innerWidth >= 700) {
-      genPdfAndDownload(f).then(function() {
-        showToast('⬇️ Facture PDF téléchargée !');
-      }).catch(function(e) {
-        console.error('PDF error:', e);
-        showToast('Erreur génération PDF', true);
-      });
-    } else {
-      var html = genFactureHtmlStandalone(f);
-      var win = window.open('', '_blank');
-      if (win) { win.document.open(); win.document.write(html); win.document.close(); }
-    }
+    showToast('⏳ Génération PDF...');
+    genPdfAndDownload(f).then(function() {
+      showToast('⬇️ Facture PDF téléchargée !');
+    }).catch(function(e) {
+      console.error('PDF error:', e);
+      showToast('Erreur génération PDF : ' + e.message, true);
+    });
   } else {
     printFacture();
   }
@@ -3114,13 +3109,18 @@ async function partageFact() {
       if (btn) { btn.disabled = false; btn.innerHTML = '⬆️ Partager / PDF'; }
     }
   } else {
-    // Mobile : ouvrir dans un nouvel onglet (page standalone avec bouton Partager iOS natif)
+    // Mobile : PDF direct via html2canvas + jsPDF (comme sur PC, fonctionne en mode PWA)
     var f = currentFactureId ? findById(factures, currentFactureId) : null;
     if (!f) return;
-    var html = genFactureHtmlStandalone(f);
-    var win = window.open('', '_blank');
-    if (win) { win.document.open(); win.document.write(html); win.document.close(); }
-    closePrintModal();
+    try {
+      showToast('⏳ Génération PDF...');
+      await genPdfAndDownload(f);
+      closePrintModal();
+      showToast('⬇️ Facture PDF téléchargée !');
+    } catch(e) {
+      console.error('PDF error:', e);
+      showToast('Erreur génération PDF : ' + e.message, true);
+    }
   }
 }
 
@@ -3486,7 +3486,29 @@ async function genPdfAndDownload(f) {
       offset -= pageH;
       remaining -= pageH;
     }
-    pdf.save(buildFilename(f));
+    var filename = buildFilename(f);
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var isStandalone = window.navigator.standalone === true ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+    if (isIOS) {
+      // Sur iOS (PWA ou Safari) : ouvrir le PDF comme data URL dans un nouvel onglet
+      // → iOS affichera le PDF natif avec bouton "Enregistrer dans Fichiers"
+      var pdfBlob = pdf.output('blob');
+      var pdfUrl = URL.createObjectURL(pdfBlob);
+      if (isStandalone) {
+        // Mode PWA : pas de nouvel onglet possible, naviguer directement
+        // iOS ouvrira le PDF dans le visualiseur natif
+        window.location.href = pdfUrl;
+      } else {
+        // Mode Safari : nouvel onglet
+        var win = window.open(pdfUrl, '_blank');
+        if (!win) window.location.href = pdfUrl;
+      }
+      setTimeout(function() { URL.revokeObjectURL(pdfUrl); }, 60000);
+    } else {
+      // PC / Android : téléchargement direct classique
+      pdf.save(filename);
+    }
   } finally {
     document.body.removeChild(tmpDiv);
   }
@@ -3498,33 +3520,20 @@ async function telechargerFacture(factureId) {
   var rdvLie = rdvs.find(function(r) { return r.factureId === factureId; });
   var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
 
-  if (window.innerWidth >= 700) {
-    // PC : PDF direct via html2canvas + jsPDF
-    try {
-      await genPdfAndDownload(f);
-      showToast('⬇️ Facture PDF téléchargée !');
-    } catch(e) {
-      console.error('PDF error:', e);
-      showToast('Erreur génération PDF', true);
-    }
-    if (photoUrl) {
-      setTimeout(function() {
-        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
-        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
-      }, 400);
-    }
-  } else {
-    // Mobile iOS : ouvrir dans un nouvel onglet (page autonome avec bouton Partager→PDF natif iOS)
-    var html = genFactureHtmlStandalone(f);
-    var win = window.open('', '_blank');
-    if (win) { win.document.open(); win.document.write(html); win.document.close(); }
-    if (photoUrl) {
-      setTimeout(function() {
-        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
-        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
-      }, 400);
-      showToast('📄 Photo téléchargée séparément');
-    }
+  // PDF direct partout (PC et mobile) via html2canvas + jsPDF
+  try {
+    showToast('⏳ Génération PDF...');
+    await genPdfAndDownload(f);
+    showToast('⬇️ Facture PDF téléchargée !');
+  } catch(e) {
+    console.error('PDF error:', e);
+    showToast('Erreur génération PDF : ' + e.message, true);
+  }
+  if (photoUrl) {
+    setTimeout(function() {
+      var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
+      dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
+    }, 600);
   }
 }
 
@@ -3626,20 +3635,13 @@ function buildFilename(f) {
 async function voirEtImprimer(id) {
   var f = findById(factures, id);
   if (!f) return;
-  if (window.innerWidth >= 700) {
-    // PC : PDF direct
-    try {
-      await genPdfAndDownload(f);
-      showToast('⬇️ Facture PDF téléchargée !');
-    } catch(e) {
-      console.error('PDF error:', e);
-      showToast('Erreur génération PDF', true);
-    }
-  } else {
-    // Mobile : nouvel onglet
-    var html = genFactureHtmlStandalone(f);
-    var win = window.open('', '_blank');
-    if (win) { win.document.open(); win.document.write(html); win.document.close(); }
+  try {
+    showToast('⏳ Génération PDF...');
+    await genPdfAndDownload(f);
+    showToast('⬇️ Facture PDF téléchargée !');
+  } catch(e) {
+    console.error('PDF error:', e);
+    showToast('Erreur génération PDF : ' + e.message, true);
   }
 }
 
