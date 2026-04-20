@@ -848,7 +848,13 @@ select option { background: var(--surface2); }
 </div>
 <div class="param-section-body" id="ps-body-backup">
 <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Téléchargez une copie de toutes vos données (RDV, factures, paramètres) au format JSON.</p>
-<button class="btn btn-ghost" onclick="exporterDonnees()">Exporter mes données (JSON)</button>
+<button class="btn btn-ghost" onclick="exporterDonnees()" style="width:100%;margin-bottom:10px">Exporter mes données (JSON)</button>
+
+<p style="font-size:0.9rem;color:var(--muted);margin:18px 0 10px 0;border-top:1px solid var(--border);padding-top:14px">Téléchargez toutes vos factures en PDF. Utile en fin d'année pour archiver.</p>
+<button class="btn btn-ghost" onclick="telechargerToutesFactures()" style="width:100%;margin-bottom:10px">⬇️ Télécharger toutes les factures (PDF)</button>
+
+<p style="font-size:0.9rem;color:var(--red);margin:18px 0 10px 0;border-top:1px solid var(--border);padding-top:14px"><strong>⚠️ Zone dangereuse</strong> — supprime définitivement tous les RDV et factures. À utiliser une fois l'archive annuelle téléchargée.</p>
+<button class="btn" onclick="reinitialiserDonnees()" style="width:100%;background:rgba(204,26,58,0.1);color:var(--red);border:1px solid rgba(204,26,58,0.3)">🗑️ Réinitialiser (supprimer RDV & factures)</button>
 </div>
 </div>
 <div style="display:none">
@@ -3279,6 +3285,15 @@ function renderArchives() {
       if (isSyndicArch) {
         var subj = encodeURIComponent('Facture ' + f.num + ' - Intervention nid');
         var nl = '%0A';
+        var ribSyndic = '';
+        if (settings.ribIban) {
+          ribSyndic = 'Coordonnées bancaires pour le règlement par virement :' + nl
+            + (settings.ribTitulaire ? 'Titulaire : ' + settings.ribTitulaire + nl : '')
+            + 'IBAN : ' + settings.ribIban + nl
+            + (settings.ribBic ? 'BIC : ' + settings.ribBic + nl : '')
+            + (settings.ribBanque ? 'Banque : ' + settings.ribBanque + nl : '')
+            + nl;
+        }
         var bodyStr = 'Bonjour,' + nl + nl +
           'Veuillez trouver ci-joint la facture ' + f.num + ' relative à notre intervention.' + nl + nl +
           'Facture N° : ' + f.num + nl +
@@ -3286,6 +3301,7 @@ function renderArchives() {
           'Montant : ' + (f.prix || 0).toFixed(2) + ' EUR' + nl +
           'Date : ' + new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR') + nl + nl +
           'Merci de bien vouloir procéder au règlement à réception.' + nl + nl +
+          ribSyndic +
           'Cordialement,' + nl + (settings.nom || 'Allo ça pique');
         var syndicEmailVal = f.syndicEmail || (rdvLie ? rdvLie.syndicEmail || '' : '');
         var toAddr = syndicEmailVal ? encodeURIComponent(syndicEmailVal) : '';
@@ -3473,6 +3489,9 @@ async function genPdfAndDownload(f) {
     var imgData = canvas.toDataURL('image/jpeg', 0.92);
     var jsPDFLib = await loadJsPDF();
     var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
+    // Métadonnées PDF : nom de fichier par défaut sur iOS "Enregistrer dans Fichiers"
+    var pdfTitle = buildFilename(f).replace(/\.pdf$/i, '');
+    pdf.setProperties({ title: pdfTitle, subject: 'Facture ' + f.num, creator: 'Allo ça pique', author: 'Allo ça pique' });
     var pageW = pdf.internal.pageSize.getWidth();
     var pageH = pdf.internal.pageSize.getHeight();
     var imgW = pageW;
@@ -3734,6 +3753,39 @@ function toggleParamSection(id) {
   var isOpen = body.classList.contains('open');
   header.classList.toggle('open', !isOpen);
   body.classList.toggle('open', !isOpen);
+}
+
+async function telechargerToutesFactures() {
+  if (!factures.length) { showToast('Aucune facture à télécharger', true); return; }
+  if (!confirm('Télécharger ' + factures.length + ' facture(s) en PDF ?\n\nCela peut prendre quelques minutes selon le volume.')) return;
+  var all = factures.slice().sort(function(a,b) { return (a.date||'').localeCompare(b.date||'') || a.num.localeCompare(b.num); });
+  showToast('⏳ Téléchargement de ' + all.length + ' facture(s)...');
+  var idx = 0;
+  async function next() {
+    if (idx >= all.length) { showToast('✅ ' + all.length + ' facture(s) téléchargée(s) !'); return; }
+    var f = all[idx]; idx++;
+    try { await genPdfAndDownload(f); } catch(e) { console.error('PDF error:', e); }
+    setTimeout(next, 700);
+  }
+  next();
+}
+
+async function reinitialiserDonnees() {
+  if (!confirm('⚠️ ATTENTION\n\nCela va SUPPRIMER DÉFINITIVEMENT tous vos RDV et factures.\n\nAssurez-vous d\'avoir téléchargé toutes vos factures avant de continuer.\n\nVoulez-vous vraiment continuer ?')) return;
+  var code = prompt('Pour confirmer, tapez exactement : RESET');
+  if (code !== 'RESET') { showToast('Réinitialisation annulée', true); return; }
+  rdvs = [];
+  factures = [];
+  try {
+    await save();
+    showToast('✅ Données réinitialisées');
+    renderDashboard();
+    renderArchives();
+    if (vueRdv === 'agenda') renderAgenda(); else renderRdvs();
+  } catch(e) {
+    console.error('Reset error:', e);
+    showToast('Erreur lors de la réinitialisation', true);
+  }
 }
 
 function exporterDonnees() {
