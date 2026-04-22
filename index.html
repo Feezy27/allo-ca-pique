@@ -12,7 +12,6 @@
 <title>Allo ça pique — Gestion Interventions</title>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -338,15 +337,13 @@ select option { background: var(--surface2); }
 .arch-day-header .day-label {
   font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text);
 }
-.arch-day-header .day-dl-btn,
-.day-dl-btn {
+.arch-day-header .day-dl-btn {
   padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface2); color: var(--muted); font-size: 0.78rem;
   cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
-  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
 }
-.arch-day-header .day-dl-btn:hover,
-.day-dl-btn:hover { border-color: var(--green); color: var(--green); }
+.arch-day-header .day-dl-btn:hover { border-color: var(--green); color: var(--green); }
 .arch-fact-card {
   background: var(--surface); border: var(--border-w) solid var(--border); border-radius: var(--r);
   padding: 14px 16px; margin-bottom: 8px; display: flex;
@@ -851,7 +848,13 @@ select option { background: var(--surface2); }
 </div>
 <div class="param-section-body" id="ps-body-backup">
 <p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0">Téléchargez une copie de toutes vos données (RDV, factures, paramètres) au format JSON.</p>
-<button class="btn btn-ghost" onclick="exporterDonnees()">Exporter mes données (JSON)</button>
+<button class="btn btn-ghost" onclick="exporterDonnees()" style="width:100%;margin-bottom:10px">Exporter mes données (JSON)</button>
+
+<p style="font-size:0.9rem;color:var(--muted);margin:18px 0 10px 0;border-top:1px solid var(--border);padding-top:14px">Téléchargez toutes vos factures en PDF. Utile en fin d'année pour archiver.</p>
+<button class="btn btn-ghost" onclick="telechargerToutesFactures()" style="width:100%;margin-bottom:10px">⬇️ Télécharger toutes les factures (PDF)</button>
+
+<p style="font-size:0.9rem;color:var(--red);margin:18px 0 10px 0;border-top:1px solid var(--border);padding-top:14px"><strong>⚠️ Zone dangereuse</strong> — supprime définitivement tous les RDV et factures. À utiliser une fois l'archive annuelle téléchargée.</p>
+<button class="btn" onclick="reinitialiserDonnees()" style="width:100%;background:rgba(204,26,58,0.1);color:var(--red);border:1px solid rgba(204,26,58,0.3)">🗑️ Réinitialiser (supprimer RDV & factures)</button>
 </div>
 </div>
 <div style="display:none">
@@ -917,19 +920,14 @@ select option { background: var(--surface2); }
 <div class="cascade-step" id="step-emplacement" style="display:none">
 <div class="cascade-label">Emplacement du nid</div>
 <div class="cascade-options" id="opts-emplacement">
-<button type="button" class="cascade-btn" onclick="selectEmplacement('sol','Sol')">Sol</button>
-<button type="button" class="cascade-btn" onclick="selectEmplacement('hauteur','Hauteur d\'homme')">Hauteur d'homme</button>
-<button type="button" class="cascade-btn" onclick="selectEmplacement('arbre','Arbre')">Arbre</button>
-<button type="button" class="cascade-btn" onclick="selectEmplacement('cheminee','Cheminée')">Cheminée</button>
+<button type="button" class="cascade-btn" data-id="sol" onclick="selectEmplacement('sol','Sol')">Sol</button>
+<button type="button" class="cascade-btn" data-id="hauteur" onclick="selectEmplacement('hauteur','Hauteur d\'homme')">Hauteur d'homme</button>
+<button type="button" class="cascade-btn" data-id="hauteur-3m" onclick="selectEmplacement('hauteur-3m','Hauteur +3m')">Hauteur +3m</button>
+<button type="button" class="cascade-btn" data-id="toit" onclick="selectEmplacement('toit','Progression sur toit')">Progression sur toit</button>
 </div>
 </div>
 <div class="cascade-step" id="step-hauteur" style="display:none">
-<div class="cascade-label">Hauteur de l'arbre</div>
-<div class="cascade-options" id="opts-hauteur">
-<button type="button" class="cascade-btn" onclick="selectHauteur('arbre-0-10','0-10m')">0-10m</button>
-<button type="button" class="cascade-btn" onclick="selectHauteur('arbre-10-20','10-20m')">10-20m</button>
-<button type="button" class="cascade-btn" onclick="selectHauteur('arbre-20plus','20m et +')">20m et +</button>
-</div>
+<div class="cascade-options" id="opts-hauteur"></div>
 </div>
 <div id="intervention-resume" style="display:none;margin-top:10px;padding:10px 14px;background:#d8f5e8;border:1.5px solid #0a7c5c;border-radius:8px;font-size:0.88rem;color:#091a45;font-weight:500">
 <span id="intervention-resume-text"></span>
@@ -1179,15 +1177,13 @@ var INSECTES = [
 var EMPLACEMENTS = [
   {id:'sol', label:'Sol'},
   {id:'hauteur', label:'Hauteur d\'homme'},
-  {id:'arbre-0-10', label:'Arbre (0-10m)'},
-  {id:'arbre-10-20', label:'Arbre (10-20m)'},
-  {id:'arbre-20plus', label:'Arbre (20m+)'},
-  {id:'cheminee', label:'Cheminée'}
+  {id:'hauteur-3m', label:'Hauteur +3m'},
+  {id:'toit', label:'Progression sur toit'}
 ];
 var TARIFS_DEFAULT = {};
 INSECTES.forEach(function(ins) {
   EMPLACEMENTS.forEach(function(emp) {
-    var prix = emp.id === 'cheminee' ? 100 : 65;
+    var prix = emp.id === 'toit' ? 100 : 65;
     TARIFS_DEFAULT[ins.id + '_' + emp.id] = prix;
   });
 });
@@ -1305,7 +1301,14 @@ function goTo(page) {
 function voirFactureCourante() {
   if (currentFactureId) {
     var f = findById(factures, currentFactureId);
-    if (f) downloadFacture(f);
+    if (!f) return;
+    showToast('⏳ Génération PDF...');
+    genPdfAndDownload(f).then(function() {
+      showToast('⬇️ Facture PDF téléchargée !');
+    }).catch(function(e) {
+      console.error('PDF error:', e);
+      showToast('Erreur génération PDF : ' + e.message, true);
+    });
   } else {
     printFacture();
   }
@@ -1471,6 +1474,7 @@ function renderAgenda() {
   var rdvByDate = {};
   rdvs.forEach(function(r) {
     if (!r.date) return;
+    if (r.factureId) return; // RDV facturé : retiré de l'agenda
     if (!rdvByDate[r.date]) rdvByDate[r.date] = [];
     rdvByDate[r.date].push(r);
   });
@@ -1712,42 +1716,51 @@ function openNewRdv() {
 }
 
 function editRdv(id) {
-  var r = findById(rdvs, id);
-  if (!r) return;
-  editingId = id;
-  document.getElementById('rdv-modal-title').textContent = 'Modifier le rendez-vous';
-  document.getElementById('r-nom').value = r.nom;
-  document.getElementById('r-tel').value = r.tel;
-  var villeEdit = extraireVille(r.adresse || '');
-  var rueEdit = villeEdit ? (r.adresse || '').substring(villeEdit.length).trim() : (r.adresse || '');
-  var eVille = document.getElementById('r-ville'); if(eVille) eVille.value = villeEdit;
-  var eVilleCP = document.getElementById('r-ville-cp'); if(eVilleCP) eVilleCP.value = rdv.villeCP || '';
-  var eRue = document.getElementById('r-rue'); if(eRue) eRue.value = rueEdit;
-  document.getElementById('r-adresse').value = r.adresse || '';
-  document.getElementById('r-date').value = r.date;
-  setTimePickerValue(r.heure || '');
-  document.getElementById('r-email').value = r.email || '';
-  document.getElementById('r-prix').value = r.prix;
-  document.getElementById('r-notes').value = r.notes || '';
-  initCascade(r);
-  if (r.clientType === 'Syndic/Copro') {
-    var setBdc = document.getElementById('r-syndic-bdc');
-    var setAg = document.getElementById('r-syndic-agence');
-    var setAga = document.getElementById('r-syndic-agence-adresse');
-    var setAgt = document.getElementById('r-syndic-agence-tel');
-    var setCt = document.getElementById('r-syndic-contact');
-    if (setBdc) setBdc.value = r.syndicBdc || '';
-    if (setAg) setAg.value = r.syndicAgence || '';
-    if (setAga) setAga.value = r.syndicAgenceAdresse || '';
-    if (setAgt) setAgt.value = r.syndicAgenceTel || '';
-    if (setCt) setCt.value = r.syndicContact || '';
-    var setEm = document.getElementById('r-syndic-email');
-    if (setEm) setEm.value = r.syndicEmail || '';
+  try {
+    var r = findById(rdvs, id);
+    if (!r) { showToast('RDV introuvable : ' + id, true); return; }
+    editingId = id;
+    document.getElementById('rdv-modal-title').textContent = 'Modifier le rendez-vous';
+    document.getElementById('r-nom').value = r.nom;
+    document.getElementById('r-tel').value = r.tel;
+    var villeEdit = extraireVille(r.adresse || '');
+    var rueEdit = villeEdit ? (r.adresse || '').substring(villeEdit.length).trim() : (r.adresse || '');
+    var eVille = document.getElementById('r-ville'); if(eVille) eVille.value = villeEdit;
+    var eVilleCP = document.getElementById('r-ville-cp'); if(eVilleCP) eVilleCP.value = r.villeCP || '';
+    var eRue = document.getElementById('r-rue'); if(eRue) eRue.value = rueEdit;
+    document.getElementById('r-adresse').value = r.adresse || '';
+    document.getElementById('r-date').value = r.date;
+    setTimePickerValue(r.heure || '');
+    document.getElementById('r-email').value = r.email || '';
+    document.getElementById('r-prix').value = r.prix;
+    document.getElementById('r-notes').value = r.notes || '';
+    initCascade(r);
+    if (r.clientType === 'Syndic/Copro') {
+      var setBdc = document.getElementById('r-syndic-bdc');
+      var setAg = document.getElementById('r-syndic-agence');
+      var setAga = document.getElementById('r-syndic-agence-adresse');
+      var setAgt = document.getElementById('r-syndic-agence-tel');
+      var setCt = document.getElementById('r-syndic-contact');
+      if (setBdc) setBdc.value = r.syndicBdc || '';
+      if (setAg) setAg.value = r.syndicAgence || '';
+      if (setAga) setAga.value = r.syndicAgenceAdresse || '';
+      if (setAgt) setAgt.value = r.syndicAgenceTel || '';
+      if (setCt) setCt.value = r.syndicContact || '';
+      var setEm = document.getElementById('r-syndic-email');
+      if (setEm) setEm.value = r.syndicEmail || '';
+    }
+    // Restaurer ville et heure APRÈS initCascade/initTimePicker qui les effacent
+    var eVille2 = document.getElementById('r-ville'); if(eVille2) eVille2.value = villeEdit;
+    var eVilleCP2 = document.getElementById('r-ville-cp'); if(eVilleCP2) eVilleCP2.value = r.villeCP || '';
+    var eRue2 = document.getElementById('r-rue'); if(eRue2) eRue2.value = rueEdit;
+    setTimePickerValue(r.heure || '');
+    updateMapsLink();
+    document.getElementById('modal-rdv').classList.add('open');
+    renderMiniAgenda();
+  } catch(e) {
+    showToast('Erreur Modifier : ' + e.message, true);
+    console.error('editRdv crash:', e);
   }
-  updateMapsLink();
-  initTimePicker();
-  document.getElementById('modal-rdv').classList.add('open');
-  renderMiniAgenda();
 }
 
 var _cascade = { client: null, insecte: null, insecteLabel: null, emplacement: null, emplacementLabel: null };
@@ -1908,17 +1921,10 @@ function selectInsecte(id, label) {
 }
 
 function selectEmplacement(empId, empLabel) {
-  if (empId === 'arbre') {
-    _cascade.emplacement = null;
-    _cascade.emplacementLabel = empLabel;
-    document.querySelectorAll('#opts-emplacement .cascade-btn').forEach(function(b){ b.classList.remove('selected'); if(b.textContent.trim().includes('Arbre')) b.classList.add('selected'); });
-    document.getElementById('step-hauteur').style.display = '';
-    return;
-  }
   _cascade.emplacement = empId;
   _cascade.emplacementLabel = empLabel;
   document.querySelectorAll('#opts-emplacement .cascade-btn').forEach(function(b){ b.classList.remove('selected'); });
-  document.querySelectorAll('#opts-emplacement .cascade-btn').forEach(function(b){ if(b.textContent.trim().includes(empLabel.split(' ')[0])) b.classList.add('selected'); });
+  document.querySelectorAll('#opts-emplacement .cascade-btn').forEach(function(b){ if(b.dataset.id === empId) b.classList.add('selected'); });
   document.getElementById('step-hauteur').style.display = 'none';
   finalizeCascade();
 }
@@ -1951,14 +1957,8 @@ function initCascade(rdv) {
   }
   if (rdv.insecte && rdv.emplacement) {
     selectInsecte(rdv.insecte, INSECTES.find(function(x){return x.id===rdv.insecte;}) ? INSECTES.find(function(x){return x.id===rdv.insecte;}).label : rdv.insecte);
-    if (rdv.emplacement.startsWith('arbre')) {
-      selectEmplacement('arbre', 'Arbre');
-      var hautLabel = rdv.emplacement === 'arbre-0-10' ? '0-10m' : rdv.emplacement === 'arbre-10-20' ? '10-20m' : '20m et +';
-      selectHauteur(rdv.emplacement, hautLabel);
-    } else {
-      var emp = EMPLACEMENTS.find(function(x){return x.id===rdv.emplacement;});
-      if (emp) selectEmplacement(emp.id, emp.label);
-    }
+    var emp = EMPLACEMENTS.find(function(x){return x.id===rdv.emplacement;});
+    if (emp) selectEmplacement(emp.id, emp.label);
   }
   if (rdv.clientType === 'Voie publique') {
     if (rdv.mairieNom) document.getElementById('r-mairie-nom').value = rdv.mairieNom;
@@ -2322,8 +2322,12 @@ function buildDataFacture(r, num, dateStr) {
     insecte: r.insecte || '',
     adresseIntervention: isVP ? r.adresse : null,
     requerantNom: (isMairie || isSyndic) ? (r.nom || '') : '',
-    requerantAdresse: (isMairie || isSyndic) ? (isSyndic ? (r.rue || r.adresse || '') : (r.rue || r.adresse || '')) : '',
-    requerantVille: (isMairie || isSyndic) ? ((r.ville || '') + (r.villeCP ? ' ' + r.villeCP : '')) : '',
+    requerantAdresse: (isMairie || isSyndic) ? (function() {
+      if (!r.adresse) return '';
+      var v = r.ville || '';
+      return (v && r.adresse.indexOf(v) === 0) ? r.adresse.substring(v.length).trim() : r.adresse;
+    })() : '',
+    requerantVille: (isMairie || isSyndic) ? (r.ville || '') : '',
     requerantTel: (isMairie || isSyndic) ? (r.tel || '') : '',
     isMairie: isMairie,
     mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : (isHavre ? 'Le Havre' : '')),
@@ -3076,7 +3080,7 @@ function printFacture() {
 
 async function partageFact() {
   if (window.innerWidth >= 700) {
-    // PC : générer PDF directement via html2canvas + jsPDF
+    // PC : générer PDF via html2canvas + jsPDF
     var inner = document.getElementById('modal-print-inner');
     if (!inner) return;
     var btn = document.querySelector('#modal-print button[onclick="partageFact()"]');
@@ -3085,7 +3089,7 @@ async function partageFact() {
       var f = currentFactureId ? findById(factures, currentFactureId) : null;
       if (!f) throw new Error('Facture introuvable');
       var pdf = generatePDFTexte(f, settings);
-      pdf.save('Facture_' + (f.num || 'sans_num') + '.pdf');
+      pdf.save(buildFilename(f));
       closePrintModal();
       showToast('⬇️ Facture PDF téléchargée !');
     } catch(e) {
@@ -3095,8 +3099,18 @@ async function partageFact() {
       if (btn) { btn.disabled = false; btn.innerHTML = '⬆️ Partager / PDF'; }
     }
   } else {
-    // Mobile : impression → PDF
-    window.print();
+    // Mobile : PDF direct via html2canvas + jsPDF (comme sur PC, fonctionne en mode PWA)
+    var f = currentFactureId ? findById(factures, currentFactureId) : null;
+    if (!f) return;
+    try {
+      showToast('⏳ Génération PDF...');
+      await genPdfAndDownload(f);
+      closePrintModal();
+      showToast('⬇️ Facture PDF téléchargée !');
+    } catch(e) {
+      console.error('PDF error:', e);
+      showToast('Erreur génération PDF : ' + e.message, true);
+    }
   }
 }
 
@@ -3255,6 +3269,15 @@ function renderArchives() {
       if (isSyndicArch) {
         var subj = encodeURIComponent('Facture ' + f.num + ' - Intervention nid');
         var nl = '%0A';
+        var ribSyndic = '';
+        if (settings.ribIban) {
+          ribSyndic = 'Coordonnées bancaires pour le règlement par virement :' + nl
+            + (settings.ribTitulaire ? 'Titulaire : ' + settings.ribTitulaire + nl : '')
+            + 'IBAN : ' + settings.ribIban + nl
+            + (settings.ribBic ? 'BIC : ' + settings.ribBic + nl : '')
+            + (settings.ribBanque ? 'Banque : ' + settings.ribBanque + nl : '')
+            + nl;
+        }
         var bodyStr = 'Bonjour,' + nl + nl +
           'Veuillez trouver ci-joint la facture ' + f.num + ' relative à notre intervention.' + nl + nl +
           'Facture N° : ' + f.num + nl +
@@ -3262,6 +3285,7 @@ function renderArchives() {
           'Montant : ' + (f.prix || 0).toFixed(2) + ' EUR' + nl +
           'Date : ' + new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR') + nl + nl +
           'Merci de bien vouloir procéder au règlement à réception.' + nl + nl +
+          ribSyndic +
           'Cordialement,' + nl + (settings.nom || 'Allo ça pique');
         var syndicEmailVal = f.syndicEmail || (rdvLie ? rdvLie.syndicEmail || '' : '');
         var toAddr = syndicEmailVal ? encodeURIComponent(syndicEmailVal) : '';
@@ -3360,14 +3384,29 @@ function genFactureHtmlStandalone(f) {
     mairieNom: f.mairieNom || ''
   };
   var bodyHtml = buildFactureHtml(data, false, false);
-  var toolbar = '<div style="position:fixed;top:0;left:0;right:0;background:#091a45;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;z-index:999;font-family:Arial,sans-serif">'
+  var iosScript = '<script>'
+    + 'var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;'
+    + 'window.addEventListener("DOMContentLoaded", function() {'
+    + '  if (isIOS) {'
+    + '    document.getElementById("btn-pdf-desktop").style.display = "none";'
+    + '    document.getElementById("hint-ios").style.display = "flex";'
+    + '  } else {'
+    + '    document.getElementById("btn-pdf-desktop").style.display = "inline-block";'
+    + '    document.getElementById("hint-ios").style.display = "none";'
+    + '  }'
+    + '});'
+    + '<\/script>';
+  var toolbar = '<div style="position:fixed;top:0;left:0;right:0;background:#091a45;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;z-index:999;font-family:Arial,sans-serif;flex-wrap:wrap;gap:6px;">'
     + '<span style="color:#fff;font-weight:700;font-size:1rem;">Facture ' + f.num + '</span>'
-    + '<div style="display:flex;gap:8px">'
-    + '<button onclick="window.print()" style="background:#f5a623;color:#091a45;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:0.95rem;cursor:pointer">Enregistrer en PDF</button>'
-    + '<button onclick="window.close()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:0.95rem;cursor:pointer">Fermer</button>'
+    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+    + '<button id="btn-pdf-desktop" onclick="window.print()" style="display:none;background:#f5a623;color:#091a45;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:0.95rem;cursor:pointer">Enregistrer en PDF</button>'
+    + '<div id="hint-ios" style="display:none;align-items:center;gap:6px;color:#fff;font-size:0.82rem;font-weight:600;">'
+    + '<span>📤 Partager</span><span style="opacity:0.7">→</span><span>Options</span><span style="opacity:0.7">→</span><span style="color:#f5a623">Format : PDF</span>'
+    + '</div>'
+    + '<button onclick="window.close()" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:0.9rem;cursor:pointer;">✕</button>'
     + '</div></div>';
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture ' + f.num + '</title>'
-    + '<style>' + printStyles + '</style></head><body>' + toolbar + '<div style="padding:72px 20px 24px;max-width:760px;margin:0 auto">' + bodyHtml + '</div></body></html>';
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Facture ' + f.num + '</title>'
+    + '<style>' + printStyles + '</style>' + iosScript + '</head><body>' + toolbar + '<div style="padding:72px 20px 24px;max-width:760px;margin:0 auto">' + bodyHtml + '</div></body></html>';
 }
 
 function dlFile(filename, content, mime) {
@@ -3395,214 +3434,197 @@ function dlPhoto(url, filename, cb) {
     });
 }
 
+async function loadJsPDF() {
+  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  return new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = function() {
+      if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
+      else reject(new Error('jsPDF non disponible'));
+    };
+    s.onerror = function() { reject(new Error('Impossible de charger jsPDF')); };
+    document.head.appendChild(s);
+  });
+}
 
-// ═══════════════════════════════════════════════════════
-//  generatePDFTexte — PDF texte natif (extractible par les scripts)
-//  Remplace html2canvas qui produisait des images illisibles.
-// ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+//  generatePDFTexte — PDF TEXTE NATIF (lisible par Chorus Auto-Fill)
+//  Remplace html2canvas → image JPEG illisible par les scripts.
+// ═══════════════════════════════════════════════════════════════
 function generatePDFTexte(f, s) {
+  s = s || settings;
   var jsPDFLib = window.jspdf && window.jspdf.jsPDF;
   if (!jsPDFLib) throw new Error('jsPDF non chargé');
-  s = s || settings;
 
   var pdf = new jsPDFLib({ orientation: 'p', unit: 'mm', format: 'a4' });
-  var W = 210, M = 15;
-  var y = M;
-
-  var BLEU   = [9, 26, 69];
-  var ORANGE = [245, 166, 35];
-  var GRIS   = [85, 85, 85];
+  var W = 210, M = 15, y = M;
+  var BLEU = [9,26,69], ORANGE = [245,166,35], GRIS = [85,85,85];
 
   var aides  = Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []);
   var prixHT = parseFloat(f.prixHT) || 0;
-  var pctD   = (s.aideDepartPct !== undefined ? s.aideDepartPct : 30);
-  var pctS   = (s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30);
+  var pctD   = s.aideDepartPct !== undefined ? s.aideDepartPct : 30;
+  var pctS   = s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30;
   var aideD  = aides.indexOf('departement') >= 0 ? prixHT * pctD / 100 : 0;
   var aideS  = aides.indexOf('seine')       >= 0 ? prixHT * pctS / 100 : 0;
   var total  = prixHT - aideD - aideS;
+  var paiL   = { virement:'Virement bancaire', cheque:'Cheque', espece:'Especes' };
 
-  var paiLabels = { virement: 'Virement bancaire', cheque: 'Cheque', espece: 'Especes' };
+  var bdcVal = f.syndicBdc || '';
+  if (!bdcVal && f.clientType === 'Montivilliers' && s.bdcMontivilliers) bdcVal = s.bdcMontivilliers;
+  if (!bdcVal && f.clientType === 'Gonfreville'   && s.bdcGonfreville)   bdcVal = s.bdcGonfreville;
 
-  var bdcVal = '';
-  if (f.syndicBdc) { bdcVal = f.syndicBdc; }
-  else if (f.clientType === 'Montivilliers' && s.bdcMontivilliers) { bdcVal = s.bdcMontivilliers; }
-  else if (f.clientType === 'Gonfreville'   && s.bdcGonfreville)   { bdcVal = s.bdcGonfreville; }
+  var dateStr = f.dateStr || (f.date ? new Date(f.date+'T12:00:00').toLocaleDateString('fr-FR') : '');
 
-  var dateStr = f.dateStr || (f.date ? new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR') : '');
-
-  // En-tete
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(16); pdf.setTextColor.apply(pdf, BLEU);
-  pdf.text(s.nom || 'Allo ca pique', M, y);
-  pdf.text('FACTURE', W - M, y, { align: 'right' });
-
+  // En-tête
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(16); pdf.setTextColor.apply(pdf,BLEU);
+  pdf.text(s.nom||'Allo ca pique', M, y);
+  pdf.text('FACTURE', W-M, y, {align:'right'});
   y += 6;
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf, GRIS);
-  pdf.text('N° ' + (f.num || ''), W - M, y, { align: 'right' }); y += 5;
-  if (bdcVal) { pdf.text('BC : ' + bdcVal, W - M, y, { align: 'right' }); y += 5; }
-  pdf.text('Date : ' + dateStr, W - M, y, { align: 'right' });
-
-  y += 6;
-  pdf.setDrawColor.apply(pdf, BLEU); pdf.setLineWidth(0.5); pdf.line(M, y, W - M, y); y += 8;
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf,GRIS);
+  pdf.text('N\u00b0 '+(f.num||''), W-M, y, {align:'right'}); y+=5;
+  if (bdcVal) { pdf.text('BC : '+bdcVal, W-M, y, {align:'right'}); y+=5; }
+  pdf.text('Date : '+dateStr, W-M, y, {align:'right'});
+  y+=6; pdf.setDrawColor.apply(pdf,BLEU); pdf.setLineWidth(0.5); pdf.line(M,y,W-M,y); y+=8;
 
   // Blocs Prestataire / Client
-  var colW = (W - 2 * M - 6) / 2;
-  pdf.setFillColor(240, 244, 250);
-  pdf.roundedRect(M, y - 2, colW, 30, 2, 2, 'F');
-  pdf.roundedRect(M + colW + 6, y - 2, colW, 30, 2, 2, 'F');
+  var colW = (W-2*M-6)/2;
+  pdf.setFillColor(240,244,250);
+  pdf.roundedRect(M, y-2, colW, 30, 2, 2, 'F');
+  pdf.roundedRect(M+colW+6, y-2, colW, 30, 2, 2, 'F');
 
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74, 90, 128);
-  pdf.text('PRESTATAIRE', M + 3, y + 2);
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf, BLEU);
-  pdf.text(s.nom || '', M + 3, y + 8);
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf, GRIS);
-  var pLines = [];
-  if (s.adresse) pLines.push(s.adresse);
-  if (s.ville)   pLines.push(s.ville);
-  if (s.tel)     pLines.push(s.tel);
-  if (s.siret)   pLines.push('SIRET : ' + s.siret);
-  pdf.text(pLines, M + 3, y + 14, { lineHeightFactor: 1.4 });
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74,90,128);
+  pdf.text('PRESTATAIRE', M+3, y+2);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf,BLEU);
+  pdf.text(s.nom||'', M+3, y+8);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS);
+  var pL = [];
+  if (s.adresse) pL.push(s.adresse);
+  if (s.ville)   pL.push(s.ville);
+  if (s.tel)     pL.push(s.tel);
+  if (s.siret)   pL.push('SIRET : '+s.siret);
+  pdf.text(pL, M+3, y+14, {lineHeightFactor:1.4});
 
-  var cx = M + colW + 6;
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74, 90, 128);
-  pdf.text('CLIENT', cx + 3, y + 2);
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf, BLEU);
-  pdf.text(f.nom || '', cx + 3, y + 8);
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf, GRIS);
-  var cLines = [];
-  if (f.adresse) cLines.push(f.adresse);
-  if (f.ville)   cLines.push(f.ville);
-  if (f.tel)     cLines.push('Tel : ' + f.tel);
-  pdf.text(cLines, cx + 3, y + 14, { lineHeightFactor: 1.4 });
+  var cx = M+colW+6;
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74,90,128);
+  pdf.text('CLIENT', cx+3, y+2);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf,BLEU);
+  pdf.text(f.nom||'', cx+3, y+8);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS);
+  var cL = [];
+  if (f.adresse) cL.push(f.adresse);
+  if (f.ville)   cL.push(f.ville);
+  if (f.tel)     cL.push('Tel : '+f.tel);
+  pdf.text(cL, cx+3, y+14, {lineHeightFactor:1.4});
   y += 38;
 
-  // Requerant
-  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Voie publique'].indexOf(f.clientType) >= 0;
-  if ((isMairie || f.clientType === 'Syndic/Copro' || f.isSyndic) && f.requerantNom) {
-    pdf.setFillColor(240, 244, 250); pdf.roundedRect(M, y - 2, W - 2 * M, 18, 2, 2, 'F');
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74, 90, 128); pdf.text('REQUERANT', M + 3, y + 2);
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf, BLEU); pdf.text(f.requerantNom, M + 3, y + 8);
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf, GRIS);
-    var rLines = [];
-    if (f.requerantAdresse) rLines.push(f.requerantAdresse + (f.requerantVille ? ', ' + f.requerantVille : ''));
-    if (f.requerantTel)     rLines.push('Tel : ' + f.requerantTel);
-    if (rLines.length) pdf.text(rLines, M + 3, y + 13);
+  // Requérant
+  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Voie publique'].indexOf(f.clientType)>=0;
+  if ((isMairie || f.clientType==='Syndic/Copro' || f.isSyndic) && f.requerantNom) {
+    pdf.setFillColor(240,244,250); pdf.roundedRect(M,y-2,W-2*M,18,2,2,'F');
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74,90,128); pdf.text('REQUERANT',M+3,y+2);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf,BLEU); pdf.text(f.requerantNom,M+3,y+8);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS);
+    var rL = [];
+    if (f.requerantAdresse) rL.push(f.requerantAdresse+(f.requerantVille?', '+f.requerantVille:''));
+    if (f.requerantTel)     rL.push('Tel : '+f.requerantTel);
+    if (rL.length) pdf.text(rL, M+3, y+13);
     y += 24;
   }
 
   // Tableau prestation
-  pdf.setFillColor.apply(pdf, ORANGE); pdf.rect(M, y, W - 2 * M, 8, 'F');
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(255, 255, 255);
-  pdf.text('Description', M + 3, y + 5.5);
-  pdf.text('Qte', M + 120, y + 5.5, { align: 'center' });
-  pdf.text('Total', W - M - 3, y + 5.5, { align: 'right' });
-  y += 8;
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(17, 17, 17);
-  pdf.text(pdf.splitTextToSize(f.type || '', 100), M + 3, y + 5);
-  pdf.text('1', M + 120, y + 5, { align: 'center' });
-  pdf.setFont('helvetica','bold'); pdf.text(prixHT.toFixed(2) + ' EUR', W - M - 3, y + 5, { align: 'right' });
-  if (f.notes) { pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf, GRIS); pdf.text(f.notes, M + 3, y + 10); y += 5; }
-  y += 14;
-  pdf.setDrawColor(232,237,248); pdf.setLineWidth(0.3); pdf.line(M, y-2, W-M, y-2);
+  pdf.setFillColor.apply(pdf,ORANGE); pdf.rect(M,y,W-2*M,8,'F');
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(255,255,255);
+  pdf.text('Description',M+3,y+5.5); pdf.text('Qte',M+120,y+5.5,{align:'center'}); pdf.text('Total',W-M-3,y+5.5,{align:'right'});
+  y+=8;
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(17,17,17);
+  pdf.text(pdf.splitTextToSize(f.type||'',100), M+3, y+5);
+  pdf.text('1', M+120, y+5, {align:'center'});
+  pdf.setFont('helvetica','bold'); pdf.text(prixHT.toFixed(2)+' EUR', W-M-3, y+5, {align:'right'});
+  if (f.notes) { pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS); pdf.text(f.notes,M+3,y+10); y+=5; }
+  y+=14;
+  pdf.setDrawColor(232,237,248); pdf.setLineWidth(0.3); pdf.line(M,y-2,W-M,y-2);
 
   // Aides
   if (aides.length > 0) {
-    y += 2;
-    var aideH = 12 + (aideD ? 6 : 0) + (aideS ? 6 : 0) + 8;
-    pdf.setFillColor(255, 251, 240); pdf.setDrawColor.apply(pdf, ORANGE); pdf.setLineWidth(0.4);
-    pdf.roundedRect(M, y, W - 2 * M, aideH, 2, 2, 'FD');
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(179, 107, 0);
-    pdf.text('Aides a la destruction', M + 4, y + 6);
-    var ay = y + 12;
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(8.5); pdf.setTextColor.apply(pdf, GRIS);
-    pdf.text('Montant intervention', M + 4, ay);
-    pdf.setFont('helvetica','bold'); pdf.setTextColor(17,17,17); pdf.text(prixHT.toFixed(2) + ' EUR', W-M-4, ay, {align:'right'});
-    if (aideD) { ay+=6; pdf.setFont('helvetica','normal'); pdf.setTextColor.apply(pdf,GRIS); pdf.text('Aide Departement (-' + pctD + '%)', M+4, ay); pdf.setFont('helvetica','bold'); pdf.setTextColor(224,112,0); pdf.text('-' + aideD.toFixed(2) + ' EUR', W-M-4, ay, {align:'right'}); }
-    if (aideS) { ay+=6; pdf.setFont('helvetica','normal'); pdf.setTextColor.apply(pdf,GRIS); pdf.text('Aide Seine Metropole (-' + pctS + '%)', M+4, ay); pdf.setFont('helvetica','bold'); pdf.setTextColor(224,112,0); pdf.text('-' + aideS.toFixed(2) + ' EUR', W-M-4, ay, {align:'right'}); }
-    ay += 8;
-    pdf.setDrawColor.apply(pdf, ORANGE); pdf.setLineWidth(0.3); pdf.line(M+4, ay-4, W-M-4, ay-4);
+    y+=2;
+    var aH = 12+(aideD?6:0)+(aideS?6:0)+8;
+    pdf.setFillColor(255,251,240); pdf.setDrawColor.apply(pdf,ORANGE); pdf.setLineWidth(0.4);
+    pdf.roundedRect(M,y,W-2*M,aH,2,2,'FD');
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(179,107,0);
+    pdf.text('Aides a la destruction',M+4,y+6);
+    var ay = y+12;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8.5); pdf.setTextColor.apply(pdf,GRIS);
+    pdf.text('Montant intervention',M+4,ay);
+    pdf.setFont('helvetica','bold'); pdf.setTextColor(17,17,17); pdf.text(prixHT.toFixed(2)+' EUR',W-M-4,ay,{align:'right'});
+    if (aideD) { ay+=6; pdf.setFont('helvetica','normal'); pdf.setTextColor.apply(pdf,GRIS); pdf.text('Aide Departement (-'+pctD+'%)',M+4,ay); pdf.setFont('helvetica','bold'); pdf.setTextColor(224,112,0); pdf.text('-'+aideD.toFixed(2)+' EUR',W-M-4,ay,{align:'right'}); }
+    if (aideS) { ay+=6; pdf.setFont('helvetica','normal'); pdf.setTextColor.apply(pdf,GRIS); pdf.text('Aide Seine Metropole (-'+pctS+'%)',M+4,ay); pdf.setFont('helvetica','bold'); pdf.setTextColor(224,112,0); pdf.text('-'+aideS.toFixed(2)+' EUR',W-M-4,ay,{align:'right'}); }
+    ay+=8; pdf.setDrawColor.apply(pdf,ORANGE); pdf.setLineWidth(0.3); pdf.line(M+4,ay-4,W-M-4,ay-4);
     pdf.setFont('helvetica','bold'); pdf.setFontSize(9.5); pdf.setTextColor(17,17,17);
-    pdf.text('Reste a charge client', M + 4, ay);
-    pdf.text(total.toFixed(2) + ' EUR', W-M-4, ay, {align:'right'});
-    y += aideH + 4;
+    pdf.text('Reste a charge client',M+4,ay); pdf.text(total.toFixed(2)+' EUR',W-M-4,ay,{align:'right'});
+    y+=aH+4;
   }
 
   // Total client
-  y += 4;
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(13); pdf.setTextColor.apply(pdf, BLEU);
-  pdf.text('Total client : ' + total.toFixed(2) + ' EUR', W - M, y, { align: 'right' });
-  y += 10;
+  y+=4; pdf.setFont('helvetica','bold'); pdf.setFontSize(13); pdf.setTextColor.apply(pdf,BLEU);
+  pdf.text('Total client : '+total.toFixed(2)+' EUR', W-M, y, {align:'right'});
+  y+=10;
 
   // Mention + paiement
-  pdf.setDrawColor(232,237,248); pdf.setLineWidth(0.3); pdf.line(M, y, W-M, y); y += 5;
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf, GRIS);
-  pdf.text(s.mention || 'TVA non applicable, art. 293B du CGI', M, y);
-  if (f.paiement) { y+=5; pdf.setFont('helvetica','bold'); pdf.setTextColor(51,51,51); pdf.text('Mode de paiement : ' + (paiLabels[f.paiement] || f.paiement), M, y); }
+  pdf.setDrawColor(232,237,248); pdf.setLineWidth(0.3); pdf.line(M,y,W-M,y); y+=5;
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS);
+  pdf.text(s.mention||'TVA non applicable, art. 293B du CGI', M, y);
+  if (f.paiement) { y+=5; pdf.setFont('helvetica','bold'); pdf.setTextColor(51,51,51); pdf.text('Mode de paiement : '+(paiL[f.paiement]||f.paiement), M, y); }
 
-  // Signature
   if (f.signature) {
-    y += 8;
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf, GRIS);
-    pdf.text('Signature du client :', M, y); y += 3;
-    try { pdf.addImage(f.signature, 'PNG', M, y, 50, 20); } catch(e) {}
+    y+=8; pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS);
+    pdf.text('Signature du client :', M, y); y+=3;
+    try { pdf.addImage(f.signature,'PNG',M,y,50,20); } catch(e) {}
   }
 
+  // Métadonnées
+  try { pdf.setProperties({ title: f.num||'Facture', subject:'Facture '+f.num, creator:'Allo ca pique', author:'Allo ca pique' }); } catch(e){}
   return pdf;
 }
 
 async function genPdfAndDownload(f) {
   var pdf = generatePDFTexte(f, settings);
-  pdf.save(buildFilename(f));
+  var filename = buildFilename(f);
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  if (isIOS) {
+    var pdfBlob = pdf.output('blob');
+    var pdfUrl = URL.createObjectURL(pdfBlob);
+    if (isStandalone) { window.location.href = pdfUrl; }
+    else { var win = window.open(pdfUrl,'_blank'); if (!win) window.location.href = pdfUrl; }
+    setTimeout(function(){ URL.revokeObjectURL(pdfUrl); }, 60000);
+  } else {
+    pdf.save(filename);
+  }
 }
+
 
 async function telechargerFacture(factureId) {
   var f = findById(factures, factureId);
   if (!f) return;
   var rdvLie = rdvs.find(function(r) { return r.factureId === factureId; });
   var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
-  var data = {
-    num: f.num, dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
-    nom: f.nom, adresse: f.adresse, ville: f.ville || '', tel: f.tel, email: f.email || '',
-    type: f.type, prixHT: f.prixHT, notes: f.notes || '',
-    aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
-    signature: f.signature || '', clientType: f.clientType || '',
-    insecte: f.insecte || '', paiement: f.paiement || '',
-    isSyndic: f.clientType === 'Syndic/Copro',
-    syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
-    syndicAgenceAdresse: f.syndicAgenceAdresse || '', syndicAgenceTel: f.syndicAgenceTel || '',
-    syndicContact: f.syndicContact || '', syndicEmail: f.syndicEmail || '',
-    requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
-    requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '', isMairie: f.isMairie || false, mairieNom: f.mairieNom || ''
-  };
 
-  if (window.innerWidth >= 700) {
-    // PC : générer PDF
-    try {
-      await genPdfAndDownload(f);
-      showToast('⬇️ Facture PDF téléchargée !');
-    } catch(e) {
-      console.error('PDF error:', e);
-      showToast('Erreur génération PDF', true);
-    }
-    if (photoUrl) {
-      setTimeout(function() {
-        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
-        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
-      }, 400);
-    }
-  } else {
-    // Mobile : modale d'aperçu
-    var inner = document.getElementById('modal-print-inner');
-    inner.innerHTML = buildFactureHtml(data, false, false);
-    var modal = document.getElementById('modal-print');
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    if (photoUrl) {
-      setTimeout(function() {
-        var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
-        dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
-      }, 400);
-      showToast('📄 Photo téléchargée séparément');
-    }
+  // PDF direct partout (PC et mobile) via html2canvas + jsPDF
+  try {
+    showToast('⏳ Génération PDF...');
+    await genPdfAndDownload(f);
+    showToast('⬇️ Facture PDF téléchargée !');
+  } catch(e) {
+    console.error('PDF error:', e);
+    showToast('Erreur génération PDF : ' + e.message, true);
+  }
+  if (photoUrl) {
+    setTimeout(function() {
+      var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
+      dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
+    }, 600);
   }
 }
 
@@ -3693,6 +3715,8 @@ function nextCategoryIndex(f) {
 }
 
 function buildFilename(f) {
+  // Le numéro de facture est déjà préfixé (FM001-2026, F001-2026, etc.)
+  // On ajoute juste le nom du client pour les non-mairies
   var ct = f.clientType || '';
   var isMairie = (ct === 'Montivilliers' || ct === 'Gonfreville' || ct === 'Le Havre' || ct === 'Voie publique');
   var nom = isMairie ? '' : ('_' + escFilename(f.nom || ''));
@@ -3702,36 +3726,13 @@ function buildFilename(f) {
 async function voirEtImprimer(id) {
   var f = findById(factures, id);
   if (!f) return;
-  if (window.innerWidth >= 700) {
-    // PC : générer PDF
-    try {
-      await genPdfAndDownload(f);
-      showToast('⬇️ Facture PDF téléchargée !');
-    } catch(e) {
-      console.error('PDF error:', e);
-      showToast('Erreur génération PDF', true);
-    }
-  } else {
-    // Mobile : modale d'aperçu
-    var data = {
-      num: f.num, dateStr: new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'),
-      nom: f.nom, adresse: f.adresse, ville: f.ville || '', tel: f.tel, email: f.email || '',
-      type: f.type, prixHT: f.prixHT, notes: f.notes || '',
-      aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
-      signature: f.signature || '', clientType: f.clientType || '',
-      insecte: f.insecte || '', paiement: f.paiement || '',
-      isSyndic: f.clientType === 'Syndic/Copro',
-      syndicBdc: f.syndicBdc || '', syndicAgence: f.syndicAgence || '',
-      syndicAgenceAdresse: f.syndicAgenceAdresse || '', syndicAgenceTel: f.syndicAgenceTel || '',
-      syndicContact: f.syndicContact || '', syndicEmail: f.syndicEmail || '',
-      requerantNom: f.requerantNom || '', requerantAdresse: f.requerantAdresse || '',
-      requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '', isMairie: f.isMairie || false, mairieNom: f.mairieNom || ''
-    };
-    var inner = document.getElementById('modal-print-inner');
-    inner.innerHTML = buildFactureHtml(data, false, false);
-    var modal = document.getElementById('modal-print');
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+  try {
+    showToast('⏳ Génération PDF...');
+    await genPdfAndDownload(f);
+    showToast('⬇️ Facture PDF téléchargée !');
+  } catch(e) {
+    console.error('PDF error:', e);
+    showToast('Erreur génération PDF : ' + e.message, true);
   }
 }
 
@@ -3824,6 +3825,39 @@ function toggleParamSection(id) {
   var isOpen = body.classList.contains('open');
   header.classList.toggle('open', !isOpen);
   body.classList.toggle('open', !isOpen);
+}
+
+async function telechargerToutesFactures() {
+  if (!factures.length) { showToast('Aucune facture à télécharger', true); return; }
+  if (!confirm('Télécharger ' + factures.length + ' facture(s) en PDF ?\n\nCela peut prendre quelques minutes selon le volume.')) return;
+  var all = factures.slice().sort(function(a,b) { return (a.date||'').localeCompare(b.date||'') || a.num.localeCompare(b.num); });
+  showToast('⏳ Téléchargement de ' + all.length + ' facture(s)...');
+  var idx = 0;
+  async function next() {
+    if (idx >= all.length) { showToast('✅ ' + all.length + ' facture(s) téléchargée(s) !'); return; }
+    var f = all[idx]; idx++;
+    try { await genPdfAndDownload(f); } catch(e) { console.error('PDF error:', e); }
+    setTimeout(next, 700);
+  }
+  next();
+}
+
+async function reinitialiserDonnees() {
+  if (!confirm('⚠️ ATTENTION\n\nCela va SUPPRIMER DÉFINITIVEMENT tous vos RDV et factures.\n\nAssurez-vous d\'avoir téléchargé toutes vos factures avant de continuer.\n\nVoulez-vous vraiment continuer ?')) return;
+  var code = prompt('Pour confirmer, tapez exactement : RESET');
+  if (code !== 'RESET') { showToast('Réinitialisation annulée', true); return; }
+  rdvs = [];
+  factures = [];
+  try {
+    await save();
+    showToast('✅ Données réinitialisées');
+    renderDashboard();
+    renderArchives();
+    if (vueRdv === 'agenda') renderAgenda(); else renderRdvs();
+  } catch(e) {
+    console.error('Reset error:', e);
+    showToast('Erreur lors de la réinitialisation', true);
+  }
 }
 
 function exporterDonnees() {
