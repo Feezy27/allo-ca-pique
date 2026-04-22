@@ -22,7 +22,8 @@
   --border-w: 2px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 1.05rem; }
+html { overflow-x: hidden; overscroll-behavior-x: none; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 1.05rem; overflow-x: hidden; overscroll-behavior-x: none; }
 
 header {
   background: var(--surface); border-bottom: var(--border-w) solid var(--border);
@@ -585,7 +586,7 @@ select option { background: var(--surface2); }
   #desktop-sidebar .sidebar-sep { height: 1px; background: var(--border); margin: 8px 4px; }
 
   /* Contenu */
-  #app-content { flex: 1; overflow-y: auto; }
+  #app-content { flex: 1; overflow-y: auto; overflow-x: hidden; }
   main { max-width: 980px; padding: 32px 40px; }
 
   /* 4 cartes stats */
@@ -3585,11 +3586,21 @@ function generatePDFTexte(f, s) {
   };
   var insecteLabel = f.insecte ? (insecteLabels[f.insecte] || f.insecte) : null;
   var nidTypeLabel = f.nidType === 'primaire' ? 'primaire ' : f.nidType === 'secondaire' ? 'secondaire ' : '';
-  var phraseDestruction = insecteLabel && insecteLabel !== 'nid inconnu'
-    ? 'Destruction d’un nid ' + nidTypeLabel + 'de ' + insecteLabel + '.'
-    : (insecteLabel === 'nid inconnu' ? 'Destruction d’un nid.' : '');
+  // Construire la ligne de description : remplacer le label de l'insecte
+  // par la phrase de destruction, en conservant l'emplacement
+  var typeRaw = f.type || '';
+  var sepIdx = typeRaw.indexOf(' • ');
+  var emplacementPart = sepIdx >= 0 ? typeRaw.substring(sepIdx) : '';
+  var descriptionLine;
+  if (insecteLabel && insecteLabel !== 'nid inconnu') {
+    descriptionLine = 'Destruction d’un nid ' + nidTypeLabel + 'de ' + insecteLabel + emplacementPart;
+  } else if (insecteLabel === 'nid inconnu') {
+    descriptionLine = 'Destruction d’un nid' + emplacementPart;
+  } else {
+    descriptionLine = typeRaw;
+  }
 
-  // ── Tableau prestation ───────────────────────────────────────────────────
+  // ── Tableau prestation ─────────────────────────────────────
   pdf.setFillColor.apply(pdf,ORANGE); pdf.rect(M,y,W-2*M,8,'F');
   pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(255,255,255);
   pdf.text('Description',M+3,y+5.5); pdf.text('Qté',M+120,y+5.5,{align:'center'}); pdf.text('Total',W-M-3,y+5.5,{align:'right'});
@@ -3597,19 +3608,11 @@ function generatePDFTexte(f, s) {
 
   // Ligne de prestation
   pdf.setFont('helvetica','normal'); pdf.setFontSize(bodyFontSize); pdf.setTextColor(17,17,17);
-  var typeLines = pdf.splitTextToSize(f.type||'', 95);
+  var typeLines = pdf.splitTextToSize(descriptionLine, 95);
   pdf.text(typeLines, M+3, y+bodyLineH);
   pdf.text('1', M+120, y+bodyLineH, {align:'center'});
   pdf.setFont('helvetica','bold'); pdf.text(prixHT.toFixed(2)+' €', W-M-3, y+bodyLineH, {align:'right'});
   var descY = y + bodyLineH + (typeLines.length - 1) * (bodyFontSize * 0.352 + 1);
-
-  // Phrase destruction (sous le type, en gris italique)
-  if (phraseDestruction) {
-    descY += 4;
-    pdf.setFont('helvetica','italic'); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor.apply(pdf,GRIS);
-    pdf.text(phraseDestruction, M+3, descY);
-    descY += 4;
-  }
 
   // Notes éventuelles
   if (f.notes) {
@@ -4135,6 +4138,30 @@ async function doForgotPassword() {
   await supabaseClient.auth.resetPasswordForEmail(email);
   showLoginError('✅ Email de réinitialisation envoyé si ce compte existe.');
 }
+
+// ════════════════════════════════════════════════════════
+//  BLOQUER LES SWIPES HORIZONTAUX
+//  Empêche le navigateur d'interpréter un glissement
+//  latéral comme une navigation avant/arrière de page.
+// ════════════════════════════════════════════════════════
+(function() {
+  var touchStartX = 0;
+  var touchStartY = 0;
+
+  document.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    var dx = Math.abs(e.touches[0].clientX - touchStartX);
+    var dy = Math.abs(e.touches[0].clientY - touchStartY);
+    // Si le mouvement est plus horizontal que vertical → bloquer
+    if (dx > dy && dx > 8) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+})();
 
 async function doLogout() {
   if (!supabaseClient) return;
