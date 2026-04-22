@@ -3088,6 +3088,7 @@ async function partageFact() {
     try {
       var f = currentFactureId ? findById(factures, currentFactureId) : null;
       if (!f) throw new Error('Facture introuvable');
+      await loadJsPDF(); // S'assurer que jsPDF est chargé AVANT de générer le PDF
       var pdf = generatePDFTexte(f, settings);
       pdf.save(buildFilename(f));
       closePrintModal();
@@ -3589,6 +3590,7 @@ function generatePDFTexte(f, s) {
 }
 
 async function genPdfAndDownload(f) {
+  await loadJsPDF(); // S'assurer que jsPDF est chargé AVANT de générer le PDF
   var pdf = generatePDFTexte(f, settings);
   var filename = buildFilename(f);
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
