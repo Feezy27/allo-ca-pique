@@ -3586,18 +3586,20 @@ function generatePDFTexte(f, s) {
   };
   var insecteLabel = f.insecte ? (insecteLabels[f.insecte] || f.insecte) : null;
   var nidTypeLabel = f.nidType === 'primaire' ? 'primaire ' : f.nidType === 'secondaire' ? 'secondaire ' : '';
-  // Construire la ligne de description : remplacer le label de l'insecte
-  // par la phrase de destruction, en conservant l'emplacement
+  // Séparer phrase de destruction et emplacement pour les afficher sur deux lignes
   var typeRaw = f.type || '';
   var sepIdx = typeRaw.indexOf(' • ');
-  var emplacementPart = sepIdx >= 0 ? typeRaw.substring(sepIdx) : '';
+  // emplacementLabel = ex: 'Hauteur d'homme' (sans le ' • ')
+  var emplacementLabel = sepIdx >= 0 ? typeRaw.substring(sepIdx + 3) : '';
   var descriptionLine;
   if (insecteLabel && insecteLabel !== 'nid inconnu') {
-    descriptionLine = 'Destruction d’un nid ' + nidTypeLabel + 'de ' + insecteLabel + emplacementPart;
+    descriptionLine = 'Destruction d’un nid ' + nidTypeLabel + 'de ' + insecteLabel + '.';
   } else if (insecteLabel === 'nid inconnu') {
-    descriptionLine = 'Destruction d’un nid' + emplacementPart;
+    descriptionLine = 'Destruction d’un nid.';
   } else {
+    // Pas d'insecte reconnu : afficher f.type entier sur une ligne
     descriptionLine = typeRaw;
+    emplacementLabel = ''; // déjà inclus dans typeRaw
   }
 
   // ── Tableau prestation ─────────────────────────────────────
@@ -3606,13 +3608,20 @@ function generatePDFTexte(f, s) {
   pdf.text('Description',M+3,y+5.5); pdf.text('Qté',M+120,y+5.5,{align:'center'}); pdf.text('Total',W-M-3,y+5.5,{align:'right'});
   y+=8;
 
-  // Ligne de prestation
+  // Ligne 1 : phrase de destruction
   pdf.setFont('helvetica','normal'); pdf.setFontSize(bodyFontSize); pdf.setTextColor(17,17,17);
   var typeLines = pdf.splitTextToSize(descriptionLine, 95);
   pdf.text(typeLines, M+3, y+bodyLineH);
   pdf.text('1', M+120, y+bodyLineH, {align:'center'});
   pdf.setFont('helvetica','bold'); pdf.text(prixHT.toFixed(2)+' €', W-M-3, y+bodyLineH, {align:'right'});
   var descY = y + bodyLineH + (typeLines.length - 1) * (bodyFontSize * 0.352 + 1);
+
+  // Ligne 2 : emplacement (toujours sur sa propre ligne, en gris)
+  if (emplacementLabel) {
+    descY += (bodyFontSize * 0.352 + 1);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor.apply(pdf,GRIS);
+    pdf.text(emplacementLabel, M+3, descY);
+  }
 
   // Notes éventuelles
   if (f.notes) {
