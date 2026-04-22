@@ -1224,6 +1224,7 @@ var AGENDA_HEURES = [7,8,9,10,11,12,13,14,15,16,17,18,19,20]; // plages horaires
 var archiveMonth = null;
 var modePaiement = null; // 'virement' | 'cheque' | 'espece'
 var aideChoisie = []; // tableau : peut contenir 'departement' et/ou 'seine'
+var nidType = null; // 'primaire' | 'secondaire' | null — uniquement frelon asiatique
 var isDrawing = false;
 var lastX = 0;
 var lastY = 0;
@@ -1723,8 +1724,13 @@ function editRdv(id) {
     document.getElementById('rdv-modal-title').textContent = 'Modifier le rendez-vous';
     document.getElementById('r-nom').value = r.nom;
     document.getElementById('r-tel').value = r.tel;
-    var villeEdit = extraireVille(r.adresse || '');
-    var rueEdit = villeEdit ? (r.adresse || '').substring(villeEdit.length).trim() : (r.adresse || '');
+    // r.ville contient "Montivilliers 76290" (ville + CP), déjà stocké proprement.
+    // On l'utilise directement pour éviter que extraireVille() coupe au premier chiffre
+    // et place le CP devant la rue.
+    var villeEdit = r.ville || extraireVille(r.adresse || '');
+    var rueEdit = (villeEdit && (r.adresse || '').indexOf(villeEdit) === 0)
+      ? (r.adresse || '').substring(villeEdit.length).trim()
+      : (r.adresse || '');
     var eVille = document.getElementById('r-ville'); if(eVille) eVille.value = villeEdit;
     var eVilleCP = document.getElementById('r-ville-cp'); if(eVilleCP) eVilleCP.value = r.villeCP || '';
     var eRue = document.getElementById('r-rue'); if(eRue) eRue.value = rueEdit;
@@ -1750,6 +1756,7 @@ function editRdv(id) {
       if (setEm) setEm.value = r.syndicEmail || '';
     }
     // Restaurer ville et heure APRÈS initCascade/initTimePicker qui les effacent
+    // villeEdit et rueEdit sont déjà correctement calculés plus haut
     var eVille2 = document.getElementById('r-ville'); if(eVille2) eVille2.value = villeEdit;
     var eVilleCP2 = document.getElementById('r-ville-cp'); if(eVilleCP2) eVilleCP2.value = r.villeCP || '';
     var eRue2 = document.getElementById('r-rue'); if(eRue2) eRue2.value = rueEdit;
@@ -2220,6 +2227,12 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   h += '<div style="font-size:0.75rem;color:#888;border-top:1px solid #eee;padding-top:10px;margin-top:10px;font-family:Arial,Helvetica,sans-serif;">' + escHtml(s.mention || 'TVA non applicable, art. 293B du CGI') + paiementLine + '</div>';
 
   if (withSigCanvas) {
+    h += '<div id="nid-type-section" style="display:' + (data.isFA ? 'block' : 'none') + ';margin-top:16px;margin-bottom:4px">';
+    h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Type de nid</div>';
+    h += '<div style="display:flex;gap:10px">';
+    h += '<button id="nid-primaire" class="paiement-btn" onclick="choisirNidType(\'primaire\')" style="flex:1">🔴 Primaire</button>';
+    h += '<button id="nid-secondaire" class="paiement-btn" onclick="choisirNidType(\'secondaire\')" style="flex:1">🟡 Secondaire</button>';
+    h += '</div></div>';
     h += '<div id="aide-section" style="display:' + (data.isFA ? 'block' : 'none') + ';margin-top:16px">';
     h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Aide à la destruction (optionnel)</div>';
     h += '<div style="display:flex;gap:10px;flex-wrap:wrap">';
@@ -2385,6 +2398,7 @@ function ouvrirFacture(rdvId) {
   var isPartRdv = !r.clientType || r.clientType === 'Particulier';
   aideChoisie = [];
   modePaiement = null;
+  nidType = null;
   data.aide = [];
   data.isFA = (r.insecte === 'frelon-asiatique');
   document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, isPartRdv);
@@ -2536,6 +2550,14 @@ function voirFacture(factureId) {
   document.getElementById('modal-facture').classList.add('open');
 }
 
+function choisirNidType(val) {
+  nidType = (nidType === val) ? null : val; // toggle
+  ['primaire','secondaire'].forEach(function(t) {
+    var btn = document.getElementById('nid-' + t);
+    if (btn) btn.classList.toggle('active', nidType === t);
+  });
+}
+
 function choisirAide(val) {
   var idx = aideChoisie.indexOf(val);
   if (idx >= 0) { aideChoisie.splice(idx, 1); } else { aideChoisie.push(val); }
@@ -2633,6 +2655,7 @@ function validerFacture() {
     notes: data.notes,
     clientType: r.clientType || data.clientType || '',
     insecte: r.insecte || '',
+    nidType: nidType || '',
     date: r.date || new Date().toISOString().split('T')[0],
     signature: sig,
     paiement: modePaiement,
@@ -2993,7 +3016,6 @@ function closeSigFullscreen(validate) {
   var ctx = inlineCanvas.getContext('2d');
   ctx.clearRect(0, 0, inlineCanvas.width, inlineCanvas.height);
   ctx.drawImage(fsCanvas, 0, 0, inlineCanvas.width, inlineCanvas.height);
-  showToast('✅ Signature enregistrée');
 }
 
 function prendrePhoto(rdvId) {
@@ -3495,35 +3517,42 @@ function generatePDFTexte(f, s) {
   y+=6; pdf.setDrawColor.apply(pdf,BLEU); pdf.setLineWidth(0.5); pdf.line(M,y,W-M,y); y+=8;
 
   // Blocs Prestataire / Client
-  var colW = (W-2*M-6)/2;
+  var isParticulierPDF = !f.clientType || f.clientType === 'Particulier';
+  var colW    = (W-2*M-6)/2;
+  var cardFs  = isParticulierPDF ? 9.5 : 8;    // taille police du contenu des cartes
+  var cardNmFs= isParticulierPDF ? 11  : 9;    // taille police du nom
+  var cardH   = isParticulierPDF ? 36  : 30;   // hauteur des cartes
+  var cardLhF = isParticulierPDF ? 1.6 : 1.4;  // interligne
+  var cardLY  = isParticulierPDF ? 16  : 14;   // Y de départ du corps de carte
+
   pdf.setFillColor(240,244,250);
-  pdf.roundedRect(M, y-2, colW, 30, 2, 2, 'F');
-  pdf.roundedRect(M+colW+6, y-2, colW, 30, 2, 2, 'F');
+  pdf.roundedRect(M, y-2, colW, cardH, 2, 2, 'F');
+  pdf.roundedRect(M+colW+6, y-2, colW, cardH, 2, 2, 'F');
 
   pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74,90,128);
   pdf.text('PRESTATAIRE', M+3, y+2);
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf,BLEU);
-  pdf.text(s.nom||'', M+3, y+8);
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(cardNmFs); pdf.setTextColor.apply(pdf,BLEU);
+  pdf.text(s.nom||'', M+3, y+9);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(cardFs); pdf.setTextColor.apply(pdf,GRIS);
   var pL = [];
   if (s.adresse) pL.push(s.adresse);
   if (s.ville)   pL.push(s.ville);
   if (s.tel)     pL.push(s.tel);
   if (s.siret)   pL.push('SIRET : '+s.siret);
-  pdf.text(pL, M+3, y+14, {lineHeightFactor:1.4});
+  pdf.text(pL, M+3, y+cardLY, {lineHeightFactor:cardLhF});
 
   var cx = M+colW+6;
   pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74,90,128);
   pdf.text('CLIENT', cx+3, y+2);
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf,BLEU);
-  pdf.text(f.nom||'', cx+3, y+8);
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(cardNmFs); pdf.setTextColor.apply(pdf,BLEU);
+  pdf.text(f.nom||'', cx+3, y+9);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(cardFs); pdf.setTextColor.apply(pdf,GRIS);
   var cL = [];
   if (f.adresse) cL.push(f.adresse);
   if (f.ville)   cL.push(f.ville);
   if (f.tel)     cL.push('Tel : '+f.tel);
-  pdf.text(cL, cx+3, y+14, {lineHeightFactor:1.4});
-  y += 38;
+  pdf.text(cL, cx+3, y+cardLY, {lineHeightFactor:cardLhF});
+  y += cardH + 8;
 
   // Requérant
   var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Voie publique'].indexOf(f.clientType)>=0;
@@ -3541,17 +3570,56 @@ function generatePDFTexte(f, s) {
     y += rBoxH + 6;
   }
 
-  // Tableau prestation
+  // ── Particulier : corps de texte plus grand ──────────────────────────────
+  var isParticulierPDF = !f.clientType || f.clientType === 'Particulier';
+  var bodyFontSize = isParticulierPDF ? 10.5 : 9;
+  var bodyLineH    = isParticulierPDF ? 6.5  : 5.5;
+
+  // ── Phrase de description automatique depuis l'insecte ───────────────────
+  var insecteLabels = {
+    'frelon-asiatique': 'frelon asiatique',
+    'frelon-europeen':  'frelon européen',
+    'guepe':            'guêpe',
+    'abeille':          'abeille',
+    'ne-sais-pas':      'nid inconnu'
+  };
+  var insecteLabel = f.insecte ? (insecteLabels[f.insecte] || f.insecte) : null;
+  var nidTypeLabel = f.nidType === 'primaire' ? 'primaire ' : f.nidType === 'secondaire' ? 'secondaire ' : '';
+  var phraseDestruction = insecteLabel && insecteLabel !== 'nid inconnu'
+    ? 'Destruction d’un nid ' + nidTypeLabel + 'de ' + insecteLabel + '.'
+    : (insecteLabel === 'nid inconnu' ? 'Destruction d’un nid.' : '');
+
+  // ── Tableau prestation ───────────────────────────────────────────────────
   pdf.setFillColor.apply(pdf,ORANGE); pdf.rect(M,y,W-2*M,8,'F');
   pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(255,255,255);
-  pdf.text('Description',M+3,y+5.5); pdf.text('Qte',M+120,y+5.5,{align:'center'}); pdf.text('Total',W-M-3,y+5.5,{align:'right'});
+  pdf.text('Description',M+3,y+5.5); pdf.text('Qté',M+120,y+5.5,{align:'center'}); pdf.text('Total',W-M-3,y+5.5,{align:'right'});
   y+=8;
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(17,17,17);
-  pdf.text(pdf.splitTextToSize(f.type||'',100), M+3, y+5);
-  pdf.text('1', M+120, y+5, {align:'center'});
-  pdf.setFont('helvetica','bold'); pdf.text(prixHT.toFixed(2)+' €', W-M-3, y+5, {align:'right'});
-  if (f.notes) { pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS); pdf.text(f.notes,M+3,y+10); y+=5; }
-  y+=14;
+
+  // Ligne de prestation
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(bodyFontSize); pdf.setTextColor(17,17,17);
+  var typeLines = pdf.splitTextToSize(f.type||'', 95);
+  pdf.text(typeLines, M+3, y+bodyLineH);
+  pdf.text('1', M+120, y+bodyLineH, {align:'center'});
+  pdf.setFont('helvetica','bold'); pdf.text(prixHT.toFixed(2)+' €', W-M-3, y+bodyLineH, {align:'right'});
+  var descY = y + bodyLineH + (typeLines.length - 1) * (bodyFontSize * 0.352 + 1);
+
+  // Phrase destruction (sous le type, en gris italique)
+  if (phraseDestruction) {
+    descY += 4;
+    pdf.setFont('helvetica','italic'); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor.apply(pdf,GRIS);
+    pdf.text(phraseDestruction, M+3, descY);
+    descY += 4;
+  }
+
+  // Notes éventuelles
+  if (f.notes) {
+    descY += 2;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(bodyFontSize - 1.5); pdf.setTextColor.apply(pdf,GRIS);
+    pdf.text(f.notes, M+3, descY);
+    descY += 5;
+  }
+
+  y = descY + 8;
   pdf.setDrawColor(232,237,248); pdf.setLineWidth(0.3); pdf.line(M,y-2,W-M,y-2);
 
   // Aides
