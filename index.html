@@ -3037,10 +3037,24 @@ function prendrePhoto(rdvId) {
   input.type = 'file';
   input.accept = 'image/*';
   input.capture = 'environment';
+  input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;';
+
+  // ── IMPORTANT : attacher l'input au DOM avant le click ──────────────────
+  // Sur iOS Safari, un input non attaché au DOM peut être garbage-collecté
+  // pendant que l'utilisateur est dans l'appareil photo, ce qui empêche le
+  // onchange de se déclencher (la photo semble "disparaître").
+  document.body.appendChild(input);
+
+  // Nettoyage après usage
+  function cleanup() {
+    if (input.parentNode) input.parentNode.removeChild(input);
+  }
+
   input.onchange = function() {
     var file = input.files[0];
+    cleanup();
     if (!file) return;
-    showToast(' Préparation de la photo...');
+    showToast('⏳ Préparation de la photo...');
     var reader = new FileReader();
     reader.onload = function(e) {
       var img = new Image();
@@ -3053,13 +3067,21 @@ function prendrePhoto(rdvId) {
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         var base64 = canvas.toDataURL('image/jpeg', 0.80);
-        showToast(' Upload vers Cloudinary...');
+        showToast('⏳ Upload vers Cloudinary...');
         var formData = new FormData();
         formData.append('file', base64);
         formData.append('upload_preset', uploadPreset);
         var xhr = new XMLHttpRequest();
         xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + cloudName + '/image/upload', true);
+
+        // ── Timeout de sécurité : 30 secondes ───────────────────────────
+        var uploadTimeout = setTimeout(function() {
+          xhr.abort();
+          showToast('❌ Délai dépassé — vérifiez votre connexion et réessayez.', true);
+        }, 30000);
+
         xhr.onload = function() {
+          clearTimeout(uploadTimeout);
           try {
             var data = JSON.parse(xhr.responseText);
             if (data.error) throw new Error(data.error.message);
@@ -3076,8 +3098,12 @@ function prendrePhoto(rdvId) {
           }
         };
         xhr.onerror = function() {
+          clearTimeout(uploadTimeout);
           console.error('XHR error', xhr.status, xhr.statusText);
           showToast('❌ Erreur réseau. Vérifiez Cloud Name et Upload Preset.', true);
+        };
+        xhr.onabort = function() {
+          clearTimeout(uploadTimeout);
         };
         xhr.send(formData);
       };
@@ -3087,6 +3113,18 @@ function prendrePhoto(rdvId) {
     reader.onerror = function() { showToast('❌ Erreur lecture du fichier', true); };
     reader.readAsDataURL(file);
   };
+
+  // Si l'utilisateur ferme la caméra sans prendre de photo
+  // → nettoyer l'input après un délai
+  var abandonTimer = setTimeout(function() {
+    if (!input.files || !input.files.length) cleanup();
+  }, 120000); // 2 minutes max
+
+  input.addEventListener('cancel', function() {
+    clearTimeout(abandonTimer);
+    cleanup();
+  });
+
   input.click();
 }
 
