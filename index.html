@@ -2184,6 +2184,11 @@ function saveRdv() {
   };
   if (editingId) {
     var idx = rdvs.findIndex(function(x) { return x.id === editingId; });
+    // Préserver les champs portés par le RDV mais non gérés par le formulaire
+    // (photoUrl, et toute autre donnée future qu'on aurait ajoutée). On part
+    // de l'existant et on lui superpose les champs du formulaire — comme ça
+    // la photo, par exemple, n'est jamais effacée par une simple modification.
+    if (existing && existing.photoUrl && !rdv.photoUrl) rdv.photoUrl = existing.photoUrl;
     rdvs[idx] = rdv;
   } else {
     rdvs.push(rdv);
@@ -2853,6 +2858,77 @@ function sendMailById(id) {
   if (f) sendMailForFacture(f);
 }
 
+// ============================================================
+// Envoi mail syndic via mailto + confirmation au retour sur l'app
+// ============================================================
+// On mémorise la facture en attente de confirmation, puis le listener
+// visibilitychange (en bas du fichier) déclenche checkPendingSyndicMail
+// quand l'utilisateur revient sur l'app après être passé dans son app mail.
+
+var _pendingSyndicMail = null; // { factureId, openedAt }
+
+function ouvrirMailSyndic(factureId, mailtoHref) {
+  var f = findById(factures, factureId);
+  if (!f) return;
+  _pendingSyndicMail = { factureId: factureId, openedAt: Date.now() };
+  // Ouvrir l'app mail
+  window.location.href = mailtoHref;
+}
+
+function checkPendingSyndicMail() {
+  var pend = _pendingSyndicMail;
+  if (!pend) return;
+  // Anti rebond : si on revient en moins de 800 ms, l'utilisateur n'a sans
+  // doute pas eu le temps d'ouvrir son app mail (clic accidentel, etc.).
+  // On garde l'attente pour le prochain retour.
+  if (Date.now() - pend.openedAt < 800) return;
+  _pendingSyndicMail = null;
+  var f = findById(factures, pend.factureId);
+  if (!f) return;
+  // Si la facture a déjà été marquée envoyée entre-temps, ne pas redemander.
+  if (f.mailSentAt) return;
+  setTimeout(function() {
+    showSyndicMailConfirm(f);
+  }, 250);
+}
+
+function showSyndicMailConfirm(f) {
+  // Modale custom (plus jolie qu'un confirm() natif et bloque mieux la vue)
+  var existing = document.getElementById('mail-confirm-modal');
+  if (existing) existing.remove();
+  var ov = document.createElement('div');
+  ov.id = 'mail-confirm-modal';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML =
+    '<div style="background:#fff;border-radius:14px;max-width:400px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,0.3);font-family:inherit;">' +
+      '<div style="font-size:1.4rem;text-align:center;margin-bottom:8px">✉️</div>' +
+      '<h3 style="margin:0 0 6px;text-align:center;font-size:1.05rem;color:#111">Mail envoyé ?</h3>' +
+      '<p style="margin:0 0 16px;text-align:center;color:#555;font-size:0.9rem;line-height:1.45">' +
+        'Tu viens d\'ouvrir ton app mail pour la facture <strong>' + escHtml(f.num) + '</strong>' +
+        (f.syndicAgence ? '<br>(' + escHtml(f.syndicAgence) + ')' : '') +
+        '.<br>L\'as-tu bien envoyé&nbsp;?' +
+      '</p>' +
+      '<div style="display:flex;gap:8px;flex-direction:column">' +
+        '<button id="mail-conf-yes" style="background:#22a06b;color:#fff;border:none;padding:11px 16px;border-radius:8px;font-weight:600;font-size:0.95rem;cursor:pointer">✅ Oui, envoyé</button>' +
+        '<button id="mail-conf-no" style="background:#f3f4f6;color:#333;border:1px solid #d1d5db;padding:11px 16px;border-radius:8px;font-weight:500;font-size:0.95rem;cursor:pointer">❌ Non, pas encore</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(ov);
+  document.getElementById('mail-conf-yes').onclick = function() {
+    var idx = factures.findIndex(function(x) { return x.id === f.id; });
+    if (idx >= 0) {
+      factures[idx].mailSentAt = new Date().toISOString();
+      save();
+      renderArchives();
+    }
+    ov.remove();
+    showToast('✓ Facture marquée comme envoyée');
+  };
+  document.getElementById('mail-conf-no').onclick = function() {
+    ov.remove();
+  };
+}
+
 function ouvrirSMSFacture(f) {
   var tel = f.tel ? f.tel.replace(/\s/g, '').replace(/^0/, '+33') : '';
   if (!tel) { showToast('Pas de numéro de téléphone pour ce client', true); return; }
@@ -3202,6 +3278,27 @@ function closeSigFullscreen(validate) {
 function prendrePhoto(rdvId) {
   var r = findById(rdvs, rdvId);
   if (!r) return;
+  // Si une photo est déjà attachée, proposer remplacer ou supprimer.
+  // « OK » → remplacer (nouvelle prise), « Annuler » → ouvre une 2ᵉ confirmation
+  // pour supprimer la photo actuelle.
+  if (r.photoUrl) {
+    var replace = confirm('Une photo est déjà enregistrée pour ce RDV.\n\n• OK → en prendre une nouvelle (remplace l\'actuelle)\n• Annuler → autres options');
+    if (!replace) {
+      var del = confirm('Supprimer la photo actuelle ?');
+      if (del) {
+        var idxR = rdvs.findIndex(function(x) { return x.id === rdvId; });
+        if (idxR >= 0) {
+          delete rdvs[idxR].photoUrl;
+          save();
+          renderRdvs();
+          renderDashboard();
+          renderArchives();
+          showToast('🗑 Photo supprimée');
+        }
+      }
+      return;
+    }
+  }
   var cloudName = settings.cloudinaryCloud;
   var uploadPreset = settings.cloudinaryPreset;
   if (!cloudName || !uploadPreset) {
@@ -3531,7 +3628,10 @@ function renderArchives() {
           'Cordialement,' + nl + (settings.nom || 'Allo ça pique');
         var syndicEmailVal = f.syndicEmail || (rdvLie ? rdvLie.syndicEmail || '' : '');
         var toAddr = syndicEmailVal ? encodeURIComponent(syndicEmailVal) : '';
-        syndicMailBtn = '<a href="mailto:' + toAddr + '?subject=' + subj + '&body=' + bodyStr + '" class="btn btn-ghost btn-sm" title="Envoyer par mail au syndic"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail</a>';
+        // Mailto encapsulé : on mémorise l'envoi en cours pour proposer une
+        // confirmation au retour sur l'app (cf. checkPendingSyndicMail).
+        var mailtoHref = 'mailto:' + toAddr + '?subject=' + subj + '&body=' + bodyStr;
+        syndicMailBtn = '<button class="btn btn-ghost btn-sm" onclick="ouvrirMailSyndic(\'' + f.id + '\', ' + JSON.stringify(mailtoHref).replace(/"/g, '&quot;') + ')" title="Envoyer par mail au syndic"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail</button>';
       }
       var smsBtn = (f.tel && isPartArch)
         ? '<button class="btn btn-ghost btn-sm" onclick="ouvrirSMSFacture(findById(factures, \'' + f.id + '\'))" title="Envoyer par SMS">SMS</button>' : '';
@@ -3542,6 +3642,17 @@ function renderArchives() {
       html += '<div class="fact-num">' + escHtml(f.num) + '</div>';
       html += '<div class="fact-client">' + escHtml(f.nom) + '</div>';
       html += '<div class="fact-type">' + escHtml(f.type) + heureStr + '</div>';
+      // Statut d'envoi (uniquement pour les factures syndic, où il n'y a pas
+      // d'envoi automatique vérifiable — particuliers : SMS=systématique,
+      // mail=EmailJS confirmé techniquement).
+      if (isSyndicArch) {
+        if (f.mailSentAt) {
+          var dEnv = new Date(f.mailSentAt).toLocaleDateString('fr-FR');
+          html += '<div style="margin-top:4px;display:inline-block;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:6px;font-size:0.72rem;font-weight:600">✉ Envoyé le ' + dEnv + '</div>';
+        } else {
+          html += '<div style="margin-top:4px;display:inline-block;background:#fef3c7;color:#a16207;padding:2px 8px;border-radius:6px;font-size:0.72rem;font-weight:600">⚠ Non envoyée</div>';
+        }
+      }
       html += '</div>';
       html += '<div class="arch-fact-price">' + (f.prix||0).toFixed(2) + ' €</div>';
       html += '<div class="arch-fact-actions">';
@@ -4523,6 +4634,8 @@ document.addEventListener('visibilitychange', async function() {
     renderDashboard();
     renderArchives();
   } catch(e) { console.error('Visibility reload error:', e); }
+  // Confirmation d'envoi mail syndic (si une facture est en attente)
+  try { checkPendingSyndicMail(); } catch(e) { console.error('Mail check error:', e); }
 });
 
 (async function() {
