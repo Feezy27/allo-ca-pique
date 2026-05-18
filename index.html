@@ -692,6 +692,7 @@ select option { background: var(--surface2); }
 <button type="button" class="cascade-btn" id="atype-monti" onclick="setArchiveType('Montivilliers')">Montivilliers</button>
 <button type="button" class="cascade-btn" id="atype-gonf" onclick="setArchiveType('Gonfreville')">Gonfreville</button>
 <button type="button" class="cascade-btn" id="atype-havre" onclick="setArchiveType('Le Havre')">Le Havre</button>
+<button type="button" class="cascade-btn" id="atype-smm" onclick="setArchiveType('Saint-Martin-du-Manoir')">St-Martin-du-M</button>
 <button type="button" class="cascade-btn" id="atype-vp" onclick="setArchiveType('Voie publique')">Autres</button>
 </div>
 </div>
@@ -787,6 +788,16 @@ select option { background: var(--surface2); }
 <div class="form-group full"><label>Adresse (rue)</label><input id="s-havre-adresse" type="text" placeholder="Place de l'Hôtel de Ville"></div>
 <div class="form-group"><label>Ville + CP</label><input id="s-havre-ville" type="text" placeholder="Le Havre 76600"></div>
 <div class="form-group"><label>Téléphone</label><input id="s-havre-tel" type="tel" placeholder="02 35 00 00 00"></div>
+</div>
+<!-- Saint-Martin-du-Manoir -->
+<div style="font-size:0.85rem;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:.06em;padding-bottom:8px;border-bottom:2px solid var(--border);margin:20px 0 12px 0">Saint-Martin-du-Manoir</div>
+<p style="font-size:0.82rem;color:var(--muted);margin:0 0 10px 0;line-height:1.5">La mairie participe à hauteur de <strong>50&nbsp;€</strong> pour toutes les interventions <strong>sauf frelon asiatique</strong>. L'adresse mail est utilisée pour envoyer la facture directement à la mairie.</p>
+<div class="form-grid">
+<div class="form-group full"><label>Adresse (rue)</label><input id="s-smm-adresse" type="text" placeholder="Place de la Mairie"></div>
+<div class="form-group"><label>Ville + CP</label><input id="s-smm-ville" type="text" placeholder="Saint-Martin-du-Manoir 76290"></div>
+<div class="form-group"><label>Téléphone</label><input id="s-smm-tel" type="tel" placeholder="02 35 00 00 00"></div>
+<div class="form-group"><label>Adresse mail</label><input id="s-smm-email" type="email" placeholder="contact@saint-martin-du-manoir.fr"></div>
+<div class="form-group full"><label>Bon de commande</label><input id="s-bdc-smm" type="text" placeholder="N° BC Saint-Martin-du-Manoir..."></div>
 </div>
 </div>
 </div>
@@ -911,6 +922,7 @@ select option { background: var(--surface2); }
 <button type="button" class="cascade-btn" id="smb-monti" onclick="selectClient('Montivilliers')">Montivilliers</button>
 <button type="button" class="cascade-btn" id="smb-gonf" onclick="selectClient('Gonfreville')">Gonfreville</button>
 <button type="button" class="cascade-btn" id="smb-havre" onclick="selectClient('Le Havre')">Le Havre</button>
+<button type="button" class="cascade-btn" id="smb-smm" onclick="selectClient('Saint-Martin-du-Manoir')">St-Martin-du-M</button>
 <button type="button" class="cascade-btn" id="smb-autres" onclick="selectClient('Voie publique')">Autres</button>
 </div>
 </div>
@@ -1181,12 +1193,44 @@ var rdvs = [];
 var factures = [];
 var settings = {};
 var annualStats = []; // [{year, ca, benef}]
+// Tombstones : enregistrement des suppressions pour les répliquer entre
+// appareils ET empêcher save() de ressusciter un RDV/facture supprimé.
+// Format : [{ id, deletedAt }]. Purgé au bout de 7 jours.
+var deletedRdvIds = [];
+var deletedFactureIds = [];
+var DELETION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
+
+// Verrou anti-course : empêche loadUserData() d'écraser une modification
+// locale pendant qu'un save() est en cours, et empêche le visibilitychange
+// de relancer un loadUserData() concurrent. Évite la perte de villes custom
+// ou la résurrection de RDV supprimés.
+var _saveInProgress = false;
+var _loadInProgress = false;
+
+function markDeleted(kind, id) {
+  if (!id) return;
+  var list = kind === 'facture' ? deletedFactureIds : deletedRdvIds;
+  // Évite les doublons (suppression d'un même id deux fois)
+  if (list.some(function(x) { return x && x.id === id; })) return;
+  list.push({ id: id, deletedAt: Date.now() });
+}
+
+function purgeOldDeletions() {
+  var cutoff = Date.now() - DELETION_TTL_MS;
+  deletedRdvIds     = deletedRdvIds.filter(function(x)     { return x && x.deletedAt > cutoff; });
+  deletedFactureIds = deletedFactureIds.filter(function(x) { return x && x.deletedAt > cutoff; });
+}
+
+function isDeleted(kind, id) {
+  var list = kind === 'facture' ? deletedFactureIds : deletedRdvIds;
+  return list.some(function(x) { return x && x.id === id; });
+}
 var INSECTES = [
   {id:'frelon-asiatique', label:'Frelon asiatique'},
   {id:'frelon-europeen', label:'Frelon européen'},
   {id:'guepe', label:'Guêpe'},
   {id:'abeille', label:'Abeille'},
-  {id:'ne-sais-pas', label:'Ne sais pas'}
+  {id:'bourdon', label:'Bourdons'}
 ];
 var EMPLACEMENTS = [
   {id:'sol', label:'Sol'},
@@ -1249,7 +1293,11 @@ async function save() {
   var uid = currentUser.id;
   var ind = document.getElementById('save-indicator');
   if (ind) ind.classList.add('visible');
+  _saveInProgress = true;
   try {
+    // Purger les vieilles tombstones avant toute opération
+    purgeOldDeletions();
+
     // 1) Récupérer l'état serveur actuel (fusion multi-appareils)
     var current = await supabaseClient.from('user_data')
       .select('rdvs, factures, settings, tarifs')
@@ -1257,18 +1305,42 @@ async function save() {
 
     var serverRdvs     = (current.data && current.data.rdvs)     || [];
     var serverFactures = (current.data && current.data.factures) || [];
+    var serverSettings = (current.data && current.data.settings) || {};
+
+    // Fusionner aussi les tombstones venues d'un autre appareil
+    var srvDelRdv = serverSettings._deletedRdvIds     || [];
+    var srvDelFac = serverSettings._deletedFactureIds || [];
+    srvDelRdv.forEach(function(x) {
+      if (x && x.id && !deletedRdvIds.some(function(y) { return y.id === x.id; })) {
+        deletedRdvIds.push(x);
+      }
+    });
+    srvDelFac.forEach(function(x) {
+      if (x && x.id && !deletedFactureIds.some(function(y) { return y.id === x.id; })) {
+        deletedFactureIds.push(x);
+      }
+    });
+    purgeOldDeletions();
+
+    // Sets d'ids supprimés pour filtrage rapide
+    var deletedRdvSet = {};
+    deletedRdvIds.forEach(function(x) { if (x && x.id) deletedRdvSet[x.id] = true; });
+    var deletedFacSet = {};
+    deletedFactureIds.forEach(function(x) { if (x && x.id) deletedFacSet[x.id] = true; });
 
     // 2) Fusion par id : union, le local prime, mais les ajouts venant
-    //    de l'autre appareil sont préservés.
+    //    de l'autre appareil sont préservés. Les ids présents dans les
+    //    tombstones sont exclus du résultat (suppressions répliquées).
     var factById = {};
-    serverFactures.forEach(function(x) { if (x && x.id) factById[x.id] = x; });
-    factures.forEach(function(x)       { if (x && x.id) factById[x.id] = x; });
+    serverFactures.forEach(function(x) { if (x && x.id && !deletedFacSet[x.id]) factById[x.id] = x; });
+    factures.forEach(function(x)       { if (x && x.id && !deletedFacSet[x.id]) factById[x.id] = x; });
     var mergedFactures = Object.keys(factById).map(function(k) { return factById[k]; });
 
     var rdvById = {};
-    serverRdvs.forEach(function(x) { if (x && x.id) rdvById[x.id] = x; });
+    serverRdvs.forEach(function(x) { if (x && x.id && !deletedRdvSet[x.id]) rdvById[x.id] = x; });
     rdvs.forEach(function(localR) {
       if (!localR || !localR.id) return;
+      if (deletedRdvSet[localR.id]) return;
       var serverR = rdvById[localR.id];
       if (serverR) {
         var merged = Object.assign({}, serverR, localR);
@@ -1285,8 +1357,12 @@ async function save() {
     factures = mergedFactures;
     rdvs     = mergedRdvs;
 
-    // 4) Écriture du résultat fusionné
-    var settingsToSave = Object.assign({}, settings, { _annualStats: annualStats });
+    // 4) Écriture du résultat fusionné (incluant les tombstones)
+    var settingsToSave = Object.assign({}, settings, {
+      _annualStats: annualStats,
+      _deletedRdvIds: deletedRdvIds,
+      _deletedFactureIds: deletedFactureIds
+    });
     var res = await supabaseClient.from('user_data').upsert({
       user_id: uid,
       rdvs: rdvs,
@@ -1302,11 +1378,22 @@ async function save() {
     if (ind) ind.classList.remove('visible');
     showToast('⚠️ Sauvegarde échouée — vérifiez votre connexion', true);
     throw e; // permet aux appelants de réagir (ex: validerFacture)
+  } finally {
+    _saveInProgress = false;
   }
 }
 
 async function loadUserData() {
   if (!supabaseClient || !currentUser) return;
+  // Si une sauvegarde est en cours, NE PAS écraser les modifs locales :
+  // un loadUserData lancé maintenant remettrait l'ancien état serveur par
+  // dessus les changements pas encore poussés (ville custom en cours d'ajout,
+  // RDV en cours de suppression, tombstone fraîchement créée, etc.).
+  if (_saveInProgress) return;
+  // Réentrance : éviter deux loadUserData en parallèle (ex: deux events
+  // visibilitychange enchaînés).
+  if (_loadInProgress) return;
+  _loadInProgress = true;
   try {
     var res = await supabaseClient.from('user_data').select('*').eq('user_id', currentUser.id).single();
     if (res.data) {
@@ -1314,11 +1401,24 @@ async function loadUserData() {
       factures = res.data.factures || [];
       var rawSettings = res.data.settings || {};
       annualStats = rawSettings._annualStats || [];
+      // Restaurer les tombstones (suppressions) et purger les vieilles
+      deletedRdvIds     = Array.isArray(rawSettings._deletedRdvIds)     ? rawSettings._deletedRdvIds     : [];
+      deletedFactureIds = Array.isArray(rawSettings._deletedFactureIds) ? rawSettings._deletedFactureIds : [];
       delete rawSettings._annualStats;
+      delete rawSettings._deletedRdvIds;
+      delete rawSettings._deletedFactureIds;
       settings = rawSettings;
       tarifs = res.data.tarifs || JSON.parse(JSON.stringify(TARIFS_DEFAULT));
+      purgeOldDeletions();
+      // Filtrer les éventuels rdvs/factures encore présents sur le serveur
+      // mais marqués supprimés (autre appareil qui a fait la suppression).
+      var dR = {}; deletedRdvIds.forEach(function(x)     { if (x && x.id) dR[x.id] = true; });
+      var dF = {}; deletedFactureIds.forEach(function(x) { if (x && x.id) dF[x.id] = true; });
+      rdvs     = rdvs.filter(function(r)     { return r && r.id && !dR[r.id]; });
+      factures = factures.filter(function(f) { return f && f.id && !dF[f.id]; });
     } else {
       rdvs = []; factures = []; settings = { nom: 'Allo ça pique' }; tarifs = JSON.parse(JSON.stringify(TARIFS_DEFAULT));
+      deletedRdvIds = []; deletedFactureIds = [];
     }
     // Compléter les clés tarifaires manquantes (ex: nouveaux emplacements ajoutés)
     // afin que les nouveaux tarifs (ex : "Recherche de nid" à 65 €) prennent
@@ -1334,6 +1434,9 @@ async function loadUserData() {
   } catch(e) {
     console.error('Load error:', e);
     rdvs = []; factures = []; settings = {}; tarifs = JSON.parse(JSON.stringify(TARIFS_DEFAULT));
+    deletedRdvIds = []; deletedFactureIds = [];
+  } finally {
+    _loadInProgress = false;
   }
 }
 
@@ -1954,7 +2057,7 @@ function resetCascade() {
 
 function selectClient(val) {
   _cascade.client = val;
-  var MAIRIE_VALS = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Voie publique'];
+  var MAIRIE_VALS = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Voie publique'];
   var isMairieVal = MAIRIE_VALS.indexOf(val) >= 0;
   var sm = document.getElementById('sous-menu-mairies');
   var mairiBtn = document.getElementById('btn-mairies');
@@ -1997,6 +2100,10 @@ function selectClient(val) {
       var gonfVille = settings.gonfVille || "Gonfreville-l'Orcher 76700";
       villeInput.value = gonfVille;
       if (villeCpInput) { var partsG = gonfVille.trim().split(' '); villeCpInput.value = partsG[partsG.length - 1] || '76700'; }
+    } else if (val === 'Saint-Martin-du-Manoir') {
+      var smmVille = settings.smmVille || 'Saint-Martin-du-Manoir 76290';
+      villeInput.value = smmVille;
+      if (villeCpInput) { var partsSmm = smmVille.trim().split(' '); villeCpInput.value = partsSmm[partsSmm.length - 1] || '76290'; }
     } else {
       villeInput.value = '';
       if (villeCpInput) villeCpInput.value = '';
@@ -2091,11 +2198,11 @@ function updateBlocMairie() {
   if (bloc) bloc.style.display = isVP ? '' : 'none';
   if (blocHavre) blocHavre.style.display = isHavre ? '' : 'none';
   if (blocSyndic) blocSyndic.style.display = isSyndic ? '' : 'none';
-  var MAIRIE_VALS_UBM = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Voie publique'];
+  var MAIRIE_VALS_UBM = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Voie publique'];
   if (MAIRIE_VALS_UBM.indexOf(_cascade.client) >= 0) {
     var smb = document.getElementById('sous-menu-mairies');
     if (smb) smb.style.display = '';
-    var smbMap = {'Montivilliers':'smb-monti','Gonfreville':'smb-gonf','Le Havre':'smb-havre','Voie publique':'smb-autres'};
+    var smbMap = {'Montivilliers':'smb-monti','Gonfreville':'smb-gonf','Le Havre':'smb-havre','Saint-Martin-du-Manoir':'smb-smm','Voie publique':'smb-autres'};
     ['smb-monti','smb-gonf','smb-havre','smb-autres'].forEach(function(id){
       var b = document.getElementById(id); if(b) b.classList.remove('selected');
     });
@@ -2200,10 +2307,22 @@ function saveRdv() {
   showToast('RDV enregistré !');
 }
 
-function supprimerRdv(id) {
+async function supprimerRdv(id) {
   if (!confirm('Supprimer ce rendez-vous ?')) return;
+  // Snapshot pour rollback éventuel
+  var prevRdvs = rdvs.slice();
   rdvs = rdvs.filter(function(r) { return r.id !== id; });
-  save();
+  markDeleted('rdv', id);
+  try {
+    await save();
+  } catch(e) {
+    // Rollback : on remet le RDV dans la liste et on retire la tombstone
+    rdvs = prevRdvs;
+    deletedRdvIds = deletedRdvIds.filter(function(x) { return !x || x.id !== id; });
+    if (vueRdv === 'agenda') renderAgenda(); else renderRdvs();
+    renderDashboard();
+    return;
+  }
   if (vueRdv === 'agenda') renderAgenda(); else renderRdvs();
   renderDashboard();
   showToast('RDV supprimé');
@@ -2221,8 +2340,8 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   var h = '<div style="background:#fff;color:#111;padding:12px 20px 20px;font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;" x-apple-data-detectors="false">';
 
   var bdcLine = '';
-  if ((data.clientType === 'Montivilliers' && s.bdcMontivilliers) || (data.clientType === 'Gonfreville' && s.bdcGonfreville) || (data.isSyndic && data.syndicBdc)) {
-    var bdcVal = data.clientType === 'Montivilliers' ? s.bdcMontivilliers : (data.clientType === 'Gonfreville' ? s.bdcGonfreville : data.syndicBdc);
+  if ((data.clientType === 'Montivilliers' && s.bdcMontivilliers) || (data.clientType === 'Gonfreville' && s.bdcGonfreville) || (data.clientType === 'Saint-Martin-du-Manoir' && s.bdcSMM) || (data.isSyndic && data.syndicBdc)) {
+    var bdcVal = data.clientType === 'Montivilliers' ? s.bdcMontivilliers : (data.clientType === 'Gonfreville' ? s.bdcGonfreville : (data.clientType === 'Saint-Martin-du-Manoir' ? s.bdcSMM : data.syndicBdc));
     bdcLine = '<br><strong style="color:#111;">BC :</strong> ' + escHtml(bdcVal);
   }
   h += '<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">';
@@ -2295,9 +2414,33 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   }
   h += '</tbody></table>';
 
+  // Saint-Martin-du-Manoir : bloc "Part mairie / Part requérant".
+  // S'affiche pour les interventions où la mairie participe (smmParticipe).
+  // C'est un bloc d'information, PAS une aide : la facture est destinée à
+  // la fois au requérant et à la mairie, chacun voit la part qu'il doit régler.
+  var smmActive = !!data.smmParticipe;
+  var smmPartVal = parseFloat(data.smmPart) || 50;
+  if (smmActive) {
+    var partReq = Math.max(0, totalHT - smmPartVal);
+    total = partReq;
+    h += '<div style="margin:16px 0;background:#f0f7ff;border:2px solid #1d4ed8;border-radius:10px;padding:14px 18px">';
+    h += '<div style="font-weight:700;font-size:0.93rem;color:#1d4ed8;margin-bottom:10px">Répartition du règlement</div>';
+    h += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
+    h += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
+    if (hasDepl) {
+      h += '<tr><td style="padding:4px 0;color:#555">Frais de déplacement</td><td style="text-align:right;font-weight:600;color:#111">' + prixDepl.toFixed(2) + ' €</td></tr>';
+    }
+    h += '<tr><td style="padding:4px 0;color:#333;font-weight:600">Total HT</td><td style="text-align:right;font-weight:700;color:#111">' + totalHT.toFixed(2) + ' €</td></tr>';
+    h += '<tr style="border-top:1px solid #cbd5e1"><td style="padding:6px 0 4px;color:#333">Part de la mairie</td><td style="text-align:right;font-weight:600;color:#1d4ed8">' + smmPartVal.toFixed(2) + ' €</td></tr>';
+    h += '<tr style="border-top:2px solid #1d4ed8"><td style="padding:8px 0 4px;font-weight:700;font-size:1rem;color:#111">Part du requérant</td><td style="text-align:right;font-weight:800;font-size:1.1rem;color:#111;padding:8px 0 4px">' + partReq.toFixed(2) + ' €</td></tr>';
+    h += '</table>';
+    h += '<div style="font-size:0.75rem;color:#555;margin-top:8px;line-height:1.5">La mairie de Saint-Martin-du-Manoir participe à hauteur de ' + smmPartVal.toFixed(2) + ' € pour cette intervention. Cette facture est adressée à la fois au requérant et à la mairie : chacun règle la part indiquée.</div>';
+    h += '</div>';
+  }
+
   var aides = Array.isArray(data.aide) ? data.aide : (data.aide ? [data.aide] : []);
-  if (aides.length === 0 && withSigCanvas) { h += '<div id="aide-display-block" style="display:none"></div>'; }
-  if (aides.length > 0) {
+  if (aides.length === 0 && withSigCanvas && !smmActive) { h += '<div id="aide-display-block" style="display:none"></div>'; }
+  if (aides.length > 0 && !smmActive) {
     var pctDepart = (s.aideDepartPct !== undefined ? s.aideDepartPct : 30);
     var pctSeine  = (s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30);
     // Les aides s'appliquent sur le TOTAL HT (nid + déplacement)
@@ -2401,7 +2544,14 @@ function buildDataFacture(r, num, dateStr) {
   var isMonti = r.clientType === 'Montivilliers';
   var isGonf  = r.clientType === 'Gonfreville';
   var isHavre = r.clientType === 'Le Havre';
-  var isMairie = isMonti || isGonf || isHavre;
+  var isSMM   = r.clientType === 'Saint-Martin-du-Manoir';
+  var isMairie = isMonti || isGonf || isHavre || isSMM;
+
+  // Saint-Martin-du-Manoir : la mairie participe à 50 € pour tous les insectes
+  // SAUF frelon asiatique. Ce flag déclenche un rendu "Part mairie / Part client"
+  // au lieu (et à la place) du bloc d'aides standard.
+  var isFA = r.insecte === 'frelon-asiatique';
+  var smmParticipe = isSMM && !isFA;
 
   var clientNom, clientAdr, clientTel;
   if (isMonti) {
@@ -2419,6 +2569,11 @@ function buildDataFacture(r, num, dateStr) {
     clientAdr = settings.havreAdresse || '';
     clientVille = settings.havreVille || '';
     clientTel = settings.havreTel || '';
+  } else if (isSMM) {
+    clientNom = 'Mairie de Saint-Martin-du-Manoir';
+    clientAdr = settings.smmAdresse || '';
+    clientVille = settings.smmVille || '';
+    clientTel = settings.smmTel || '';
   } else if (isSyndic) {
     clientNom = r.syndicAgence || nomClient;
     clientVille = '';
@@ -2454,7 +2609,10 @@ function buildDataFacture(r, num, dateStr) {
     requerantVille: (isMairie || isSyndic) ? (r.ville || '') : '',
     requerantTel: (isMairie || isSyndic) ? (r.tel || '') : '',
     isMairie: isMairie,
-    mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : (isHavre ? 'Le Havre' : '')),
+    mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : (isHavre ? 'Le Havre' : (isSMM ? 'Saint-Martin-du-Manoir' : ''))),
+    isSMM: isSMM,
+    smmParticipe: smmParticipe,
+    smmEmail: isSMM ? (settings.smmEmail || '') : '',
     syndicBdc: r.syndicBdc || '',
     syndicAgence: r.syndicAgence || '',
     syndicAgenceAdresse: r.syndicAgenceAdresse || '',
@@ -2472,6 +2630,7 @@ function getFacturePrefix(clientType) {
   if (ct === 'Montivilliers') return 'FM';
   if (ct === 'Gonfreville')   return 'FG';
   if (ct === 'Le Havre')      return 'FLH';
+  if (ct === 'Saint-Martin-du-Manoir') return 'FSMM';
   return 'F'; // Particulier, Syndic/Copro, Voie publique, et défaut
 }
 
@@ -2547,8 +2706,8 @@ function buildFactureHtmlMobile(f) {
   h += '<div style="text-align:right;">';
   h += '<div style="font-family:Arial,sans-serif;font-weight:800;font-size:1.3rem;color:#091a45;">FACTURE</div>';
   h += '<div style="font-size:0.78rem;color:#555;line-height:1.6;"><strong>N°</strong> ' + escHtml(f.num||'') + '</div>';
-  if (f.syndicBdc || (f.clientType === 'Montivilliers' && s.bdcMontivilliers) || (f.clientType === 'Gonfreville' && s.bdcGonfreville)) {
-    var bdcVal = f.syndicBdc || (f.clientType === 'Montivilliers' ? s.bdcMontivilliers : s.bdcGonfreville) || '';
+  if (f.syndicBdc || (f.clientType === 'Montivilliers' && s.bdcMontivilliers) || (f.clientType === 'Gonfreville' && s.bdcGonfreville) || (f.clientType === 'Saint-Martin-du-Manoir' && s.bdcSMM)) {
+    var bdcVal = f.syndicBdc || (f.clientType === 'Montivilliers' ? s.bdcMontivilliers : (f.clientType === 'Gonfreville' ? s.bdcGonfreville : s.bdcSMM)) || '';
     if (bdcVal) h += '<div style="font-size:0.78rem;color:#555;"><strong>BC :</strong> ' + escHtml(bdcVal) + '</div>';
   }
   h += '<div style="font-size:0.78rem;color:#555;"><strong>Date :</strong> ' + escHtml(f.dateStr||new Date(f.date+'T12:00:00').toLocaleDateString('fr-FR')) + '</div>';
@@ -2578,7 +2737,7 @@ function buildFactureHtmlMobile(f) {
   h += '</div>';
 
   // Requérant si mairie/syndic
-  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Voie publique'].indexOf(f.clientType) >= 0;
+  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir','Voie publique'].indexOf(f.clientType) >= 0;
   var isSyndic = f.clientType === 'Syndic/Copro' || f.isSyndic;
   if ((isMairie || isSyndic) && (f.requerantNom || (isSyndic && f.syndicContact))) {
     h += '<div style="' + cellStyle + 'margin-bottom:10px;">';
@@ -2610,8 +2769,26 @@ function buildFactureHtmlMobile(f) {
   }
   h += '</tbody></table>';
 
-  // Aides
-  if (aides.length > 0) {
+  // Saint-Martin-du-Manoir : Part mairie / Part requérant
+  var smmActive = !!f.smmParticipe;
+  var smmPartVal = parseFloat(f.smmPart) || 50;
+  if (smmActive) {
+    var partReq = Math.max(0, totalHT - smmPartVal);
+    total = partReq;
+    h += '<div style="background:#f0f7ff;border:2px solid #1d4ed8;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.85rem;">';
+    h += '<div style="font-weight:700;color:#1d4ed8;margin-bottom:6px;">Répartition du règlement</div>';
+    h += '<div style="display:flex;justify-content:space-between;"><span style="color:#555;">Montant intervention</span><span style="font-weight:600;">' + prixHT.toFixed(2) + ' €</span></div>';
+    if (hasDepl) {
+      h += '<div style="display:flex;justify-content:space-between;"><span style="color:#555;">Frais de déplacement</span><span style="font-weight:600;">' + prixDepl.toFixed(2) + ' €</span></div>';
+    }
+    h += '<div style="display:flex;justify-content:space-between;border-top:1px dashed #1d4ed8;margin-top:4px;padding-top:4px;"><span style="color:#333;font-weight:600">Total HT</span><span style="font-weight:700;">' + totalHT.toFixed(2) + ' €</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;"><span>Part de la mairie</span><span style="font-weight:600;color:#1d4ed8;">' + smmPartVal.toFixed(2) + ' €</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;border-top:1px solid #1d4ed8;margin-top:6px;padding-top:6px;font-weight:700;"><span>Part du requérant</span><span>' + partReq.toFixed(2) + ' €</span></div>';
+    h += '</div>';
+  }
+
+  // Aides (uniquement si pas de participation SMM)
+  if (aides.length > 0 && !smmActive) {
     h += '<div style="background:#fffbf0;border:2px solid #f5a623;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.85rem;">';
     h += '<div style="font-weight:700;color:#b36b00;margin-bottom:6px;">Aides à la destruction</div>';
     h += '<div style="display:flex;justify-content:space-between;"><span style="color:#555;">Montant intervention</span><span style="font-weight:600;">' + prixHT.toFixed(2) + ' €</span></div>';
@@ -2667,7 +2844,10 @@ function voirFacture(factureId) {
     requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '', isMairie: f.isMairie || false,
     mairieNom: f.mairieNom || '',
     fraisDeplacement: !!f.fraisDeplacement,
-    prixDeplacement: parseFloat(f.prixDeplacement) || 0
+    prixDeplacement: parseFloat(f.prixDeplacement) || 0,
+    smmParticipe: !!f.smmParticipe,
+    smmPart: parseFloat(f.smmPart) || 0,
+    smmEmail: f.smmEmail || ''
   };
   document.getElementById('facture-content').innerHTML = buildFactureHtmlMobile(fView);
     document.getElementById('btn-valider').style.display = 'none';
@@ -2675,7 +2855,9 @@ function voirFacture(factureId) {
   if (psEl) psEl.style.display = 'none';
   var btnSms = document.getElementById('btn-sms');
   var isParticulier = !f.clientType || f.clientType === 'Particulier';
-  if (btnSms) btnSms.style.display = (f && f.tel && isParticulier) ? 'inline-flex' : 'none';
+  var isSMM = f.clientType === 'Saint-Martin-du-Manoir' && !!f.smmParticipe;
+  var canSms = (isParticulier && f.tel) || (isSMM && f.requerantTel);
+  if (btnSms) btnSms.style.display = canSms ? 'inline-flex' : 'none';
   var canMail = f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && isParticulier;
   document.getElementById('btn-mail').style.display = canMail ? 'inline-flex' : 'none';
   document.getElementById('modal-facture').classList.add('open');
@@ -2698,6 +2880,9 @@ function choisirAide(val) {
   });
   var rdv = currentRdvId ? rdvs.find(function(r) { return r.id === currentRdvId; }) : null;
   if (!rdv) return;
+  // Pour Saint-Martin-du-Manoir non-frelon-asiatique, le bloc "Part mairie /
+  // Part requérant" remplace les aides — pas de calcul d'aide à afficher.
+  if (rdv.clientType === 'Saint-Martin-du-Manoir' && rdv.insecte !== 'frelon-asiatique') return;
   var s = settings;
   var prixHT = rdv.prix || 0;
   var prixDepl = (rdv.fraisDeplacement && parseFloat(rdv.prixDeplacement) > 0) ? parseFloat(rdv.prixDeplacement) : 0;
@@ -2783,7 +2968,17 @@ async function validerFacture() {
   // Les aides s'appliquent sur le TOTAL (nid + déplacement)
   if (aideChoisie.indexOf('departement') >= 0) totalAideAmt2 += totalHT * pctD / 100;
   if (aideChoisie.indexOf('seine') >= 0)       totalAideAmt2 += totalHT * pctS / 100;
-  var prixFinal = totalHT - totalAideAmt2;
+  // Saint-Martin-du-Manoir : la mairie prend 50 € (sauf frelon asiatique).
+  // Le "prix" final (= part requérant) = total - 50 €.
+  var smmParticipe = !!data.smmParticipe;
+  var smmAmount = 50;
+  var smmPart = smmParticipe ? Math.min(smmAmount, totalHT) : 0;
+  var prixFinal;
+  if (smmParticipe) {
+    prixFinal = totalHT - smmPart;
+  } else {
+    prixFinal = totalHT - totalAideAmt2;
+  }
   var f = {
     id: String(Date.now()),
     num: num,
@@ -2814,7 +3009,11 @@ async function validerFacture() {
     requerantVille: data.requerantVille || '',
     requerantTel: data.requerantTel || '',
     isMairie: data.isMairie || false,
-    mairieNom: data.mairieNom || ''
+    mairieNom: data.mairieNom || '',
+    // Saint-Martin-du-Manoir : participation mairie
+    smmParticipe: smmParticipe,
+    smmPart: smmPart,
+    smmEmail: data.smmEmail || ''
   };
   factures.push(f);
   var idx = rdvs.findIndex(function(x) { return x.id === currentRdvId; });
@@ -2838,7 +3037,12 @@ async function validerFacture() {
   showToast('✓ Facture archivée !');
 
   var isPartCurr = !r.clientType || r.clientType === 'Particulier';
+  var isSMMCurr  = r.clientType === 'Saint-Martin-du-Manoir';
   if (isPartCurr && r.tel) {
+    setTimeout(function() { ouvrirSMSFacture(f); }, 600);
+  } else if (isSMMCurr && f.smmParticipe && r.tel) {
+    // SMM : envoyer automatiquement le SMS au requérant (numéro saisi dans le
+    // formulaire RDV, qui correspond bien au requérant et pas à la mairie).
     setTimeout(function() { ouvrirSMSFacture(f); }, 600);
   }
 }
@@ -2930,7 +3134,13 @@ function showSyndicMailConfirm(f) {
 }
 
 function ouvrirSMSFacture(f) {
-  var tel = f.tel ? f.tel.replace(/\s/g, '').replace(/^0/, '+33') : '';
+  // Pour Saint-Martin-du-Manoir, le destinataire du SMS est le REQUÉRANT
+  // (pas la mairie). Sa ligne `tel` contient celle de la mairie ; on utilise
+  // `requerantTel` à la place.
+  var rawTel = (f.smmParticipe || f.clientType === 'Saint-Martin-du-Manoir')
+    ? (f.requerantTel || '')
+    : (f.tel || '');
+  var tel = rawTel ? rawTel.replace(/\s/g, '').replace(/^0/, '+33') : '';
   if (!tel) { showToast('Pas de numéro de téléphone pour ce client', true); return; }
 
   showToast('SMS Génération du lien facture...');
@@ -2958,7 +3168,10 @@ function ouvrirSMSFacture(f) {
     isMairie: f.isMairie || false,
     mairieNom: f.mairieNom || '',
     fraisDeplacement: !!f.fraisDeplacement,
-    prixDeplacement: parseFloat(f.prixDeplacement) || 0
+    prixDeplacement: parseFloat(f.prixDeplacement) || 0,
+    smmParticipe: !!f.smmParticipe,
+    smmPart: parseFloat(f.smmPart) || 0,
+    smmEmail: f.smmEmail || ''
   }, false, false);
   document.body.appendChild(tempDiv);
 
@@ -2985,7 +3198,7 @@ function ouvrirSMSFacture(f) {
       var modePaie = f.paiement ? paiementLabels[f.paiement] || f.paiement : 'réception de facture';
       var dateStr = new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR');
       var nl = '\n';
-      var mairiePaie = ['Montivilliers','Gonfreville','Le Havre'].indexOf(f.clientType || '') >= 0;
+      var mairiePaie = ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir'].indexOf(f.clientType || '') >= 0;
       var ribLine = '';
       if (f.paiement === 'virement' && !mairiePaie && s.ribIban) {
         ribLine = nl + nl + 'Coordonn\u00E9es bancaires pour le virement :' + nl
@@ -3044,7 +3257,10 @@ function sendMailForFacture(f) {
     isMairie: f.isMairie || false,
     mairieNom: f.mairieNom || '',
     fraisDeplacement: !!f.fraisDeplacement,
-    prixDeplacement: parseFloat(f.prixDeplacement) || 0
+    prixDeplacement: parseFloat(f.prixDeplacement) || 0,
+    smmParticipe: !!f.smmParticipe,
+    smmPart: parseFloat(f.smmPart) || 0,
+    smmEmail: f.smmEmail || ''
   }, false, false);
   document.body.appendChild(tempDiv);
 
@@ -3069,7 +3285,7 @@ function sendMailForFacture(f) {
       var imageUrl = result.data.url;
 
       showToast(' Envoi du mail...');
-      var mairiePaieMail = ['Montivilliers','Gonfreville','Le Havre'].indexOf(f.clientType || '') >= 0;
+      var mairiePaieMail = ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir'].indexOf(f.clientType || '') >= 0;
       var ribMail = '';
       if (f.paiement === 'virement' && !mairiePaieMail && s.ribIban) {
         ribMail = '\nCoordonnées bancaires pour le virement :'
@@ -3466,7 +3682,7 @@ function closePrintModal() {
   document.body.style.overflow = '';
 }
 
-var MAIRIE_TYPES = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Voie publique'];
+var MAIRIE_TYPES = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Voie publique'];
 
 function toggleArchiveMairies() {
   var sm = document.getElementById('arch-sous-menu-mairies');
@@ -3497,7 +3713,7 @@ function setArchiveType(type) {
   ['atype-monti','atype-gonf','atype-havre','atype-vp'].forEach(function(id) {
     var b = document.getElementById(id); if (b) b.classList.remove('selected');
   });
-  var map = {'Montivilliers':'atype-monti','Gonfreville':'atype-gonf','Le Havre':'atype-havre','Voie publique':'atype-vp'};
+  var map = {'Montivilliers':'atype-monti','Gonfreville':'atype-gonf','Le Havre':'atype-havre','Saint-Martin-du-Manoir':'atype-smm','Voie publique':'atype-vp'};
   if (map[type]) { var b = document.getElementById(map[type]); if (b) b.classList.add('selected'); }
   renderArchives();
 }
@@ -3535,6 +3751,7 @@ function renderArchives() {
     if (archiveType === 'Montivilliers') return f.clientType === 'Montivilliers';
     if (archiveType === 'Gonfreville') return f.clientType === 'Gonfreville';
     if (archiveType === 'Le Havre') return f.clientType === 'Le Havre';
+    if (archiveType === 'Saint-Martin-du-Manoir') return f.clientType === 'Saint-Martin-du-Manoir';
     if (archiveType === 'Syndic/Copro') return f.clientType === 'Syndic/Copro';
     return !f.clientType || f.clientType === 'Particulier';
   });
@@ -3602,8 +3819,29 @@ function renderArchives() {
       var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
       var isPartArch = !f.clientType || f.clientType === 'Particulier';
       var isSyndicArch = f.clientType === 'Syndic/Copro';
+      var isSMMArch = f.clientType === 'Saint-Martin-du-Manoir' && !!f.smmParticipe;
       var mailBtn = (f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && isPartArch)
         ? '<button class="btn btn-ghost btn-sm" onclick="sendMailById(\'' + f.id + '\')" title="Envoyer par mail"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail</button>' : '';
+      // Bouton "Mail mairie" pour Saint-Martin-du-Manoir : envoie la facture
+      // à l'adresse de la mairie configurée dans Paramètres.
+      var smmMailBtn = '';
+      if (isSMMArch) {
+        var smmEmail = f.smmEmail || settings.smmEmail || '';
+        if (smmEmail) {
+          var subjS = encodeURIComponent('Facture ' + f.num + ' - Intervention nid (Saint-Martin-du-Manoir)');
+          var nlS = '%0A';
+          var bodyS = 'Bonjour,' + nlS + nlS +
+            'Veuillez trouver ci-joint la facture ' + f.num + ' relative à notre intervention à Saint-Martin-du-Manoir.' + nlS + nlS +
+            'Facture N° : ' + f.num + nlS +
+            'Requérant : ' + (f.requerantNom || f.nom || '') + nlS +
+            'Date : ' + new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR') + nlS +
+            'Part de la mairie : ' + (parseFloat(f.smmPart) || 50).toFixed(2) + ' EUR' + nlS + nlS +
+            'Merci de bien vouloir procéder au règlement à réception.' + nlS + nlS +
+            'Cordialement,' + nlS + (settings.nom || 'Allo ça pique');
+          var smmMailto = 'mailto:' + encodeURIComponent(smmEmail) + '?subject=' + subjS + '&body=' + bodyS;
+          smmMailBtn = '<button class="btn btn-ghost btn-sm" onclick="ouvrirMailSyndic(\'' + f.id + '\', ' + JSON.stringify(smmMailto).replace(/"/g, '&quot;') + ')" title="Envoyer par mail à la mairie"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail mairie</button>';
+        }
+      }
       var syndicMailBtn = '';
       if (isSyndicArch) {
         var subj = encodeURIComponent('Facture ' + f.num + ' - Intervention nid');
@@ -3633,7 +3871,10 @@ function renderArchives() {
         var mailtoHref = 'mailto:' + toAddr + '?subject=' + subj + '&body=' + bodyStr;
         syndicMailBtn = '<button class="btn btn-ghost btn-sm" onclick="ouvrirMailSyndic(\'' + f.id + '\', ' + JSON.stringify(mailtoHref).replace(/"/g, '&quot;') + ')" title="Envoyer par mail au syndic"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail</button>';
       }
-      var smsBtn = (f.tel && isPartArch)
+      // SMS au requérant : particuliers + Saint-Martin-du-Manoir (la fonction
+      // ouvrirSMSFacture utilise f.requerantTel quand smmParticipe est vrai).
+      var smsTelOk = isPartArch ? !!f.tel : (isSMMArch ? !!f.requerantTel : false);
+      var smsBtn = (smsTelOk && (isPartArch || isSMMArch))
         ? '<button class="btn btn-ghost btn-sm" onclick="ouvrirSMSFacture(findById(factures, \'' + f.id + '\'))" title="Envoyer par SMS">SMS</button>' : '';
 
       html += '<div class="arch-fact-card">';
@@ -3662,6 +3903,7 @@ function renderArchives() {
       html += '<button class="btn btn-ghost btn-sm" onclick="telechargerFacture(\'' + f.id + '\')" title="Télécharger"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Téléch.</button>';
       html += syndicMailBtn;
       html += smsBtn;
+      html += smmMailBtn;
       html += mailBtn;
       html += '<button class="btn btn-sm" onclick="supprimerFacture(\'' + f.id + '\')" title="Supprimer" style="background:rgba(204,26,58,0.1);color:var(--red);border:1px solid rgba(204,26,58,0.3)"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Suppr.</button>';
       html += '</div>';
@@ -3672,11 +3914,15 @@ function renderArchives() {
   el.innerHTML = html;
 }
 
-function supprimerFacture(factureId) {
+async function supprimerFacture(factureId) {
   var f = findById(factures, factureId);
   if (!f) return;
   var label = f.num + ' — ' + f.nom + ' (' + (f.prix||0).toFixed(2) + ' €)';
   if (!confirm('Supprimer cette facture ? Cette action est irréversible.')) return;
+
+  // Snapshots pour rollback éventuel
+  var prevFactures = factures.slice();
+  var prevRdvs     = rdvs.map(function(r) { return Object.assign({}, r); });
 
   factures = factures.filter(function(x) { return x.id !== factureId; });
 
@@ -3689,7 +3935,20 @@ function supprimerFacture(factureId) {
     return r;
   });
 
-  save();
+  markDeleted('facture', factureId);
+
+  try {
+    await save();
+  } catch(e) {
+    // Rollback
+    factures = prevFactures;
+    rdvs = prevRdvs;
+    deletedFactureIds = deletedFactureIds.filter(function(x) { return !x || x.id !== factureId; });
+    renderArchives();
+    renderDashboard();
+    renderRdvs();
+    return;
+  }
   renderArchives();
   renderDashboard();
   renderRdvs();
@@ -3738,7 +3997,10 @@ function genFactureHtmlStandalone(f) {
     requerantVille: f.requerantVille || '', requerantTel: f.requerantTel || '', isMairie: f.isMairie || false,
     mairieNom: f.mairieNom || '',
     fraisDeplacement: !!f.fraisDeplacement,
-    prixDeplacement: parseFloat(f.prixDeplacement) || 0
+    prixDeplacement: parseFloat(f.prixDeplacement) || 0,
+    smmParticipe: !!f.smmParticipe,
+    smmPart: parseFloat(f.smmPart) || 0,
+    smmEmail: f.smmEmail || ''
   };
   var bodyHtml = buildFactureHtml(data, false, false);
   var iosScript = '<script>'
@@ -3835,6 +4097,7 @@ function generatePDFTexte(f, s) {
   var bdcVal = f.syndicBdc || '';
   if (!bdcVal && f.clientType === 'Montivilliers' && s.bdcMontivilliers) bdcVal = s.bdcMontivilliers;
   if (!bdcVal && f.clientType === 'Gonfreville'   && s.bdcGonfreville)   bdcVal = s.bdcGonfreville;
+  if (!bdcVal && f.clientType === 'Saint-Martin-du-Manoir' && s.bdcSMM)  bdcVal = s.bdcSMM;
 
   var dateStr = f.dateStr || (f.date ? new Date(f.date+'T12:00:00').toLocaleDateString('fr-FR') : '');
 
@@ -3893,7 +4156,7 @@ function generatePDFTexte(f, s) {
   y += cardH + 8;
 
   // Requérant
-  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Voie publique'].indexOf(f.clientType)>=0;
+  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir','Voie publique'].indexOf(f.clientType)>=0;
   if ((isMairie || f.clientType==='Syndic/Copro' || f.isSyndic) && f.requerantNom) {
     var rL = [];
     if (f.requerantAdresse) rL.push(f.requerantAdresse+(f.requerantVille?', '+f.requerantVille:''));
@@ -3919,6 +4182,7 @@ function generatePDFTexte(f, s) {
     'frelon-europeen':  'frelon européen',
     'guepe':            'guêpe',
     'abeille':          'abeille',
+    'bourdon':          'bourdons',
     'ne-sais-pas':      'nid inconnu'
   };
   var insecteLabel = f.insecte ? (insecteLabels[f.insecte] || f.insecte) : null;
@@ -4073,6 +4337,7 @@ function telechargerJournee(dateStr) {
     if (archiveType === 'Voie publique') return f.date === dateStr && f.clientType === 'Voie publique';
     if (archiveType === 'Montivilliers') return f.date === dateStr && f.clientType === 'Montivilliers';
     if (archiveType === 'Gonfreville') return f.date === dateStr && f.clientType === 'Gonfreville';
+    if (archiveType === 'Saint-Martin-du-Manoir') return f.date === dateStr && f.clientType === 'Saint-Martin-du-Manoir';
     if (archiveType === 'Syndic/Copro') return f.date === dateStr && f.clientType === 'Syndic/Copro';
     return f.date === dateStr && (!f.clientType || f.clientType === 'Particulier');
   });
@@ -4112,6 +4377,7 @@ function telechargerMois(ym) {
     if (archiveType === 'Montivilliers') return f.clientType === 'Montivilliers';
     if (archiveType === 'Gonfreville') return f.clientType === 'Gonfreville';
     if (archiveType === 'Le Havre') return f.clientType === 'Le Havre';
+    if (archiveType === 'Saint-Martin-du-Manoir') return f.clientType === 'Saint-Martin-du-Manoir';
     if (archiveType === 'Syndic/Copro') return f.clientType === 'Syndic/Copro';
     return !f.clientType || f.clientType === 'Particulier';
   });
@@ -4158,7 +4424,7 @@ function buildFilename(f) {
   // Le numéro de facture est déjà préfixé (FM001-2026, F001-2026, etc.)
   // On ajoute juste le nom du client pour les non-mairies
   var ct = f.clientType || '';
-  var isMairie = (ct === 'Montivilliers' || ct === 'Gonfreville' || ct === 'Le Havre' || ct === 'Voie publique');
+  var isMairie = (ct === 'Montivilliers' || ct === 'Gonfreville' || ct === 'Le Havre' || ct === 'Saint-Martin-du-Manoir' || ct === 'Voie publique');
   var nom = isMairie ? '' : ('_' + escFilename(f.nom || ''));
   return f.num + nom + '.pdf';
 }
@@ -4204,6 +4470,13 @@ function renderSettings() {
   document.getElementById('s-havre-adresse').value = settings.havreAdresse || '';
   document.getElementById('s-havre-ville').value = settings.havreVille || '';
   document.getElementById('s-havre-tel').value = settings.havreTel || '';
+  // Saint-Martin-du-Manoir
+  var el; 
+  el = document.getElementById('s-smm-adresse'); if (el) el.value = settings.smmAdresse || '';
+  el = document.getElementById('s-smm-ville');   if (el) el.value = settings.smmVille || '';
+  el = document.getElementById('s-smm-tel');     if (el) el.value = settings.smmTel || '';
+  el = document.getElementById('s-smm-email');   if (el) el.value = settings.smmEmail || '';
+  el = document.getElementById('s-bdc-smm');     if (el) el.value = settings.bdcSMM || '';
   document.getElementById('s-aide-depart-pct').value = settings.aideDepartPct !== undefined ? settings.aideDepartPct : 30;
   document.getElementById('s-aide-seine-pct').value = settings.aideSeinePct !== undefined ? settings.aideSeinePct : 30;
   var sbUrl = document.getElementById('s-sb-url');
@@ -4323,7 +4596,13 @@ function exporterDonnees() {
 }
 
 function saveSettings() {
-  settings = {
+  // On préserve les champs portés par settings qui ne sont pas dans le
+  // formulaire (villesCustom, etc.) — comme pour saveRdv, on part de
+  // l'existant et on superpose les valeurs du formulaire.
+  var preserved = {
+    villesCustom: settings.villesCustom || []
+  };
+  settings = Object.assign({}, preserved, {
     nom: document.getElementById('s-nom').value.trim(),
     siret: document.getElementById('s-siret').value.trim(),
     adresse: document.getElementById('s-adresse').value.trim(),
@@ -4351,9 +4630,14 @@ function saveSettings() {
     havreAdresse: (document.getElementById('s-havre-adresse')||{value:''}).value.trim(),
     havreVille: (document.getElementById('s-havre-ville')||{value:''}).value.trim(),
     havreTel: (document.getElementById('s-havre-tel')||{value:''}).value.trim(),
+    smmAdresse: (document.getElementById('s-smm-adresse')||{value:''}).value.trim(),
+    smmVille: (document.getElementById('s-smm-ville')||{value:''}).value.trim(),
+    smmTel: (document.getElementById('s-smm-tel')||{value:''}).value.trim(),
+    smmEmail: (document.getElementById('s-smm-email')||{value:''}).value.trim(),
+    bdcSMM: (document.getElementById('s-bdc-smm')||{value:''}).value.trim(),
     aideDepartPct: parseFloat(document.getElementById('s-aide-depart-pct').value) || 30,
     aideSeinePct: parseFloat(document.getElementById('s-aide-seine-pct').value) || 30
-  };
+  });
   tarifs = {};
   document.querySelectorAll('#tarif-grid-container input[data-key]').forEach(function(inp) {
     tarifs[inp.dataset.key] = parseFloat(inp.value) || 0;
