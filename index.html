@@ -4326,9 +4326,63 @@ function generatePDFTexte(f, s) {
   return pdf;
 }
 
+// Charge une image distante (Cloudinary) et la convertit en dataURL,
+// avec ses dimensions, afin de pouvoir l'insérer dans un PDF jsPDF.
+function loadImageForPdf(url) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        resolve({ dataUrl: dataUrl, w: img.naturalWidth, h: img.naturalHeight });
+      } catch(e) { reject(e); }
+    };
+    img.onerror = function() { reject(new Error('Chargement image échoué')); };
+    img.src = url;
+  });
+}
+
+// Ajoute la photo de l'intervention en 2e page du PDF (Saint-Martin-du-Manoir).
+async function appendPhotoPage(pdf, photoUrl) {
+  if (!photoUrl) return;
+  var info;
+  try { info = await loadImageForPdf(photoUrl); } catch(e) { console.error('Photo PDF:', e); return; }
+  var W = pdf.internal.pageSize.getWidth();
+  var H = pdf.internal.pageSize.getHeight();
+  var M = 12;
+  pdf.addPage();
+  // Titre
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(13); pdf.setTextColor(9,26,69);
+  pdf.text('Photo de l\'intervention', W/2, M+6, { align: 'center' });
+  // Calcul des dimensions pour tenir dans la page en conservant le ratio
+  var availW = W - 2*M;
+  var availH = H - 2*M - 12;
+  var ratio = info.w / info.h;
+  var drawW = availW;
+  var drawH = drawW / ratio;
+  if (drawH > availH) { drawH = availH; drawW = drawH * ratio; }
+  var x = (W - drawW) / 2;
+  var yTop = M + 12;
+  try { pdf.addImage(info.dataUrl, 'JPEG', x, yTop, drawW, drawH); } catch(e) { console.error('addImage:', e); }
+}
+
 async function genPdfAndDownload(f) {
   await loadJsPDF(); // S'assurer que jsPDF est chargé AVANT de générer le PDF
   var pdf = generatePDFTexte(f, settings);
+  // Saint-Martin-du-Manoir : intégrer la photo en page 2 dans le même PDF.
+  if (f.clientType === 'Saint-Martin-du-Manoir') {
+    var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
+    var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
+    if (photoUrl) {
+      try { await appendPhotoPage(pdf, photoUrl); } catch(e) { console.error('Photo page:', e); }
+    }
+  }
   var filename = buildFilename(f);
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
@@ -4373,7 +4427,9 @@ async function telechargerFacture(factureId) {
     console.error('PDF error:', e);
     showToast('Erreur génération PDF : ' + e.message, true);
   }
-  if (photoUrl) {
+  // La photo n'est téléchargée séparément QUE pour les non-SMM. Pour
+  // Saint-Martin-du-Manoir, elle est déjà intégrée en page 2 du PDF.
+  if (photoUrl && f.clientType !== 'Saint-Martin-du-Manoir') {
     setTimeout(function() {
       var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
       dlPhoto(photoUrl, 'Photo_' + f.num + '_' + escFilename(f.nom) + '.' + ext, null);
@@ -4405,7 +4461,7 @@ function telechargerJournee(dateStr) {
 
     try { await genPdfAndDownload(f); } catch(e) { console.error('PDF error:', e); }
 
-    if (photoUrl) {
+    if (photoUrl && f.clientType !== 'Saint-Martin-du-Manoir') {
       await new Promise(function(res) {
         setTimeout(function() {
           var ext = photoUrl.split('.').pop().split('?')[0] || 'jpg';
