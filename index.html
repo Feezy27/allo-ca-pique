@@ -4088,10 +4088,18 @@ function generatePDFTexte(f, s) {
   var totalHT = prixHT + prixDepl;
   var pctD   = s.aideDepartPct !== undefined ? s.aideDepartPct : 30;
   var pctS   = s.aideSeinePct  !== undefined ? s.aideSeinePct  : 30;
+  // Saint-Martin-du-Manoir : participation mairie (remplace les aides)
+  var smmActive = !!f.smmParticipe;
+  var smmPartVal = parseFloat(f.smmPart) || 50;
   // Les aides s'appliquent sur le TOTAL (nid + déplacement)
-  var aideD  = aides.indexOf('departement') >= 0 ? totalHT * pctD / 100 : 0;
-  var aideS  = aides.indexOf('seine')       >= 0 ? totalHT * pctS / 100 : 0;
-  var total  = totalHT - aideD - aideS;
+  var aideD  = (!smmActive && aides.indexOf('departement') >= 0) ? totalHT * pctD / 100 : 0;
+  var aideS  = (!smmActive && aides.indexOf('seine')       >= 0) ? totalHT * pctS / 100 : 0;
+  var total;
+  if (smmActive) {
+    total = Math.max(0, totalHT - smmPartVal);
+  } else {
+    total = totalHT - aideD - aideS;
+  }
   var paiL   = { virement:'Virement bancaire', cheque:'Chèque', espece:'Espèces' };
 
   var bdcVal = f.syndicBdc || '';
@@ -4243,8 +4251,35 @@ function generatePDFTexte(f, s) {
   }
   pdf.setDrawColor(232,237,248); pdf.setLineWidth(0.3); pdf.line(M,y-2,W-M,y-2);
 
+  // Saint-Martin-du-Manoir : bloc "Répartition du règlement" (Part mairie / requérant)
+  if (smmActive) {
+    y+=2;
+    var partReq = Math.max(0, totalHT - smmPartVal);
+    var sH = 12 + (hasDepl ? 6 : 0) + 6 + 6 + 14;
+    pdf.setFillColor(240,247,255); pdf.setDrawColor(29,78,216); pdf.setLineWidth(0.4);
+    pdf.roundedRect(M,y,W-2*M,sH,2,2,'FD');
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(29,78,216);
+    pdf.text('Répartition du règlement',M+4,y+6);
+    var sy = y+12;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8.5); pdf.setTextColor.apply(pdf,GRIS);
+    pdf.text('Montant intervention',M+4,sy);
+    pdf.setFont('helvetica','bold'); pdf.setTextColor(17,17,17); pdf.text(prixHT.toFixed(2)+' €',W-M-4,sy,{align:'right'});
+    if (hasDepl) {
+      sy+=6; pdf.setFont('helvetica','normal'); pdf.setTextColor.apply(pdf,GRIS); pdf.text('Frais de déplacement',M+4,sy);
+      pdf.setFont('helvetica','bold'); pdf.setTextColor(17,17,17); pdf.text(prixDepl.toFixed(2)+' €',W-M-4,sy,{align:'right'});
+    }
+    sy+=6; pdf.setFont('helvetica','bold'); pdf.setTextColor(17,17,17); pdf.text('Total HT',M+4,sy);
+    pdf.text(totalHT.toFixed(2)+' €',W-M-4,sy,{align:'right'});
+    sy+=6; pdf.setFont('helvetica','normal'); pdf.setTextColor.apply(pdf,GRIS); pdf.text('Part de la mairie',M+4,sy);
+    pdf.setFont('helvetica','bold'); pdf.setTextColor(29,78,216); pdf.text(smmPartVal.toFixed(2)+' €',W-M-4,sy,{align:'right'});
+    sy+=8; pdf.setDrawColor(29,78,216); pdf.setLineWidth(0.3); pdf.line(M+4,sy-4,W-M-4,sy-4);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9.5); pdf.setTextColor(17,17,17);
+    pdf.text('Part du requérant',M+4,sy); pdf.text(partReq.toFixed(2)+' €',W-M-4,sy,{align:'right'});
+    y+=sH+4;
+  }
+
   // Aides
-  if (aides.length > 0) {
+  if (aides.length > 0 && !smmActive) {
     y+=2;
     var aH = 12+(hasDepl?12:0)+(aideD?6:0)+(aideS?6:0)+14;
     pdf.setFillColor(255,251,240); pdf.setDrawColor.apply(pdf,ORANGE); pdf.setLineWidth(0.4);
@@ -4299,6 +4334,20 @@ async function genPdfAndDownload(f) {
   var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
   if (isIOS) {
     var pdfBlob = pdf.output('blob');
+    // 1) Tenter le partage natif avec un fichier NOMMÉ : iOS pré-remplit alors
+    //    le nom du fichier dans "Enregistrer dans Fichiers" avec `filename`.
+    try {
+      var file = new File([pdfBlob], filename, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        return;
+      }
+    } catch(shareErr) {
+      // L'utilisateur a annulé le partage, ou l'API n'est pas dispo : on
+      // retombe sur l'ouverture du PDF dans un onglet ci-dessous.
+      if (shareErr && shareErr.name === 'AbortError') return; // annulation volontaire
+    }
+    // 2) Fallback : ouvrir le PDF (l'utilisateur fait "Partager" manuellement)
     var pdfUrl = URL.createObjectURL(pdfBlob);
     if (isStandalone) { window.location.href = pdfUrl; }
     else { var win = window.open(pdfUrl,'_blank'); if (!win) window.location.href = pdfUrl; }
