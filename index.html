@@ -3013,7 +3013,9 @@ async function validerFacture() {
     // Saint-Martin-du-Manoir : participation mairie
     smmParticipe: smmParticipe,
     smmPart: smmPart,
-    smmEmail: data.smmEmail || ''
+    smmEmail: data.smmEmail || '',
+    // Copie de la photo du RDV sur la facture (lien garanti pour le PDF 2 pages)
+    photoUrl: (r.photoUrl || '')
   };
   factures.push(f);
   var idx = rdvs.findIndex(function(x) { return x.id === currentRdvId; });
@@ -3574,7 +3576,16 @@ function prendrePhoto(rdvId) {
             var data = JSON.parse(xhr.responseText);
             if (data.error) throw new Error(data.error.message);
             var idx = rdvs.findIndex(function(x) { return x.id === rdvId; });
-            if (idx >= 0) rdvs[idx].photoUrl = data.secure_url;
+            if (idx >= 0) {
+              rdvs[idx].photoUrl = data.secure_url;
+              // Si une facture est déjà liée à ce RDV, on y recopie la photo
+              // pour que le PDF 2 pages (SMM) la retrouve même après coup.
+              var fLiee = rdvs[idx].factureId ? findById(factures, rdvs[idx].factureId) : null;
+              if (fLiee) {
+                var fidx = factures.findIndex(function(x) { return x.id === fLiee.id; });
+                if (fidx >= 0) factures[fidx].photoUrl = data.secure_url;
+              }
+            }
             save();
             renderRdvs();
             renderDashboard();
@@ -4328,48 +4339,86 @@ function generatePDFTexte(f, s) {
 
 // Charge une image distante (Cloudinary) et la convertit en dataURL,
 // avec ses dimensions, afin de pouvoir l'insérer dans un PDF jsPDF.
+// On privilégie fetch+FileReader (ne "tainte" pas le canvas, donc évite
+// les erreurs CORS du toDataURL). Fallback sur Image()+canvas si besoin.
 function loadImageForPdf(url) {
-  return new Promise(function(resolve, reject) {
-    var img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function() {
-      try {
-        var canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        var dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        resolve({ dataUrl: dataUrl, w: img.naturalWidth, h: img.naturalHeight });
-      } catch(e) { reject(e); }
-    };
-    img.onerror = function() { reject(new Error('Chargement image échoué')); };
-    img.src = url;
-  });
+  // 1) Méthode fetch : récupère les octets bruts, pas de canvas tainté.
+  return fetch(url, { mode: 'cors' })
+    .then(function(resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.blob();
+    })
+    .then(function(blob) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() {
+          var dataUrl = reader.result;
+          // Obtenir les dimensions à partir du dataURL
+          var img = new Image();
+          img.onload = function() {
+            resolve({ dataUrl: dataUrl, w: img.naturalWidth, h: img.naturalHeight });
+          };
+          img.onerror = function() {
+            // Dimensions par défaut si on n'arrive pas à les lire
+            resolve({ dataUrl: dataUrl, w: 1000, h: 1000 });
+          };
+          img.src = dataUrl;
+        };
+        reader.onerror = function() { reject(new Error('Lecture blob échouée')); };
+        reader.readAsDataURL(blob);
+      });
+    })
+    .catch(function() {
+      // 2) Fallback : Image() + canvas (peut échouer si CORS strict)
+      return new Promise(function(resolve, reject) {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+          try {
+            var canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.9), w: img.naturalWidth, h: img.naturalHeight });
+          } catch(e) { reject(e); }
+        };
+        img.onerror = function() { reject(new Error('Chargement image échoué')); };
+        img.src = url;
+      });
+    });
+}
+
+// Détecte le format d'image à partir du début d'un dataURL (pour jsPDF).
+function detectImgFormat(dataUrl) {
+  if (/^data:image\/png/i.test(dataUrl)) return 'PNG';
+  if (/^data:image\/webp/i.test(dataUrl)) return 'WEBP';
+  return 'JPEG';
 }
 
 // Ajoute la photo de l'intervention en 2e page du PDF (Saint-Martin-du-Manoir).
 async function appendPhotoPage(pdf, photoUrl) {
-  if (!photoUrl) return;
+  if (!photoUrl) return false;
   var info;
-  try { info = await loadImageForPdf(photoUrl); } catch(e) { console.error('Photo PDF:', e); return; }
+  try { info = await loadImageForPdf(photoUrl); } catch(e) { console.error('Photo PDF:', e); return false; }
+  if (!info || !info.dataUrl) return false;
   var W = pdf.internal.pageSize.getWidth();
   var H = pdf.internal.pageSize.getHeight();
   var M = 12;
   pdf.addPage();
-  // Titre
   pdf.setFont('helvetica','bold'); pdf.setFontSize(13); pdf.setTextColor(9,26,69);
   pdf.text('Photo de l\'intervention', W/2, M+6, { align: 'center' });
-  // Calcul des dimensions pour tenir dans la page en conservant le ratio
   var availW = W - 2*M;
   var availH = H - 2*M - 12;
-  var ratio = info.w / info.h;
+  var ratio = (info.w && info.h) ? info.w / info.h : 1;
   var drawW = availW;
   var drawH = drawW / ratio;
   if (drawH > availH) { drawH = availH; drawW = drawH * ratio; }
   var x = (W - drawW) / 2;
   var yTop = M + 12;
-  try { pdf.addImage(info.dataUrl, 'JPEG', x, yTop, drawW, drawH); } catch(e) { console.error('addImage:', e); }
+  try {
+    pdf.addImage(info.dataUrl, detectImgFormat(info.dataUrl), x, yTop, drawW, drawH);
+    return true;
+  } catch(e) { console.error('addImage:', e); return false; }
 }
 
 async function genPdfAndDownload(f) {
@@ -4378,9 +4427,11 @@ async function genPdfAndDownload(f) {
   // Saint-Martin-du-Manoir : intégrer la photo en page 2 dans le même PDF.
   if (f.clientType === 'Saint-Martin-du-Manoir') {
     var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
-    var photoUrl = rdvLie ? (rdvLie.photoUrl || '') : '';
+    var photoUrl = f.photoUrl || (rdvLie ? (rdvLie.photoUrl || '') : '');
     if (photoUrl) {
-      try { await appendPhotoPage(pdf, photoUrl); } catch(e) { console.error('Photo page:', e); }
+      var added = false;
+      try { added = await appendPhotoPage(pdf, photoUrl); } catch(e) { console.error('Photo page:', e); }
+      if (!added) showToast('⚠️ Facture OK, mais la photo n\'a pas pu être ajoutée', true);
     }
   }
   var filename = buildFilename(f);
