@@ -299,7 +299,7 @@ select option { background: var(--surface2); }
 .cascade-options.single { grid-template-columns: 1fr; }
 .cascade-options .cascade-btn-full { grid-column: 1 / -1; }
 .cascade-btn { padding: 8px 14px; background: var(--surface2); border: var(--border-w) solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; font-size: 0.95rem; font-family: inherit; transition: all 0.15s; font-weight: 500; }
-.cascade-btn:hover { border-color: var(--accent); color: var(--accent); background: #e8edf8; }
+@media (hover: hover) { .cascade-btn:hover { border-color: var(--accent); color: var(--accent); background: #e8edf8; } }
 .cascade-btn.selected { border-color: var(--accent); background: var(--accent); color: #ffffff; font-weight: 700; }
 .tarif-grid-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
 .tarif-grid-table th { text-align: left; padding: 8px 10px; background: var(--surface2); color: var(--text); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
@@ -693,6 +693,7 @@ select option { background: var(--surface2); }
 <button type="button" class="cascade-btn" id="atype-gonf" onclick="setArchiveType('Gonfreville')">Gonfreville</button>
 <button type="button" class="cascade-btn" id="atype-havre" onclick="setArchiveType('Le Havre')">Le Havre</button>
 <button type="button" class="cascade-btn" id="atype-smm" onclick="setArchiveType('Saint-Martin-du-Manoir')">St-Martin-du-M</button>
+<button type="button" class="cascade-btn" id="atype-octe" onclick="setArchiveType('Octeville-sur-Mer')">Octeville-sur-Mer</button>
 <button type="button" class="cascade-btn" id="atype-vp" onclick="setArchiveType('Voie publique')">Autres</button>
 </div>
 </div>
@@ -798,6 +799,15 @@ select option { background: var(--surface2); }
 <div class="form-group"><label>Téléphone</label><input id="s-smm-tel" type="tel" placeholder="02 35 00 00 00"></div>
 <div class="form-group"><label>Adresse mail</label><input id="s-smm-email" type="email" placeholder="contact@saint-martin-du-manoir.fr"></div>
 <div class="form-group full"><label>Bon de commande</label><input id="s-bdc-smm" type="text" placeholder="N° BC Saint-Martin-du-Manoir..."></div>
+</div>
+<!-- Octeville-sur-Mer -->
+<div style="font-size:0.85rem;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:.06em;padding-bottom:8px;border-bottom:2px solid var(--border);margin:20px 0 12px 0">Octeville-sur-Mer</div>
+<p style="font-size:0.82rem;color:var(--muted);margin:0 0 10px 0;line-height:1.5">L'adresse mail est utilisée pour envoyer la facture directement à la mairie.</p>
+<div class="form-grid">
+<div class="form-group full"><label>Adresse (rue)</label><input id="s-octe-adresse" type="text" placeholder="Place de la Mairie"></div>
+<div class="form-group"><label>Ville + CP</label><input id="s-octe-ville" type="text" placeholder="Octeville-sur-Mer 76930"></div>
+<div class="form-group"><label>Téléphone</label><input id="s-octe-tel" type="tel" placeholder="02 35 00 00 00"></div>
+<div class="form-group"><label>Adresse mail</label><input id="s-octe-email" type="email" placeholder="contact@octeville-sur-mer.fr"></div>
 </div>
 </div>
 </div>
@@ -923,6 +933,7 @@ select option { background: var(--surface2); }
 <button type="button" class="cascade-btn" id="smb-gonf" onclick="selectClient('Gonfreville')">Gonfreville</button>
 <button type="button" class="cascade-btn" id="smb-havre" onclick="selectClient('Le Havre')">Le Havre</button>
 <button type="button" class="cascade-btn" id="smb-smm" onclick="selectClient('Saint-Martin-du-Manoir')">St-Martin-du-M</button>
+<button type="button" class="cascade-btn" id="smb-octe" onclick="selectClient('Octeville-sur-Mer')">Octeville-sur-Mer</button>
 <button type="button" class="cascade-btn" id="smb-autres" onclick="selectClient('Voie publique')">Autres</button>
 </div>
 </div>
@@ -2057,7 +2068,7 @@ function resetCascade() {
 
 function selectClient(val) {
   _cascade.client = val;
-  var MAIRIE_VALS = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Voie publique'];
+  var MAIRIE_VALS = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Octeville-sur-Mer', 'Voie publique'];
   var isMairieVal = MAIRIE_VALS.indexOf(val) >= 0;
   var sm = document.getElementById('sous-menu-mairies');
   var mairiBtn = document.getElementById('btn-mairies');
@@ -2104,6 +2115,10 @@ function selectClient(val) {
       var smmVille = settings.smmVille || 'Saint-Martin-du-Manoir 76290';
       villeInput.value = smmVille;
       if (villeCpInput) { var partsSmm = smmVille.trim().split(' '); villeCpInput.value = partsSmm[partsSmm.length - 1] || '76290'; }
+    } else if (val === 'Octeville-sur-Mer') {
+      var octeVille = settings.octeVille || 'Octeville-sur-Mer 76930';
+      villeInput.value = octeVille;
+      if (villeCpInput) { var partsOcte = octeVille.trim().split(' '); villeCpInput.value = partsOcte[partsOcte.length - 1] || '76930'; }
     } else {
       villeInput.value = '';
       if (villeCpInput) villeCpInput.value = '';
@@ -2198,12 +2213,12 @@ function updateBlocMairie() {
   if (bloc) bloc.style.display = isVP ? '' : 'none';
   if (blocHavre) blocHavre.style.display = isHavre ? '' : 'none';
   if (blocSyndic) blocSyndic.style.display = isSyndic ? '' : 'none';
-  var MAIRIE_VALS_UBM = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Voie publique'];
+  var MAIRIE_VALS_UBM = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Octeville-sur-Mer', 'Voie publique'];
   if (MAIRIE_VALS_UBM.indexOf(_cascade.client) >= 0) {
     var smb = document.getElementById('sous-menu-mairies');
     if (smb) smb.style.display = '';
-    var smbMap = {'Montivilliers':'smb-monti','Gonfreville':'smb-gonf','Le Havre':'smb-havre','Saint-Martin-du-Manoir':'smb-smm','Voie publique':'smb-autres'};
-    ['smb-monti','smb-gonf','smb-havre','smb-autres'].forEach(function(id){
+    var smbMap = {'Montivilliers':'smb-monti','Gonfreville':'smb-gonf','Le Havre':'smb-havre','Saint-Martin-du-Manoir':'smb-smm','Octeville-sur-Mer':'smb-octe','Voie publique':'smb-autres'};
+    ['smb-monti','smb-gonf','smb-havre','smb-smm','smb-octe','smb-autres'].forEach(function(id){
       var b = document.getElementById(id); if(b) b.classList.remove('selected');
     });
     var sb = document.getElementById(smbMap[_cascade.client]); if(sb) sb.classList.add('selected');
@@ -2545,7 +2560,8 @@ function buildDataFacture(r, num, dateStr) {
   var isGonf  = r.clientType === 'Gonfreville';
   var isHavre = r.clientType === 'Le Havre';
   var isSMM   = r.clientType === 'Saint-Martin-du-Manoir';
-  var isMairie = isMonti || isGonf || isHavre || isSMM;
+  var isOcte  = r.clientType === 'Octeville-sur-Mer';
+  var isMairie = isMonti || isGonf || isHavre || isSMM || isOcte;
 
   // Saint-Martin-du-Manoir : la mairie participe à 50 € pour tous les insectes
   // SAUF frelon asiatique. Ce flag déclenche un rendu "Part mairie / Part client"
@@ -2574,6 +2590,11 @@ function buildDataFacture(r, num, dateStr) {
     clientAdr = settings.smmAdresse || '';
     clientVille = settings.smmVille || '';
     clientTel = settings.smmTel || '';
+  } else if (isOcte) {
+    clientNom = 'Mairie d\'Octeville-sur-Mer';
+    clientAdr = settings.octeAdresse || '';
+    clientVille = settings.octeVille || '';
+    clientTel = settings.octeTel || '';
   } else if (isSyndic) {
     clientNom = r.syndicAgence || nomClient;
     clientVille = '';
@@ -2609,10 +2630,12 @@ function buildDataFacture(r, num, dateStr) {
     requerantVille: (isMairie || isSyndic) ? (r.ville || '') : '',
     requerantTel: (isMairie || isSyndic) ? (r.tel || '') : '',
     isMairie: isMairie,
-    mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : (isHavre ? 'Le Havre' : (isSMM ? 'Saint-Martin-du-Manoir' : ''))),
+    mairieNom: isMonti ? 'Montivilliers' : (isGonf ? 'Gonfreville' : (isHavre ? 'Le Havre' : (isSMM ? 'Saint-Martin-du-Manoir' : (isOcte ? 'Octeville-sur-Mer' : '')))),
     isSMM: isSMM,
     smmParticipe: smmParticipe,
     smmEmail: isSMM ? (settings.smmEmail || '') : '',
+    isOcte: isOcte,
+    octeEmail: isOcte ? (settings.octeEmail || '') : '',
     syndicBdc: r.syndicBdc || '',
     syndicAgence: r.syndicAgence || '',
     syndicAgenceAdresse: r.syndicAgenceAdresse || '',
@@ -2631,6 +2654,7 @@ function getFacturePrefix(clientType) {
   if (ct === 'Gonfreville')   return 'FG';
   if (ct === 'Le Havre')      return 'FLH';
   if (ct === 'Saint-Martin-du-Manoir') return 'FSMM';
+  if (ct === 'Octeville-sur-Mer') return 'FOCT';
   return 'F'; // Particulier, Syndic/Copro, Voie publique, et défaut
 }
 
@@ -2737,7 +2761,7 @@ function buildFactureHtmlMobile(f) {
   h += '</div>';
 
   // Requérant si mairie/syndic
-  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir','Voie publique'].indexOf(f.clientType) >= 0;
+  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir','Octeville-sur-Mer','Voie publique'].indexOf(f.clientType) >= 0;
   var isSyndic = f.clientType === 'Syndic/Copro' || f.isSyndic;
   if ((isMairie || isSyndic) && (f.requerantNom || (isSyndic && f.syndicContact))) {
     h += '<div style="' + cellStyle + 'margin-bottom:10px;">';
@@ -2984,6 +3008,7 @@ async function validerFacture() {
     num: num,
     nom: data.nom,
     adresse: data.adresse,
+    ville: data.ville || '',
     tel: data.tel,
     email: emailClient,
     type: data.type,
@@ -3014,6 +3039,7 @@ async function validerFacture() {
     smmParticipe: smmParticipe,
     smmPart: smmPart,
     smmEmail: data.smmEmail || '',
+    octeEmail: data.octeEmail || '',
     // Copie de la photo du RDV sur la facture (lien garanti pour le PDF 2 pages)
     photoUrl: (r.photoUrl || '')
   };
@@ -3693,7 +3719,7 @@ function closePrintModal() {
   document.body.style.overflow = '';
 }
 
-var MAIRIE_TYPES = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Voie publique'];
+var MAIRIE_TYPES = ['Montivilliers', 'Gonfreville', 'Le Havre', 'Saint-Martin-du-Manoir', 'Octeville-sur-Mer', 'Voie publique'];
 
 function toggleArchiveMairies() {
   var sm = document.getElementById('arch-sous-menu-mairies');
@@ -3721,10 +3747,10 @@ function setArchiveType(type) {
   document.getElementById('atype-syndic').classList.toggle('active', type === 'Syndic/Copro');
   var sm = document.getElementById('arch-sous-menu-mairies');
   if (sm) sm.style.display = (isMairie && type !== 'Toutes') ? '' : 'none';
-  ['atype-monti','atype-gonf','atype-havre','atype-vp'].forEach(function(id) {
+  ['atype-monti','atype-gonf','atype-havre','atype-smm','atype-octe','atype-vp'].forEach(function(id) {
     var b = document.getElementById(id); if (b) b.classList.remove('selected');
   });
-  var map = {'Montivilliers':'atype-monti','Gonfreville':'atype-gonf','Le Havre':'atype-havre','Saint-Martin-du-Manoir':'atype-smm','Voie publique':'atype-vp'};
+  var map = {'Montivilliers':'atype-monti','Gonfreville':'atype-gonf','Le Havre':'atype-havre','Saint-Martin-du-Manoir':'atype-smm','Octeville-sur-Mer':'atype-octe','Voie publique':'atype-vp'};
   if (map[type]) { var b = document.getElementById(map[type]); if (b) b.classList.add('selected'); }
   renderArchives();
 }
@@ -3763,6 +3789,7 @@ function renderArchives() {
     if (archiveType === 'Gonfreville') return f.clientType === 'Gonfreville';
     if (archiveType === 'Le Havre') return f.clientType === 'Le Havre';
     if (archiveType === 'Saint-Martin-du-Manoir') return f.clientType === 'Saint-Martin-du-Manoir';
+    if (archiveType === 'Octeville-sur-Mer') return f.clientType === 'Octeville-sur-Mer';
     if (archiveType === 'Syndic/Copro') return f.clientType === 'Syndic/Copro';
     return !f.clientType || f.clientType === 'Particulier';
   });
@@ -3831,6 +3858,7 @@ function renderArchives() {
       var isPartArch = !f.clientType || f.clientType === 'Particulier';
       var isSyndicArch = f.clientType === 'Syndic/Copro';
       var isSMMArch = f.clientType === 'Saint-Martin-du-Manoir' && !!f.smmParticipe;
+      var isOcteArch = f.clientType === 'Octeville-sur-Mer';
       var mailBtn = (f.email && settings.ejsPub && settings.ejsSvc && settings.ejsTpl && isPartArch)
         ? '<button class="btn btn-ghost btn-sm" onclick="sendMailById(\'' + f.id + '\')" title="Envoyer par mail"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail</button>' : '';
       // Bouton "Mail mairie" pour Saint-Martin-du-Manoir : envoie la facture
@@ -3851,6 +3879,26 @@ function renderArchives() {
             'Cordialement,' + nlS + (settings.nom || 'Allo ça pique');
           var smmMailto = 'mailto:' + encodeURIComponent(smmEmail) + '?subject=' + subjS + '&body=' + bodyS;
           smmMailBtn = '<button class="btn btn-ghost btn-sm" onclick="ouvrirMailSyndic(\'' + f.id + '\', ' + JSON.stringify(smmMailto).replace(/"/g, '&quot;') + ')" title="Envoyer par mail à la mairie"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail mairie</button>';
+        }
+      }
+      // Bouton "Mail mairie" pour Octeville-sur-Mer (facture classique, sans
+      // participation : on envoie le total à la mairie pour règlement).
+      var octeMailBtn = '';
+      if (isOcteArch) {
+        var octeEmail = f.octeEmail || settings.octeEmail || '';
+        if (octeEmail) {
+          var subjO = encodeURIComponent('Facture ' + f.num + ' - Intervention nid (Octeville-sur-Mer)');
+          var nlO = '%0A';
+          var bodyO = 'Bonjour,' + nlO + nlO +
+            'Veuillez trouver ci-joint la facture ' + f.num + ' relative à notre intervention à Octeville-sur-Mer.' + nlO + nlO +
+            'Facture N° : ' + f.num + nlO +
+            'Requérant : ' + (f.requerantNom || f.nom || '') + nlO +
+            'Date : ' + new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR') + nlO +
+            'Montant : ' + (f.prix || 0).toFixed(2) + ' EUR' + nlO + nlO +
+            'Merci de bien vouloir procéder au règlement à réception.' + nlO + nlO +
+            'Cordialement,' + nlO + (settings.nom || 'Allo ça pique');
+          var octeMailto = 'mailto:' + encodeURIComponent(octeEmail) + '?subject=' + subjO + '&body=' + bodyO;
+          octeMailBtn = '<button class="btn btn-ghost btn-sm" onclick="ouvrirMailSyndic(\'' + f.id + '\', ' + JSON.stringify(octeMailto).replace(/"/g, '&quot;') + ')" title="Envoyer par mail à la mairie"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Mail mairie</button>';
         }
       }
       var syndicMailBtn = '';
@@ -3915,6 +3963,7 @@ function renderArchives() {
       html += syndicMailBtn;
       html += smsBtn;
       html += smmMailBtn;
+      html += octeMailBtn;
       html += mailBtn;
       html += '<button class="btn btn-sm" onclick="supprimerFacture(\'' + f.id + '\')" title="Supprimer" style="background:rgba(204,26,58,0.1);color:var(--red);border:1px solid rgba(204,26,58,0.3)"><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em"><path d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Suppr.</button>';
       html += '</div>';
@@ -4175,7 +4224,7 @@ function generatePDFTexte(f, s) {
   y += cardH + 8;
 
   // Requérant
-  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir','Voie publique'].indexOf(f.clientType)>=0;
+  var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir','Octeville-sur-Mer','Voie publique'].indexOf(f.clientType)>=0;
   if ((isMairie || f.clientType==='Syndic/Copro' || f.isSyndic) && f.requerantNom) {
     var rL = [];
     if (f.requerantAdresse) rL.push(f.requerantAdresse+(f.requerantVille?', '+f.requerantVille:''));
@@ -4494,6 +4543,7 @@ function telechargerJournee(dateStr) {
     if (archiveType === 'Montivilliers') return f.date === dateStr && f.clientType === 'Montivilliers';
     if (archiveType === 'Gonfreville') return f.date === dateStr && f.clientType === 'Gonfreville';
     if (archiveType === 'Saint-Martin-du-Manoir') return f.date === dateStr && f.clientType === 'Saint-Martin-du-Manoir';
+    if (archiveType === 'Octeville-sur-Mer') return f.date === dateStr && f.clientType === 'Octeville-sur-Mer';
     if (archiveType === 'Syndic/Copro') return f.date === dateStr && f.clientType === 'Syndic/Copro';
     return f.date === dateStr && (!f.clientType || f.clientType === 'Particulier');
   });
@@ -4534,6 +4584,7 @@ function telechargerMois(ym) {
     if (archiveType === 'Gonfreville') return f.clientType === 'Gonfreville';
     if (archiveType === 'Le Havre') return f.clientType === 'Le Havre';
     if (archiveType === 'Saint-Martin-du-Manoir') return f.clientType === 'Saint-Martin-du-Manoir';
+    if (archiveType === 'Octeville-sur-Mer') return f.clientType === 'Octeville-sur-Mer';
     if (archiveType === 'Syndic/Copro') return f.clientType === 'Syndic/Copro';
     return !f.clientType || f.clientType === 'Particulier';
   });
@@ -4559,6 +4610,8 @@ function getCategoryPrefix(f) {
   if (ct === 'Montivilliers') return 'Mairie_Montivilliers';
   if (ct === 'Gonfreville')   return 'Mairie_Gonfreville';
   if (ct === 'Le Havre')      return 'Mairie_LeHavre';
+  if (ct === 'Saint-Martin-du-Manoir') return 'Mairie_SaintMartinDuManoir';
+  if (ct === 'Octeville-sur-Mer') return 'Mairie_OctevilleSurMer';
   if (ct === 'Voie publique') return 'Mairie_Autres';
   if (ct === 'Syndic/Copro')  return 'Syndic_' + escFilename(f.syndicAgence || f.nom || 'Copro');
   return 'Particulier';
@@ -4633,6 +4686,11 @@ function renderSettings() {
   el = document.getElementById('s-smm-tel');     if (el) el.value = settings.smmTel || '';
   el = document.getElementById('s-smm-email');   if (el) el.value = settings.smmEmail || '';
   el = document.getElementById('s-bdc-smm');     if (el) el.value = settings.bdcSMM || '';
+  // Octeville-sur-Mer
+  el = document.getElementById('s-octe-adresse'); if (el) el.value = settings.octeAdresse || '';
+  el = document.getElementById('s-octe-ville');   if (el) el.value = settings.octeVille || '';
+  el = document.getElementById('s-octe-tel');     if (el) el.value = settings.octeTel || '';
+  el = document.getElementById('s-octe-email');   if (el) el.value = settings.octeEmail || '';
   document.getElementById('s-aide-depart-pct').value = settings.aideDepartPct !== undefined ? settings.aideDepartPct : 30;
   document.getElementById('s-aide-seine-pct').value = settings.aideSeinePct !== undefined ? settings.aideSeinePct : 30;
   var sbUrl = document.getElementById('s-sb-url');
@@ -4791,6 +4849,10 @@ function saveSettings() {
     smmTel: (document.getElementById('s-smm-tel')||{value:''}).value.trim(),
     smmEmail: (document.getElementById('s-smm-email')||{value:''}).value.trim(),
     bdcSMM: (document.getElementById('s-bdc-smm')||{value:''}).value.trim(),
+    octeAdresse: (document.getElementById('s-octe-adresse')||{value:''}).value.trim(),
+    octeVille: (document.getElementById('s-octe-ville')||{value:''}).value.trim(),
+    octeTel: (document.getElementById('s-octe-tel')||{value:''}).value.trim(),
+    octeEmail: (document.getElementById('s-octe-email')||{value:''}).value.trim(),
     aideDepartPct: parseFloat(document.getElementById('s-aide-depart-pct').value) || 30,
     aideSeinePct: parseFloat(document.getElementById('s-aide-seine-pct').value) || 30
   });
