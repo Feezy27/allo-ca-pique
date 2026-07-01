@@ -4201,6 +4201,9 @@ function buildF76Payload(f) {
   // après déduction des aides/participations).
   var montant = (parseFloat(f.prixHT) || 0) + (parseFloat(f.prixDeplacement) || 0);
 
+  // URL de la photo du nid (Cloudinary), ou chaîne vide si absente.
+  var photoUrl = f.photoUrl || (rdvLie ? (rdvLie.photoUrl || '') : '');
+
   return {
     dateIntervention: f.date || '',          // AAAA-MM-JJ (l'extension gère les deux formats)
     nom:              np.nom,                 // nom de famille
@@ -4213,7 +4216,8 @@ function buildF76Payload(f) {
     mail:             mail,                   // e-mail (optionnel)
     montant:          montant.toFixed(2),     // TTC sans prise en charge
     numFacture:       f.num || '',            // numéro de facture
-    description:      f.type || ''            // description du nid (contient sol/hauteur/toit/3m...)
+    description:      f.type || '',           // description du nid (contient sol/hauteur/toit/3m...)
+    photoUrl:         photoUrl                // URL Cloudinary de la photo du nid (ou '')
   };
 }
 
@@ -4221,11 +4225,15 @@ function buildF76Payload(f) {
 // - Chorus : ouvre simplement Chorus Pro (l'extension Scriptus lit le PDF).
 // - Frelon76 : construit l'objet f76, l'encode et ouvre l'URL avec ?f76data=
 //   (l'extension F76 Auto-Fill lit ce paramètre pour préremplir le formulaire).
-function declarerFacture(factureId) {
+//   En parallèle, dépose le PDF de la facture (base64) dans un élément caché
+//   du DOM pour que l'extension puisse le récupérer et l'uploader sur le portail.
+async function declarerFacture(factureId) {
   var f = findById(factures, factureId);
   if (!f) return;
 
   if (declCanal === 'frelon76') {
+    // 1) Construire le payload texte et ouvrir le portail IMMÉDIATEMENT (dans
+    //    le contexte direct du clic, pour éviter tout blocage de popup).
     var f76 = buildF76Payload(f);
     var payload = encodeURIComponent(
       btoa(unescape(encodeURIComponent(JSON.stringify(f76))))
@@ -4233,12 +4241,47 @@ function declarerFacture(factureId) {
     var url = 'https://www.frelonasiatique76.fr/espace_entreprises/?f76data=' + payload;
     console.log('[F76] URL déclaration =', url); // trace de vérification
     window.open(url, '_blank');
+
+    // 2) En parallèle, régénérer le PDF de la facture et le déposer dans le DOM
+    //    pour que l'extension puisse le récupérer et l'uploader. L'onglet de
+    //    l'app reste ouvert en arrière-plan : l'extension a le temps de lire.
+    //    Appel indépendant du flux de téléchargement existant, sans rien casser.
+    try {
+      await loadJsPDF(); // s'assurer que jsPDF est chargé (generatePDFTexte l'exige)
+      var pdf = generatePDFTexte(f, settings);
+      var pdfBase64 = pdf.output('datauristring'); // "data:application/pdf;base64,..."
+      // jsPDF insère parfois un segment ";filename=generated.pdf" dans le préfixe
+      // (data:application/pdf;filename=generated.pdf;base64,...). On normalise en
+      // "data:application/pdf;base64,..." pour un format standard et prévisible.
+      pdfBase64 = pdfBase64.replace(/^data:application\/pdf;[^,]*base64,/, 'data:application/pdf;base64,');
+      depositF76Pdf(f.num, pdfBase64);
+    } catch (e) {
+      // Si la génération échoue, les données texte (?f76data=) sont déjà parties ;
+      // seul l'upload PDF devra être fait manuellement.
+      console.error('[F76] Génération PDF échouée :', e);
+    }
     return;
   }
 
   // Chorus : aucune transmission, l'extension Scriptus prend le relais.
   console.log('[Chorus] Ouverture simple (aucune donnée transmise)');
   window.open(DECL_URLS.chorus, '_blank');
+}
+
+// Dépose le PDF (base64) + numéro de facture dans un élément caché du DOM.
+// L'extension F76 lit #f76-pdf-holder (dataset : numFacture, pdf, timestamp).
+function depositF76Pdf(numFacture, pdfBase64) {
+  var holder = document.getElementById('f76-pdf-holder');
+  if (!holder) {
+    holder = document.createElement('div');
+    holder.id = 'f76-pdf-holder';
+    holder.style.display = 'none';
+    document.body.appendChild(holder);
+  }
+  holder.dataset.numFacture = numFacture || '';
+  holder.dataset.pdf = pdfBase64 || '';
+  holder.dataset.timestamp = Date.now().toString();
+  console.log('[F76] PDF déposé dans #f76-pdf-holder pour la facture', numFacture);
 }
 
 // Bouton "Terminer" — marque la facture comme terminée UNIQUEMENT sur le canal
