@@ -4049,6 +4049,23 @@ function isFactureFrelonAsiatique(f) {
   return t.indexOf('asiatique') >= 0;              // ne garde que l'asiatique
 }
 
+// Exclut de la liste Frelon76 les factures SANS aide déduite : ce sont les
+// interventions sur voie publique où la mairie règle 100 % de l'intervention
+// (tarifs pleins 65 € ou 100 €, aucune aide départementale/Seine appliquée).
+// Ces factures n'ont rien à déclarer sur Frelon76.
+// Double critère de sécurité :
+//   • montant de base (prixHT) égal à 65 € ou 100 € (tarifs pleins voie publique)
+//   • ET aucune aide déduite (f.aide vide) — évite d'exclure par erreur une
+//     facture particulier à 65/100 € qui aurait bénéficié d'une aide.
+function f76SansAideDeduite(f) {
+  if (!f) return false;
+  var prix = parseFloat(f.prixHT) || 0;
+  var montantPlein = (prix === 65 || prix === 100);
+  var aides = Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []);
+  var aucuneAide = aides.length === 0;
+  return montantPlein && aucuneAide;
+}
+
 function renderDeclaration() {
   // Réinitialise l'affichage sur la page de choix du canal à chaque entrée
   setDeclCanal(declCanal);
@@ -4088,6 +4105,9 @@ function renderDeclList() {
     // Frelon76 = interventions frelon asiatique uniquement (le portail ne sert
     // qu'à ça ; guêpes, bourdons, frelons européens, etc. sont exclus).
     if (!isChorus && !isFactureFrelonAsiatique(f)) return false;
+    // Exclure les factures sans aide déduite (voie publique 65/100 €, mairie
+    // règle 100 %) : rien à déclarer sur Frelon76 dans ce cas.
+    if (!isChorus && f76SansAideDeduite(f)) return false;
     return !f[doneKey]; // on n'affiche que celles non terminées sur CE canal
   });
 
@@ -4143,11 +4163,19 @@ function splitNomPrenom(full) {
 
 // Extrait un code postal (5 chiffres) d'une chaîne, et renvoie la commune
 // (le reste sans le CP). Ex : "Octeville-sur-Mer 76930" -> {cp:'76930', ville:'Octeville-sur-Mer'}
+// Les interventions étant en Seine-Maritime, on privilégie un CP commençant
+// par 76 s'il y en a un ; sinon on prend la première séquence de 5 chiffres.
 function splitVilleCP(villeStr) {
   var s = (villeStr || '').trim();
-  var m = s.match(/(\d{5})/);
+  var m76 = s.match(/(76\d{3})/);
+  var m = m76 || s.match(/(\d{5})/);
   var cp = m ? m[1] : '';
-  var ville = cp ? s.replace(cp, '').trim().replace(/[,\s]+$/, '').trim() : s;
+  var ville = s;
+  if (cp) {
+    ville = s.replace(cp, ' ');            // retire le CP où qu'il soit
+  }
+  // Nettoyage : espaces multiples, virgules et espaces en trop en bord
+  ville = ville.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
   return { cp: cp, ville: ville };
 }
 
@@ -4165,32 +4193,63 @@ function buildF76Payload(f) {
   var nomComplet = useRequerant ? (f.requerantNom || '') : (f.nom || '');
   var np = splitNomPrenom(nomComplet);
 
-  // Rue / ville / CP : on part du RDV si dispo (champs propres), sinon parsing.
-  var rue = '', villeBrute = '', cp = '';
+  // ---- Adresse : rue / code postal / commune ----
+  // Dans l'app, l'adresse est stockée en DEUX champs séparés :
+  //   • champ "ville + CP"  -> rdvLie.ville  (ex "Le Havre 76600", commune AVANT le CP)
+  //   • champ "rue"         -> rdvLie.rue    (ex "12 rue des Acacias")
+  // Le champ facture `f.ville` est souvent vide pour les particuliers (la ville
+  // est alors noyée dans `f.adresse`), d'où l'ancien bug de CP/ville vides.
+  // On part donc en priorité du RDV lié (source fiable), puis on retombe sur
+  // les champs facture / requérant, puis en dernier recours sur un parsing.
+
+  // 1) Déterminer la chaîne "ville + CP" (villeCP) et la rue, selon la source.
+  var villeCPStr = '', rue = '';
   if (rdvLie) {
+    villeCPStr = rdvLie.ville || '';                 // "Commune CP"
     rue = rdvLie.rue || '';
-    villeBrute = rdvLie.ville || '';
-    cp = rdvLie.villeCP || '';
-    // Si pas de rue isolée (anciens RDV), tenter via adresse complète
+    // Anciens RDV sans champ `rue` isolé : on reconstruit depuis `adresse`
+    // qui vaut "villeCP + ' ' + rue".
     if (!rue && rdvLie.adresse) {
-      var vc = splitVilleCP(villeBrute);
-      rue = vc.ville ? rdvLie.adresse.replace(vc.ville, '').replace(cp, '').trim() : rdvLie.adresse;
+      rue = (villeCPStr && rdvLie.adresse.indexOf(villeCPStr) === 0)
+        ? rdvLie.adresse.substring(villeCPStr.length).trim()
+        : rdvLie.adresse;
     }
+  } else if (useRequerant) {
+    // Facture mairie/syndic sans RDV : le requérant a déjà rue et ville séparées.
+    villeCPStr = f.requerantVille || '';
+    rue = f.requerantAdresse || '';
   } else {
-    // Fallback : champs de la facture
-    villeBrute = useRequerant ? (f.requerantVille || '') : (f.ville || '');
-    var adr = useRequerant ? (f.requerantAdresse || '') : (f.adresse || '');
-    var vcF = splitVilleCP(villeBrute);
-    cp = vcF.cp;
-    // La rue = adresse moins la ville et le CP éventuellement présents
-    rue = adr;
-    if (vcF.ville) rue = rue.replace(vcF.ville, '');
-    if (cp) rue = rue.replace(cp, '');
-    rue = rue.trim().replace(/^[,\s]+|[,\s]+$/g, '').trim();
+    // Facture particulier sans RDV : `f.ville` peut être vide ; dans ce cas
+    // on parse `f.adresse` (= "Commune CP rue") en coupant autour du CP.
+    villeCPStr = f.ville || '';
+    var adrP = f.adresse || '';
+    if (villeCPStr && adrP.indexOf(villeCPStr) === 0) {
+      rue = adrP.substring(villeCPStr.length).trim();
+    } else if (!villeCPStr && adrP) {
+      // Format "Commune CP rue" : on coupe autour du code postal.
+      var cpMatch = adrP.match(/(76\d{3}|\d{5})/);
+      if (cpMatch) {
+        var cpPos = adrP.indexOf(cpMatch[1]);
+        villeCPStr = adrP.substring(0, cpPos + cpMatch[1].length).trim(); // "Commune CP"
+        rue = adrP.substring(cpPos + cpMatch[1].length).trim();           // "rue"
+      } else {
+        villeCPStr = adrP;
+        rue = '';
+      }
+    } else {
+      rue = adrP;
+    }
   }
-  var vcc = splitVilleCP(villeBrute);
-  if (!cp) cp = vcc.cp;
-  var villeNette = vcc.ville || villeBrute;
+
+  // 2) Extraire code postal (5 chiffres, priorité 76xxx) et commune.
+  var vcc = splitVilleCP(villeCPStr);
+  var cp = vcc.cp;
+  var villeNette = vcc.ville;
+
+  // 3) Nettoyer la rue : retirer un éventuel CP ou nom de commune résiduel.
+  if (cp) rue = rue.replace(cp, ' ');
+  if (villeNette) rue = rue.split(villeNette).join(' ');
+  rue = rue.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
 
   // Téléphone et mail du particulier réel
   var tel = useRequerant ? (f.requerantTel || '') : (f.tel || '');
