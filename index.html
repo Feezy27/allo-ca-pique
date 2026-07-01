@@ -4016,9 +4016,11 @@ function renderArchives() {
 // Supabase comme le reste, sans modifier l'onglet Factures.
 //
 // URLs des portails (modifiables ici si besoin) :
+// NB : Frelon76 n'est PLUS ici — son URL est toujours construite avec le
+// paramètre ?f76data= dans declarerFacture(). On évite ainsi tout risque
+// d'ouvrir l'URL nue sans données.
 var DECL_URLS = {
-  chorus: 'https://chorus-pro.gouv.fr/',
-  frelon76: 'https://www.frelonasiatique76.fr/espace_entreprises/'
+  chorus: 'https://chorus-pro.gouv.fr/'
 };
 
 var declCanal = null; // 'chorus' | 'frelon76' | null
@@ -4102,16 +4104,116 @@ function renderDeclList() {
   listEl.innerHTML = html;
 }
 
-// Bouton "Déclarer" — version provisoire : ouvre simplement le portail.
-// (L'intégration des extensions / transmission de données viendra plus tard ;
-//  on garde la fonction centralisée pour y brancher l'envoi facilement.)
+// --- Helpers pour construire le payload Frelon76 ---
+
+// Sépare un nom complet "Jean Dupont" en { prenom:'Jean', nom:'Dupont' }.
+// Convention France : 1er mot = prénom, le reste = nom de famille.
+function splitNomPrenom(full) {
+  var s = (full || '').trim().replace(/\s+/g, ' ');
+  if (!s) return { prenom: '', nom: '' };
+  var parts = s.split(' ');
+  if (parts.length === 1) return { prenom: '', nom: parts[0] };
+  return { prenom: parts[0], nom: parts.slice(1).join(' ') };
+}
+
+// Extrait un code postal (5 chiffres) d'une chaîne, et renvoie la commune
+// (le reste sans le CP). Ex : "Octeville-sur-Mer 76930" -> {cp:'76930', ville:'Octeville-sur-Mer'}
+function splitVilleCP(villeStr) {
+  var s = (villeStr || '').trim();
+  var m = s.match(/(\d{5})/);
+  var cp = m ? m[1] : '';
+  var ville = cp ? s.replace(cp, '').trim().replace(/[,\s]+$/, '').trim() : s;
+  return { cp: cp, ville: ville };
+}
+
+// Construit l'objet F76 attendu par l'extension Chrome, à partir d'une facture.
+// On privilégie le RDV lié (champs rue/ville/villeCP séparés) ; sinon on parse
+// les champs de la facture. Pour les mairies/syndics, le "client" Frelon76 est
+// le REQUÉRANT (particulier réel), pas la mairie.
+function buildF76Payload(f) {
+  var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
+  var isMairieF = MAIRIE_TYPES.indexOf(f.clientType) >= 0;
+  var isSyndicF = f.clientType === 'Syndic/Copro';
+  var useRequerant = isMairieF || isSyndicF;
+
+  // Nom complet du particulier réel
+  var nomComplet = useRequerant ? (f.requerantNom || '') : (f.nom || '');
+  var np = splitNomPrenom(nomComplet);
+
+  // Rue / ville / CP : on part du RDV si dispo (champs propres), sinon parsing.
+  var rue = '', villeBrute = '', cp = '';
+  if (rdvLie) {
+    rue = rdvLie.rue || '';
+    villeBrute = rdvLie.ville || '';
+    cp = rdvLie.villeCP || '';
+    // Si pas de rue isolée (anciens RDV), tenter via adresse complète
+    if (!rue && rdvLie.adresse) {
+      var vc = splitVilleCP(villeBrute);
+      rue = vc.ville ? rdvLie.adresse.replace(vc.ville, '').replace(cp, '').trim() : rdvLie.adresse;
+    }
+  } else {
+    // Fallback : champs de la facture
+    villeBrute = useRequerant ? (f.requerantVille || '') : (f.ville || '');
+    var adr = useRequerant ? (f.requerantAdresse || '') : (f.adresse || '');
+    var vcF = splitVilleCP(villeBrute);
+    cp = vcF.cp;
+    // La rue = adresse moins la ville et le CP éventuellement présents
+    rue = adr;
+    if (vcF.ville) rue = rue.replace(vcF.ville, '');
+    if (cp) rue = rue.replace(cp, '');
+    rue = rue.trim().replace(/^[,\s]+|[,\s]+$/g, '').trim();
+  }
+  var vcc = splitVilleCP(villeBrute);
+  if (!cp) cp = vcc.cp;
+  var villeNette = vcc.ville || villeBrute;
+
+  // Téléphone et mail du particulier réel
+  var tel = useRequerant ? (f.requerantTel || '') : (f.tel || '');
+  var mail = useRequerant ? '' : (f.email || '');
+
+  // Montant TTC SANS prise en charge (aide, syndic, mairie) = prix de base
+  // de l'intervention + frais de déplacement. On n'utilise PAS f.prix (net
+  // après déduction des aides/participations).
+  var montant = (parseFloat(f.prixHT) || 0) + (parseFloat(f.prixDeplacement) || 0);
+
+  return {
+    dateIntervention: f.date || '',          // AAAA-MM-JJ (l'extension gère les deux formats)
+    nom:              np.nom,                 // nom de famille
+    prenom:           np.prenom,              // prénom
+    adresse:          rue,                    // n° + nom de rue
+    adresse2:         '',                     // complément (non saisi dans l'app)
+    codePostal:       cp,                     // code postal (5 chiffres)
+    ville:            villeNette,             // commune sans le CP
+    telephone:        tel,                    // téléphone du client
+    mail:             mail,                   // e-mail (optionnel)
+    montant:          montant.toFixed(2),     // TTC sans prise en charge
+    numFacture:       f.num || '',            // numéro de facture
+    description:      f.type || ''            // description du nid (contient sol/hauteur/toit/3m...)
+  };
+}
+
+// Bouton "Déclarer".
+// - Chorus : ouvre simplement Chorus Pro (l'extension Scriptus lit le PDF).
+// - Frelon76 : construit l'objet f76, l'encode et ouvre l'URL avec ?f76data=
+//   (l'extension F76 Auto-Fill lit ce paramètre pour préremplir le formulaire).
 function declarerFacture(factureId) {
   var f = findById(factures, factureId);
   if (!f) return;
-  var url = declCanal === 'chorus' ? DECL_URLS.chorus : DECL_URLS.frelon76;
-  // TODO (futur) : ici, transmettre les données de `f` à l'extension Chrome
-  // correspondante (Scriptus pour Chorus, Frelon 76 Auto-Fill pour Frelon76).
-  window.open(url, '_blank');
+
+  if (declCanal === 'frelon76') {
+    var f76 = buildF76Payload(f);
+    var payload = encodeURIComponent(
+      btoa(unescape(encodeURIComponent(JSON.stringify(f76))))
+    );
+    var url = 'https://www.frelonasiatique76.fr/espace_entreprises/?f76data=' + payload;
+    console.log('[F76] URL déclaration =', url); // trace de vérification
+    window.open(url, '_blank');
+    return;
+  }
+
+  // Chorus : aucune transmission, l'extension Scriptus prend le relais.
+  console.log('[Chorus] Ouverture simple (aucune donnée transmise)');
+  window.open(DECL_URLS.chorus, '_blank');
 }
 
 // Bouton "Terminer" — marque la facture comme terminée UNIQUEMENT sur le canal
