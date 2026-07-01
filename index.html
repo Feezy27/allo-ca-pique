@@ -4031,6 +4031,24 @@ function isFactureMairie(f) {
   return f && MAIRIE_TYPES.indexOf(f.clientType) >= 0;
 }
 
+// Critère "frelon asiatique" pour la liste Frelon76 : le portail
+// frelonasiatique76.fr ne concerne QUE le frelon asiatique.
+// Source fiable : le champ `f.insecte` (id exact 'frelon-asiatique'), stocké
+// sur chaque facture. Ce champ distingue bien l'asiatique de l'européen
+// ('frelon-europeen'), donc AUCUN risque de confondre les deux.
+// Fallback (anciennes factures sans `insecte`) : on parse le texte `f.type`,
+// en cherchant "asiatique" et en excluant explicitement "europ" pour ne
+// jamais retenir un frelon européen par erreur.
+function isFactureFrelonAsiatique(f) {
+  if (!f) return false;
+  if (f.insecte) return f.insecte === 'frelon-asiatique';
+  // Fallback texte : normalisation (minuscules, sans accents)
+  var t = (f.type || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (t.indexOf('europ') >= 0) return false;       // exclut "frelon européen"
+  return t.indexOf('asiatique') >= 0;              // ne garde que l'asiatique
+}
+
 function renderDeclaration() {
   // Réinitialise l'affichage sur la page de choix du canal à chaque entrée
   setDeclCanal(declCanal);
@@ -4067,6 +4085,9 @@ function renderDeclList() {
   var list = factures.filter(function(f) {
     if (!f) return false;
     if (isChorus && !isFactureMairie(f)) return false; // Chorus = mairies seulement
+    // Frelon76 = interventions frelon asiatique uniquement (le portail ne sert
+    // qu'à ça ; guêpes, bourdons, frelons européens, etc. sont exclus).
+    if (!isChorus && !isFactureFrelonAsiatique(f)) return false;
     return !f[doneKey]; // on n'affiche que celles non terminées sur CE canal
   });
 
