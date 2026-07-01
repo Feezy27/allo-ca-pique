@@ -4078,7 +4078,7 @@ function renderDeclList() {
   if (!listEl) return;
 
   var isChorus = declCanal === 'chorus';
-  if (titleEl) titleEl.textContent = isChorus ? 'Chorus — factures mairies à déclarer' : 'Frelon76 — factures à déclarer';
+  if (titleEl) titleEl.textContent = isChorus ? 'Chorus — factures mairies à déclarer' : 'Frelon76 — factures à déclarer (frelon asiatique uniquement)';
 
   // Sélection des factures selon le canal
   var doneKey = isChorus ? 'declChorusDone' : 'declFrelon76Done';
@@ -4090,6 +4090,10 @@ function renderDeclList() {
     if (!isChorus && !isFactureFrelonAsiatique(f)) return false;
     return !f[doneKey]; // on n'affiche que celles non terminées sur CE canal
   });
+
+  if (!isChorus) {
+    console.log('[F76-filtre v2] ' + list.length + ' facture(s) frelon asiatique retenue(s). Filtre actif ✓');
+  }
 
   // Tri : plus récentes d'abord
   list.sort(function(a, b) {
