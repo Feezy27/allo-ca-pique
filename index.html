@@ -4151,14 +4151,18 @@ function renderDeclList() {
 
 // --- Helpers pour construire le payload Frelon76 ---
 
-// Sépare un nom complet "Jean Dupont" en { prenom:'Jean', nom:'Dupont' }.
-// Convention France : 1er mot = prénom, le reste = nom de famille.
+// Sépare un nom complet saisi au format "Nom Prénom" (nom en premier, comme
+// dans les factures de l'app) en { nom, prenom }.
+//   1er mot        = nom de famille
+//   le reste       = prénom
+// Ex : "Goulet Julie" -> { nom:'Goulet', prenom:'Julie' }
+//      "Dupont Jean-Pierre" -> { nom:'Dupont', prenom:'Jean-Pierre' }
 function splitNomPrenom(full) {
   var s = (full || '').trim().replace(/\s+/g, ' ');
   if (!s) return { prenom: '', nom: '' };
   var parts = s.split(' ');
   if (parts.length === 1) return { prenom: '', nom: parts[0] };
-  return { prenom: parts[0], nom: parts.slice(1).join(' ') };
+  return { nom: parts[0], prenom: parts.slice(1).join(' ') };
 }
 
 // Extrait un code postal (5 chiffres) d'une chaîne, et renvoie la commune
