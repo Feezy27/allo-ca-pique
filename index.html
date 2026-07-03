@@ -991,7 +991,7 @@ select option { background: var(--surface2); }
 </div>
 <input type="hidden" id="r-type">
 <input type="hidden" id="r-client-type">
-<div class="form-group"><label>Nom du client *</label><input id="r-nom" type="text" placeholder="Jean Dupont"></div>
+<div class="form-group"><label>Nom du client *</label><input id="r-nom" type="text" placeholder="Dupont Jean"></div>
 <div class="form-group"><label>Téléphone *</label><input id="r-tel" type="tel" placeholder="06 00 00 00 00"></div>
 <div class="form-group full">
 <label>Ville *</label>
@@ -1325,6 +1325,11 @@ var archiveMonth = null;
 var modePaiement = null; // 'virement' | 'cheque' | 'espece'
 var aideChoisie = []; // tableau : peut contenir 'departement' et/ou 'seine'
 var nidType = null; // 'primaire' | 'secondaire' | null — uniquement frelon asiatique
+// Champs descriptifs supplémentaires — uniquement frelon asiatique
+var nidSupport = null;      // 'interieur-batiment' | 'exterieur-batiment' | 'interieur-cheminee' | 'haie' | 'arbre'
+var nidHauteur = null;      // 'moins-5m' | '5-15m' | 'plus-15m'
+var nidLocalisation = null; // 'residentiel' | 'foret' | 'agricole'
+var nidDiametre = null;     // 'moins-30' | '30-60' | 'plus-60' | 'inconnu'
 var isDrawing = false;
 var lastX = 0;
 var lastY = 0;
@@ -2456,7 +2461,7 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
     + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Prix HT</th>'
     + '<th style="background:#f5a623;color:#fff;padding:9px 12px;text-align:left;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Total</th>'
     + '</tr></thead><tbody>';
-  h += '<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + escHtml(data.type) + (data.notes ? '<br><small style="color:#888">' + escHtml(data.notes) + '</small>' : '') + '</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">1</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + prixHT.toFixed(2) + ' €</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + prixHT.toFixed(2) + ' €</td></tr>';
+  h += '<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + escHtml(data.type) + (function(){ var dl = buildNidDetailLines(data); return dl.length ? '<br><small style="color:#555">' + dl.map(escHtml).join('<br>') + '</small>' : ''; })() + (data.notes ? '<br><small style="color:#888">' + escHtml(data.notes) + '</small>' : '') + '</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">1</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + prixHT.toFixed(2) + ' €</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + prixHT.toFixed(2) + ' €</td></tr>';
   if (hasDepl) {
     h += '<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Frais de déplacement</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">1</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + prixDepl.toFixed(2) + ' €</td><td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-family:Arial,Helvetica,sans-serif;">' + prixDepl.toFixed(2) + ' €</td></tr>';
   }
@@ -2535,6 +2540,40 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
     h += '<button id="nid-primaire" class="paiement-btn" onclick="choisirNidType(\'primaire\')" style="flex:1">🔴 Primaire</button>';
     h += '<button id="nid-secondaire" class="paiement-btn" onclick="choisirNidType(\'secondaire\')" style="flex:1">🟡 Secondaire</button>';
     h += '</div></div>';
+    // ── Champs descriptifs supplémentaires (frelon asiatique uniquement) ──
+    h += '<div id="nid-details-section" style="display:' + (data.isFA ? 'block' : 'none') + ';margin-top:12px">';
+    // Support du nid
+    h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 6px">Support du nid</div>';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    h += '<button id="sup-interieur-batiment" class="paiement-btn" onclick="choisirNidSupport(\'interieur-batiment\')" style="flex:1;min-width:130px">Intérieur d\'un bâtiment</button>';
+    h += '<button id="sup-exterieur-batiment" class="paiement-btn" onclick="choisirNidSupport(\'exterieur-batiment\')" style="flex:1;min-width:130px">Extérieur d\'un bâtiment</button>';
+    h += '<button id="sup-interieur-cheminee" class="paiement-btn" onclick="choisirNidSupport(\'interieur-cheminee\')" style="flex:1;min-width:130px">Intérieur d\'une cheminée</button>';
+    h += '<button id="sup-haie" class="paiement-btn" onclick="choisirNidSupport(\'haie\')" style="flex:1;min-width:90px">Haie</button>';
+    h += '<button id="sup-arbre" class="paiement-btn" onclick="choisirNidSupport(\'arbre\')" style="flex:1;min-width:90px">Arbre</button>';
+    h += '</div>';
+    // Hauteur estimée
+    h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px">Hauteur estimée</div>';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    h += '<button id="haut-moins-5m" class="paiement-btn" onclick="choisirNidHauteur(\'moins-5m\')" style="flex:1;min-width:130px">En dessous de 5 mètres</button>';
+    h += '<button id="haut-5-15m" class="paiement-btn" onclick="choisirNidHauteur(\'5-15m\')" style="flex:1;min-width:130px">Entre 5 et 15 mètres</button>';
+    h += '<button id="haut-plus-15m" class="paiement-btn" onclick="choisirNidHauteur(\'plus-15m\')" style="flex:1;min-width:130px">À plus de 15 mètres</button>';
+    h += '</div>';
+    // Type de localisation
+    h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px">Type de localisation</div>';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    h += '<button id="loc-residentiel" class="paiement-btn" onclick="choisirNidLocalisation(\'residentiel\')" style="flex:1;min-width:110px">Résidentiel</button>';
+    h += '<button id="loc-foret" class="paiement-btn" onclick="choisirNidLocalisation(\'foret\')" style="flex:1;min-width:90px">Forêt</button>';
+    h += '<button id="loc-agricole" class="paiement-btn" onclick="choisirNidLocalisation(\'agricole\')" style="flex:1;min-width:110px">Parcelle agricole</button>';
+    h += '</div>';
+    // Diamètre du nid
+    h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px">Diamètre du nid</div>';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    h += '<button id="diam-moins-30" class="paiement-btn" onclick="choisirNidDiametre(\'moins-30\')" style="flex:1;min-width:130px">Moins de 30 cm</button>';
+    h += '<button id="diam-30-60" class="paiement-btn" onclick="choisirNidDiametre(\'30-60\')" style="flex:1;min-width:130px">Entre 30 et 60 cm</button>';
+    h += '<button id="diam-plus-60" class="paiement-btn" onclick="choisirNidDiametre(\'plus-60\')" style="flex:1;min-width:130px">Plus de 60 cm</button>';
+    h += '<button id="diam-inconnu" class="paiement-btn" onclick="choisirNidDiametre(\'inconnu\')" style="flex:1;min-width:110px">Je ne sais pas</button>';
+    h += '</div>';
+    h += '</div>';
     h += '<div id="aide-section" style="display:' + (data.isFA ? 'block' : 'none') + ';margin-top:16px">';
     h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Aide à la destruction (optionnel)</div>';
     h += '<div style="display:flex;gap:10px;flex-wrap:wrap">';
@@ -2728,6 +2767,10 @@ function ouvrirFacture(rdvId) {
   aideChoisie = [];
   modePaiement = null;
   nidType = null;
+  nidSupport = null;
+  nidHauteur = null;
+  nidLocalisation = null;
+  nidDiametre = null;
   data.aide = [];
   data.isFA = (r.insecte === 'frelon-asiatique');
   document.getElementById('facture-content').innerHTML = buildFactureHtml(data, true, isPartRdv);
@@ -2816,7 +2859,7 @@ function buildFactureHtmlMobile(f) {
   h += '<th style="background:#f5a623;color:#fff;padding:7px 6px;text-align:center;white-space:nowrap;">Qté</th>';
   h += '<th style="background:#f5a623;color:#fff;padding:7px 8px;text-align:right;white-space:nowrap;border-radius:0 6px 0 0;">Total</th>';
   h += '</tr></thead><tbody>';
-  h += '<tr><td style="padding:8px 8px;border-bottom:1px solid #e8edf8;">' + escHtml(f.type||'') + (f.notes ? '<br><small style="color:#888">' + escHtml(f.notes) + '</small>' : '') + '</td>';
+  h += '<tr><td style="padding:8px 8px;border-bottom:1px solid #e8edf8;">' + escHtml(f.type||'') + (function(){ var dl = buildNidDetailLines(f); return dl.length ? '<br><small style="color:#555">' + dl.map(escHtml).join('<br>') + '</small>' : ''; })() + (f.notes ? '<br><small style="color:#888">' + escHtml(f.notes) + '</small>' : '') + '</td>';
   h += '<td style="padding:8px 6px;text-align:center;border-bottom:1px solid #e8edf8;">1</td>';
   h += '<td style="padding:8px 8px;text-align:right;border-bottom:1px solid #e8edf8;font-weight:600;">' + prixHT.toFixed(2) + ' €</td></tr>';
   if (hasDepl) {
@@ -2904,7 +2947,9 @@ function voirFacture(factureId) {
     prixDeplacement: parseFloat(f.prixDeplacement) || 0,
     smmParticipe: !!f.smmParticipe,
     smmPart: parseFloat(f.smmPart) || 0,
-    smmEmail: f.smmEmail || ''
+    smmEmail: f.smmEmail || '',
+    nidSupport: f.nidSupport || '', nidHauteur: f.nidHauteur || '',
+    nidLocalisation: f.nidLocalisation || '', nidDiametre: f.nidDiametre || ''
   };
   document.getElementById('facture-content').innerHTML = buildFactureHtmlMobile(fView);
     document.getElementById('btn-valider').style.display = 'none';
@@ -2925,6 +2970,72 @@ function choisirNidType(val) {
   ['primaire','secondaire'].forEach(function(t) {
     var btn = document.getElementById('nid-' + t);
     if (btn) btn.classList.toggle('active', nidType === t);
+  });
+}
+
+// ── Mappings id -> libellé lisible (frelon asiatique) ──
+var NID_SUPPORT_LABELS = {
+  'interieur-batiment': 'Intérieur d\u2019un bâtiment',
+  'exterieur-batiment': 'Extérieur d\u2019un bâtiment',
+  'interieur-cheminee': 'Intérieur d\u2019une cheminée',
+  'haie': 'Haie',
+  'arbre': 'Arbre'
+};
+var NID_HAUTEUR_LABELS = {
+  'moins-5m': 'En dessous de 5 mètres',
+  '5-15m': 'Entre 5 et 15 mètres',
+  'plus-15m': 'À plus de 15 mètres'
+};
+var NID_LOCALISATION_LABELS = {
+  'residentiel': 'Résidentiel',
+  'foret': 'Forêt',
+  'agricole': 'Parcelle agricole'
+};
+var NID_DIAMETRE_LABELS = {
+  'moins-30': 'Moins de 30 cm',
+  '30-60': 'Entre 30 et 60 cm',
+  'plus-60': 'Plus de 60 cm',
+  'inconnu': 'Diamètre inconnu'
+};
+
+// Construit la liste des lignes descriptives supplémentaires d'une facture
+// frelon asiatique (support, hauteur, localisation, diamètre). Renvoie un
+// tableau de chaînes "Libellé : Valeur" (vide si aucun champ renseigné).
+function buildNidDetailLines(f) {
+  var lines = [];
+  if (f.nidSupport && NID_SUPPORT_LABELS[f.nidSupport]) lines.push('Support : ' + NID_SUPPORT_LABELS[f.nidSupport]);
+  if (f.nidHauteur && NID_HAUTEUR_LABELS[f.nidHauteur]) lines.push('Hauteur estimée : ' + NID_HAUTEUR_LABELS[f.nidHauteur]);
+  if (f.nidLocalisation && NID_LOCALISATION_LABELS[f.nidLocalisation]) lines.push('Localisation : ' + NID_LOCALISATION_LABELS[f.nidLocalisation]);
+  if (f.nidDiametre && NID_DIAMETRE_LABELS[f.nidDiametre]) lines.push('Diamètre : ' + NID_DIAMETRE_LABELS[f.nidDiametre]);
+  return lines;
+}
+
+function choisirNidSupport(val) {
+  nidSupport = (nidSupport === val) ? null : val;
+  Object.keys(NID_SUPPORT_LABELS).forEach(function(k) {
+    var btn = document.getElementById('sup-' + k);
+    if (btn) btn.classList.toggle('active', nidSupport === k);
+  });
+}
+function choisirNidHauteur(val) {
+  nidHauteur = (nidHauteur === val) ? null : val;
+  Object.keys(NID_HAUTEUR_LABELS).forEach(function(k) {
+    var btn = document.getElementById('haut-' + k);
+    if (btn) btn.classList.toggle('active', nidHauteur === k);
+  });
+}
+function choisirNidLocalisation(val) {
+  nidLocalisation = (nidLocalisation === val) ? null : val;
+  Object.keys(NID_LOCALISATION_LABELS).forEach(function(k) {
+    var btn = document.getElementById('loc-' + k);
+    if (btn) btn.classList.toggle('active', nidLocalisation === k);
+  });
+}
+function choisirNidDiametre(val) {
+  nidDiametre = (nidDiametre === val) ? null : val;
+  Object.keys(NID_DIAMETRE_LABELS).forEach(function(k) {
+    var btn = document.getElementById('diam-' + k);
+    if (btn) btn.classList.toggle('active', nidDiametre === k);
   });
 }
 
@@ -3053,6 +3164,10 @@ async function validerFacture() {
     clientType: r.clientType || data.clientType || '',
     insecte: r.insecte || '',
     nidType: nidType || '',
+    nidSupport: nidSupport || '',
+    nidHauteur: nidHauteur || '',
+    nidLocalisation: nidLocalisation || '',
+    nidDiametre: nidDiametre || '',
     date: r.date || new Date().toISOString().split('T')[0],
     signature: sig,
     paiement: modePaiement,
@@ -4702,19 +4817,38 @@ function generatePDFTexte(f, s) {
   pdf.setFont('helvetica','bold'); pdf.text(prixHT.toFixed(2)+' €', W-M-3, y+bodyLineH, {align:'right'});
   var descY = y + bodyLineH + (typeLines.length - 1) * (bodyFontSize * 0.352 + 1);
 
+  // Interligne constant pour toutes les lignes secondaires (évite les
+  // superpositions : chaque ligne descend d'une hauteur de ligne complète).
+  var lineStep = (bodyFontSize * 0.352) + 2.2; // mm par ligne
+
   // Ligne 2 : emplacement (toujours sur sa propre ligne, en gris)
   if (emplacementLabel) {
-    descY += (bodyFontSize * 0.352 + 1);
+    descY += lineStep;
     pdf.setFont('helvetica','normal'); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor.apply(pdf,GRIS);
     pdf.text(emplacementLabel, M+3, descY);
   }
 
-  // Notes éventuelles
-  if (f.notes) {
-    descY += 2;
+  // Détails frelon asiatique (support, hauteur, localisation, diamètre),
+  // chacun sur sa propre ligne pour rester lisible.
+  var nidLines = buildNidDetailLines(f);
+  if (nidLines.length) {
     pdf.setFont('helvetica','normal'); pdf.setFontSize(bodyFontSize - 1.5); pdf.setTextColor.apply(pdf,GRIS);
-    pdf.text(f.notes, M+3, descY);
-    descY += 5;
+    nidLines.forEach(function(ln) {
+      descY += lineStep;
+      // Découpe si la ligne est trop longue pour la colonne description
+      var wrapped = pdf.splitTextToSize(ln, 100);
+      pdf.text(wrapped, M+3, descY);
+      descY += (wrapped.length - 1) * lineStep;
+    });
+  }
+
+  // Notes éventuelles (sur leur propre ligne, sans superposition)
+  if (f.notes) {
+    descY += lineStep;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(bodyFontSize - 1.5); pdf.setTextColor.apply(pdf,GRIS);
+    var notesLines = pdf.splitTextToSize(f.notes, 100);
+    pdf.text(notesLines, M+3, descY);
+    descY += (notesLines.length - 1) * lineStep;
   }
 
   y = descY + 8;
