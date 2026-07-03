@@ -2579,7 +2579,12 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
     h += '<div style="display:flex;gap:10px;flex-wrap:wrap">';
     h += '<button id="aide-depart" class="paiement-btn" onclick="choisirAide(\'departement\')" style="flex:1;min-width:120px">Département</button>';
     h += '<button id="aide-seine" class="paiement-btn" onclick="choisirAide(\'seine\')" style="flex:1;min-width:140px">Seine Métropole</button>';
-    h += '</div></div>';
+    h += '</div>';
+    // Récapitulatif d'aide affiché ICI, juste sous les boutons (et non plus en
+    // haut dans le corps de la facture), pour éviter que l'apparition du bloc
+    // ne pousse le contenu et fasse "remonter" l'écran au moment du clic.
+    h += '<div id="aide-recap-inline"></div>';
+    h += '</div>';
     h += '<div id="paiement-section" style="display:block;margin-top:16px">';
     h += '<div style="font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mode de paiement</div>';
     h += '<div class="paiement-btns">';
@@ -3063,9 +3068,13 @@ function choisirAide(val) {
   var aideAmtS = aideChoisie.indexOf('seine')       >= 0 ? totalHT * pctS / 100 : 0;
   var totalAide = aideAmtD + aideAmtS;
   var total = totalHT - totalAide;
-  var aideBlock = document.getElementById('aide-display-block');
+  // Affichage du récap dans le conteneur inline (sous les boutons d'aide) pour
+  // éviter tout saut d'écran ; on garde l'ancien bloc du haut vide/masqué.
+  var aideBlock = document.getElementById('aide-recap-inline') || document.getElementById('aide-display-block');
+  var oldTopBlock = document.getElementById('aide-display-block');
+  if (oldTopBlock && oldTopBlock !== aideBlock) { oldTopBlock.innerHTML = ''; oldTopBlock.style.display = 'none'; }
   if (aideChoisie.length > 0) {
-    var html = '<div style="margin:16px 0;background:#fffbf0;border:2px solid #f5a623;border-radius:10px;padding:14px 18px">';
+    var html = '<div style="margin:12px 0 0;background:#fffbf0;border:2px solid #f5a623;border-radius:10px;padding:14px 18px">';
     html += '<div style="font-weight:700;font-size:0.93rem;color:#b36b00;margin-bottom:10px">Aides à la destruction — Frelon asiatique</div>';
     html += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">';
     html += '<tr><td style="padding:4px 0;color:#555">Montant intervention</td><td style="text-align:right;font-weight:600;color:#111">' + prixHT.toFixed(2) + ' €</td></tr>';
