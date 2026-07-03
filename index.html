@@ -3003,6 +3003,33 @@ var NID_DIAMETRE_LABELS = {
   'inconnu': 'Diamètre inconnu'
 };
 
+// ── Mappings id -> libellés EXACTS attendus par le portail Frelon76 ──
+// (distincts des libellés d'affichage facture : le portail attend p. ex.
+//  "centimètres" en toutes lettres, "Je ne sais pas", etc.)
+var F76_SUPPORT_MAP = {
+  'interieur-batiment': "Intérieur d'un bâtiment",
+  'exterieur-batiment': "Extérieur d'un bâtiment",
+  'interieur-cheminee': "Intérieur d'une cheminée",
+  'haie': 'Haie',
+  'arbre': 'Arbre'
+};
+var F76_HAUTEUR_MAP = {
+  'moins-5m': 'En dessous de 5 mètres',
+  '5-15m': 'Entre 5 et 15 mètres',
+  'plus-15m': 'À plus de 15 mètres'
+};
+var F76_LOCALISATION_MAP = {
+  'residentiel': 'Résidentiel',
+  'foret': 'Forêt',
+  'agricole': 'Parcelle agricole'
+};
+var F76_DIAMETRE_MAP = {
+  'moins-30': 'Moins de 30 centimètres',
+  '30-60': 'Entre 30 et 60 centimètres',
+  'plus-60': 'Plus de 60 centimètres',
+  'inconnu': 'Je ne sais pas'
+};
+
 // Construit la liste des lignes descriptives supplémentaires d'une facture
 // frelon asiatique (support, hauteur, localisation, diamètre). Renvoie un
 // tableau de chaînes "Libellé : Valeur" (vide si aucun champ renseigné).
@@ -4407,7 +4434,14 @@ function buildF76Payload(f) {
     montant:          montant.toFixed(2),     // TTC sans prise en charge
     numFacture:       f.num || '',            // numéro de facture
     description:      f.type || '',           // description du nid (contient sol/hauteur/toit/3m...)
-    photoUrl:         photoUrl                // URL Cloudinary de la photo du nid (ou '')
+    photoUrl:         photoUrl,               // URL Cloudinary de la photo du nid (ou '')
+    // Détails du nid — libellés EXACTS attendus par les menus du portail.
+    // Chaîne vide si l'info n'est pas renseignée (anciennes factures) :
+    // l'extension laisse alors le menu en manuel.
+    nidSupport:       F76_SUPPORT_MAP[f.nidSupport] || '',
+    nidHauteur:       F76_HAUTEUR_MAP[f.nidHauteur] || '',
+    nidLocalisation:  F76_LOCALISATION_MAP[f.nidLocalisation] || '',
+    nidDiametre:      F76_DIAMETRE_MAP[f.nidDiametre] || ''
   };
 }
 
