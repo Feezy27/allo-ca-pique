@@ -832,15 +832,23 @@ select option { background: var(--surface2); }
 <div class="form-group"><label>Ville + CP</label><input id="s-cu-ville" type="text" placeholder="Le Havre 76600"></div>
 <div class="form-group"><label>Téléphone</label><input id="s-cu-tel" type="tel" placeholder="02 35 22 25 25"></div>
 </div>
-<!-- SMS de suivi client (publicité) -->
-<div style="font-size:0.85rem;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:.06em;padding-bottom:8px;border-bottom:2px solid var(--border);margin:20px 0 12px 0">SMS de suivi client</div>
-<p style="font-size:0.82rem;color:var(--muted);margin:0 0 10px 0;line-height:1.5">Utilisé pour les interventions <strong>remboursées par une mairie</strong> (Montivilliers, Gonfreville, Le Havre, St-Martin-du-Manoir, Octeville) : la facture partant à la mairie, ce SMS laisse vos coordonnées au client.</p>
+</div>
+</div>
+<!-- SMS de suivi client -->
+<div class="param-section">
+<div class="param-section-header" id="ps-header-pub" onclick="toggleParamSection('pub')">
+<span class="param-section-title">SMS de suivi client</span>
+<span class="param-section-arrow">›</span>
+</div>
+<div class="param-section-body" id="ps-body-pub">
+<p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0;line-height:1.5">Pour les interventions <strong>remboursées par une mairie</strong> (Montivilliers, Gonfreville, Le Havre, St-Martin-du-Manoir, Octeville). La facture partant à la mairie, ce SMS laisse vos coordonnées au client depuis les factures archivées.</p>
 <div class="form-grid">
 <div class="form-group"><label>Numéro à communiquer</label><input id="s-pub-tel" type="tel" placeholder="06 18 56 87 72"></div>
 <div class="form-group"><label>Lien page Facebook</label><input id="s-pub-facebook" type="url" placeholder="https://facebook.com/allocapique"></div>
 </div>
 </div>
 </div>
+
 <!-- 4. Grille tarifaire -->
 <div class="param-section">
 <div class="param-section-header" id="ps-header-tarifs" onclick="toggleParamSection('tarifs')">
