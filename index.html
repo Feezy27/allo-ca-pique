@@ -2483,6 +2483,17 @@ function buildFactureHtml(data, withSigCanvas, withEmailInput) {
   if (data.email) h += '<br>' + escHtml(data.email);
   h += '</div></td>';
   h += '</tr></table>';
+  // Lieu d'intervention (Harfleur / CU : pas de requérant, la collectivité est
+  // le client — on indique donc explicitement où a eu lieu l'intervention).
+  if (data.lieuIntervention) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><tr>';
+    h += '<td style="vertical-align:top;padding:10px 14px;background:#f7f7f7;border-radius:8px;">';
+    h += '<div style="font-size:13px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;color:#111;">';
+    h += '<span style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.06em;font-weight:700;">Lieu d\'intervention :</span>';
+    h += ' <strong>' + escHtml(data.lieuIntervention) + '</strong>';
+    h += '</div></td></tr></table>';
+  }
+
   var showRequerant = data.isSyndic || data.isMairie;
   if (showRequerant) {
     var reqLabel = 'Requérant';
@@ -2776,6 +2787,17 @@ function buildDataFacture(r, num, dateStr) {
     isOcte: isOcte,
     octeEmail: isOcte ? (settings.octeEmail || '') : '',
     isHarfleur: isHarfleur,
+    // Lieu d'intervention : pour Harfleur et CU, la mairie est le client et il
+    // n'y a pas de bloc requérant. L'adresse du nid serait donc perdue : on la
+    // conserve ici pour l'afficher dans un bloc dédié.
+    lieuIntervention: (isHarfleur || isCU) ? (function() {
+      var v = r.ville || '';
+      var rue = r.rue || '';
+      if (!rue && r.adresse) {
+        rue = (v && r.adresse.indexOf(v) === 0) ? r.adresse.substring(v.length).trim() : r.adresse;
+      }
+      return (rue ? rue : '') + (rue && v ? ', ' : '') + (v ? v : '');
+    })() : '',
     harfleurEmail: isHarfleur ? (settings.harfleurEmail || 'patrick.papore@harfleur.fr') : '',
     syndicBdc: r.syndicBdc || '',
     // Le Havre : bon de commande saisi APRÈS coup (la mairie l'envoie après
@@ -2913,6 +2935,14 @@ function buildFactureHtmlMobile(f) {
   // Requérant si mairie/syndic
   var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir','Octeville-sur-Mer','Harfleur','CU','Voie publique'].indexOf(f.clientType) >= 0;
   var isSyndic = f.clientType === 'Syndic/Copro' || f.isSyndic;
+  // Lieu d'intervention (Harfleur / CU : pas de requérant)
+  if (f.lieuIntervention) {
+    h += '<div style="' + cellStyle + 'margin-bottom:10px;">';
+    h += '<div style="' + labelStyle + '">Lieu d\'intervention</div>';
+    h += '<strong>' + escHtml(f.lieuIntervention) + '</strong>';
+    h += '</div>';
+  }
+
   if ((isMairie || isSyndic) && (f.requerantNom || (isSyndic && f.syndicContact))) {
     h += '<div style="' + cellStyle + 'margin-bottom:10px;">';
     h += '<div style="' + labelStyle + '">Requérant</div>';
@@ -3010,7 +3040,7 @@ function voirFacture(factureId) {
     signature: f.signature || '', clientType: f.clientType || '',
     insecte: f.insecte || '', paiement: f.paiement || '',
     isSyndic: f.clientType === 'Syndic/Copro',
-    syndicBdc: f.syndicBdc || '', bdcLeHavre: f.bdcLeHavre || '', syndicAgence: f.syndicAgence || '',
+    syndicBdc: f.syndicBdc || '', bdcLeHavre: f.bdcLeHavre || '', lieuIntervention: f.lieuIntervention || '', syndicAgence: f.syndicAgence || '',
     syndicAgenceAdresse: f.syndicAgenceAdresse || '',
     syndicAgenceTel: f.syndicAgenceTel || '', syndicContact: f.syndicContact || '',
     syndicEmail: f.syndicEmail || '',
@@ -3297,6 +3327,7 @@ async function validerFacture() {
     smmEmail: data.smmEmail || '',
     octeEmail: data.octeEmail || '',
     harfleurEmail: data.harfleurEmail || '',
+    lieuIntervention: data.lieuIntervention || '',
     // Copie de la photo du RDV sur la facture (lien garanti pour le PDF 2 pages)
     photoUrl: (r.photoUrl || '')
   };
@@ -3443,7 +3474,7 @@ function ouvrirSMSFacture(f) {
     insecte: f.insecte || '', paiement: f.paiement || '',
     aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
     isSyndic: f.clientType === 'Syndic/Copro',
-    syndicBdc: f.syndicBdc || '', bdcLeHavre: f.bdcLeHavre || '', syndicAgence: f.syndicAgence || '',
+    syndicBdc: f.syndicBdc || '', bdcLeHavre: f.bdcLeHavre || '', lieuIntervention: f.lieuIntervention || '', syndicAgence: f.syndicAgence || '',
     syndicAgenceAdresse: f.syndicAgenceAdresse || '',
     syndicAgenceTel: f.syndicAgenceTel || '',
     syndicContact: f.syndicContact || '',
@@ -3532,7 +3563,7 @@ function sendMailForFacture(f) {
     insecte: f.insecte || '', paiement: f.paiement || '',
     aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
     isSyndic: f.clientType === 'Syndic/Copro',
-    syndicBdc: f.syndicBdc || '', bdcLeHavre: f.bdcLeHavre || '', syndicAgence: f.syndicAgence || '',
+    syndicBdc: f.syndicBdc || '', bdcLeHavre: f.bdcLeHavre || '', lieuIntervention: f.lieuIntervention || '', syndicAgence: f.syndicAgence || '',
     syndicAgenceAdresse: f.syndicAgenceAdresse || '',
     syndicAgenceTel: f.syndicAgenceTel || '',
     syndicContact: f.syndicContact || '',
@@ -4817,7 +4848,7 @@ function genFactureHtmlStandalone(f) {
     paiement: f.paiement || '',
     aide: Array.isArray(f.aide) ? f.aide : (f.aide ? [f.aide] : []),
     isSyndic: f.clientType === 'Syndic/Copro',
-    syndicBdc: f.syndicBdc || '', bdcLeHavre: f.bdcLeHavre || '', syndicAgence: f.syndicAgence || '',
+    syndicBdc: f.syndicBdc || '', bdcLeHavre: f.bdcLeHavre || '', lieuIntervention: f.lieuIntervention || '', syndicAgence: f.syndicAgence || '',
     syndicAgenceAdresse: f.syndicAgenceAdresse || '',
     syndicAgenceTel: f.syndicAgenceTel || '', syndicContact: f.syndicContact || '',
     syndicEmail: f.syndicEmail || '',
@@ -4992,6 +5023,19 @@ function generatePDFTexte(f, s) {
   if (f.tel)     cL.push('Tel : '+f.tel);
   pdf.text(cL, cx+3, y+cardLY, {lineHeightFactor:cardLhF});
   y += cardH + 8;
+
+  // Lieu d'intervention (Harfleur / CU : la collectivité est le client, il n'y
+  // a pas de requérant — on indique donc explicitement l'adresse du nid).
+  if (f.lieuIntervention) {
+    var liLines = pdf.splitTextToSize(f.lieuIntervention, W - 2*M - 8);
+    var liBoxH = 13 + Math.max(0, liLines.length - 1) * 4.5;
+    pdf.setFillColor(240,244,250); pdf.roundedRect(M,y-2,W-2*M,liBoxH,2,2,'F');
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(74,90,128);
+    pdf.text('LIEU D\'INTERVENTION',M+3,y+2);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor.apply(pdf,BLEU);
+    pdf.text(liLines, M+3, y+8, {lineHeightFactor:1.5});
+    y += liBoxH + 6;
+  }
 
   // Requérant
   var isMairie = f.isMairie || ['Montivilliers','Gonfreville','Le Havre','Saint-Martin-du-Manoir','Octeville-sur-Mer','Harfleur','CU','Voie publique'].indexOf(f.clientType)>=0;
