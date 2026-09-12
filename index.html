@@ -849,6 +849,73 @@ select option { background: var(--surface2); }
 </div>
 </div>
 
+<!-- Chorus Pro — identifiants mairies -->
+<div class="param-section">
+<div class="param-section-header" id="ps-header-chorus" onclick="toggleParamSection('chorus')">
+<span class="param-section-title">Chorus Pro — identifiants mairies</span>
+<span class="param-section-arrow">›</span>
+</div>
+<div class="param-section-body" id="ps-body-chorus">
+<p style="font-size:0.9rem;color:var(--muted);margin:0 0 14px 0;line-height:1.5">Ces identifiants (fixes par mairie) sont transmis à l'extension Scriptus au clic sur "Déclarer" dans l'onglet Déclaration, pour fiabiliser la détection sur Chorus Pro. À remplir une seule fois par mairie.</p>
+
+<div style="font-size:0.85rem;font-weight:700;color:var(--accent);margin:14px 0 8px">Montivilliers</div>
+<div class="form-grid">
+<div class="form-group"><label>SIRET</label><input id="s-chorus-monti-siret" type="text" placeholder="21760447900014"></div>
+<div class="form-group"><label>Code service</label><input id="s-chorus-monti-service" type="text"></div>
+<div class="form-group"><label>N° engagement</label><input id="s-chorus-monti-engagement" type="text"></div>
+<div class="form-group"><label>N° marché</label><input id="s-chorus-monti-marche" type="text"></div>
+</div>
+
+<div style="font-size:0.85rem;font-weight:700;color:var(--accent);margin:18px 0 8px">Gonfreville-l'Orcher</div>
+<div class="form-grid">
+<div class="form-group"><label>SIRET</label><input id="s-chorus-gonf-siret" type="text"></div>
+<div class="form-group"><label>Code service</label><input id="s-chorus-gonf-service" type="text"></div>
+<div class="form-group"><label>N° engagement</label><input id="s-chorus-gonf-engagement" type="text"></div>
+<div class="form-group"><label>N° marché</label><input id="s-chorus-gonf-marche" type="text"></div>
+</div>
+
+<div style="font-size:0.85rem;font-weight:700;color:var(--accent);margin:18px 0 8px">Le Havre</div>
+<div class="form-grid">
+<div class="form-group"><label>SIRET</label><input id="s-chorus-havre-siret" type="text"></div>
+<div class="form-group"><label>Code service</label><input id="s-chorus-havre-service" type="text"></div>
+<div class="form-group"><label>N° engagement</label><input id="s-chorus-havre-engagement" type="text"></div>
+<div class="form-group"><label>N° marché</label><input id="s-chorus-havre-marche" type="text"></div>
+</div>
+
+<div style="font-size:0.85rem;font-weight:700;color:var(--accent);margin:18px 0 8px">Saint-Martin-du-Manoir</div>
+<div class="form-grid">
+<div class="form-group"><label>SIRET</label><input id="s-chorus-smm-siret" type="text"></div>
+<div class="form-group"><label>Code service</label><input id="s-chorus-smm-service" type="text"></div>
+<div class="form-group"><label>N° engagement</label><input id="s-chorus-smm-engagement" type="text"></div>
+<div class="form-group"><label>N° marché</label><input id="s-chorus-smm-marche" type="text"></div>
+</div>
+
+<div style="font-size:0.85rem;font-weight:700;color:var(--accent);margin:18px 0 8px">Octeville-sur-Mer</div>
+<div class="form-grid">
+<div class="form-group"><label>SIRET</label><input id="s-chorus-octe-siret" type="text"></div>
+<div class="form-group"><label>Code service</label><input id="s-chorus-octe-service" type="text"></div>
+<div class="form-group"><label>N° engagement</label><input id="s-chorus-octe-engagement" type="text"></div>
+<div class="form-group"><label>N° marché</label><input id="s-chorus-octe-marche" type="text"></div>
+</div>
+
+<div style="font-size:0.85rem;font-weight:700;color:var(--accent);margin:18px 0 8px">Harfleur</div>
+<div class="form-grid">
+<div class="form-group"><label>SIRET</label><input id="s-chorus-harfleur-siret" type="text"></div>
+<div class="form-group"><label>Code service</label><input id="s-chorus-harfleur-service" type="text"></div>
+<div class="form-group"><label>N° engagement</label><input id="s-chorus-harfleur-engagement" type="text"></div>
+<div class="form-group"><label>N° marché</label><input id="s-chorus-harfleur-marche" type="text"></div>
+</div>
+
+<div style="font-size:0.85rem;font-weight:700;color:var(--accent);margin:18px 0 8px">CU Seine Métropole</div>
+<div class="form-grid">
+<div class="form-group"><label>SIRET</label><input id="s-chorus-cu-siret" type="text"></div>
+<div class="form-group"><label>Code service</label><input id="s-chorus-cu-service" type="text"></div>
+<div class="form-group"><label>N° engagement</label><input id="s-chorus-cu-engagement" type="text"></div>
+<div class="form-group"><label>N° marché</label><input id="s-chorus-cu-marche" type="text"></div>
+</div>
+</div>
+</div>
+
 <!-- 4. Grille tarifaire -->
 <div class="param-section">
 <div class="param-section-header" id="ps-header-tarifs" onclick="toggleParamSection('tarifs')">
@@ -3252,7 +3319,22 @@ async function validerFacture() {
     return;
   }
   var canvas = document.getElementById('sigCanvas');
-  var sig = canvas ? canvas.toDataURL('image/jpeg', 0.35) : '';
+  // Le canvas de signature a un fond transparent : exporté tel quel en JPEG
+  // (format sans canal alpha), les zones transparentes deviennent NOIRES.
+  // C'était la cause du bloc noir affiché à la place de la signature.
+  // Corrections : (1) on ne génère une image QUE si un vrai tracé existe,
+  // (2) on compose sur un fond blanc opaque avant l'export JPEG.
+  var sig = '';
+  if (canvas && canvasHasSignature(canvas)) {
+    var sigExport = document.createElement('canvas');
+    sigExport.width = canvas.width;
+    sigExport.height = canvas.height;
+    var sigCtx = sigExport.getContext('2d');
+    sigCtx.fillStyle = '#fff';
+    sigCtx.fillRect(0, 0, sigExport.width, sigExport.height);
+    sigCtx.drawImage(canvas, 0, 0);
+    sig = sigExport.toDataURL('image/jpeg', 0.35);
+  }
   var emailClient = '';
   var fEmailEl = document.getElementById('f-email');
   if (fEmailEl) emailClient = fEmailEl.value.trim();
@@ -3752,6 +3834,15 @@ function initSig() {
 function clearSig() {
   var c = document.getElementById('sigCanvas');
   if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+
+// Détecte si un canvas contient un vrai tracé (au moins un pixel non
+// transparent), pour éviter d'enregistrer une "signature" vide.
+function canvasHasSignature(canvas) {
+  if (!canvas || !canvas.width || !canvas.height) return false;
+  var data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  for (var i = 3; i < data.length; i += 4) { if (data[i] > 0) return true; }
+  return false;
 }
 
 var sigFSDrawn = false;
@@ -4497,6 +4588,87 @@ function splitVilleCP(villeStr) {
 // On privilégie le RDV lié (champs rue/ville/villeCP séparés) ; sinon on parse
 // les champs de la facture. Pour les mairies/syndics, le "client" Frelon76 est
 // le REQUÉRANT (particulier réel), pas la mairie.
+// Calcule le bon de commande effectif d'une facture, tous types de client
+// confondus. Centralisé ici pour éviter que la logique diverge entre les
+// différents rendus (desktop, mobile, PDF, et maintenant Chorus/Scriptus).
+function getBdcEffectif(f) {
+  var s = settings;
+  var bdcVal = f.syndicBdc || '';
+  // Le Havre / CU : BC propre à la facture, saisi après coup dans les archives
+  if (!bdcVal && (f.clientType === 'Le Havre' || f.clientType === 'CU') && f.bdcLeHavre) bdcVal = f.bdcLeHavre;
+  if (!bdcVal && f.clientType === 'Montivilliers' && s.bdcMontivilliers) bdcVal = s.bdcMontivilliers;
+  if (!bdcVal && f.clientType === 'Gonfreville'   && s.bdcGonfreville)   bdcVal = s.bdcGonfreville;
+  if (!bdcVal && f.clientType === 'Saint-Martin-du-Manoir' && s.bdcSMM)  bdcVal = s.bdcSMM;
+  return bdcVal || '';
+}
+
+// Identifiants Chorus Pro (SIRET, code service, engagement, marché) par
+// mairie — saisis une fois dans Paramètres > Chorus Pro, car ce sont des
+// informations fixes propres à chaque collectivité.
+function getChorusIdentifiants(clientType) {
+  var s = settings;
+  var map = {
+    'Montivilliers':          { siret: s.chorusMontiSiret,     codeService: s.chorusMontiService,     engagement: s.chorusMontiEngagement,     marche: s.chorusMontiMarche },
+    'Gonfreville':            { siret: s.chorusGonfSiret,      codeService: s.chorusGonfService,      engagement: s.chorusGonfEngagement,      marche: s.chorusGonfMarche },
+    'Le Havre':               { siret: s.chorusHavreSiret,     codeService: s.chorusHavreService,     engagement: s.chorusHavreEngagement,     marche: s.chorusHavreMarche },
+    'Saint-Martin-du-Manoir': { siret: s.chorusSmmSiret,       codeService: s.chorusSmmService,       engagement: s.chorusSmmEngagement,       marche: s.chorusSmmMarche },
+    'Octeville-sur-Mer':      { siret: s.chorusOcteSiret,      codeService: s.chorusOcteService,      engagement: s.chorusOcteEngagement,      marche: s.chorusOcteMarche },
+    'Harfleur':               { siret: s.chorusHarfleurSiret,  codeService: s.chorusHarfleurService,  engagement: s.chorusHarfleurEngagement,  marche: s.chorusHarfleurMarche },
+    'CU':                     { siret: s.chorusCuSiret,        codeService: s.chorusCuService,        engagement: s.chorusCuEngagement,        marche: s.chorusCuMarche }
+  };
+  return map[clientType] || { siret: '', codeService: '', engagement: '', marche: '' };
+}
+
+// Convertit une date AAAA-MM-JJ (format interne) en JJ/MM/AAAA (format Chorus).
+function toDateChorus(iso) {
+  if (!iso) return '';
+  var p = iso.split('-');
+  if (p.length !== 3) return iso;
+  return p[2] + '/' + p[1] + '/' + p[0];
+}
+
+// Formate un montant avec virgule décimale et sans symbole € (format Chorus).
+function toMontantChorus(n) {
+  return (parseFloat(n) || 0).toFixed(2).replace('.', ',');
+}
+
+// Construit l'objet transmis à Scriptus pour préremplir/fiabiliser Chorus Pro.
+// Le montant transmis est le NET réellement dû par la mairie (f.prix, après
+// aides éventuelles) — c'est ce montant qui doit correspondre au PDF déposé
+// et être réglé via Chorus Pro (contrairement à Frelon76 où le montant
+// transmis est le brut avant prise en charge).
+function buildChorusPayload(f) {
+  var ident = getChorusIdentifiants(f.clientType);
+  return {
+    invoiceNumber:     f.num || '',
+    bc:                getBdcEffectif(f),
+    date:              toDateChorus(f.date),
+    amountHT:          toMontantChorus(f.prix),
+    mairieName:        f.nom || '',
+    mairieSiret:       (ident.siret || '').replace(/\s+/g, ''),
+    mairieCodeService: ident.codeService || '',
+    mairieEngagement:  ident.engagement || '',
+    mairieMarche:      ident.marche || ''
+  };
+}
+
+// Dépose les données Chorus + le PDF dans un élément caché du DOM, lu par
+// l'extension Scriptus (même mécanisme que #f76-pdf-holder pour Frelon76).
+function depositChorusData(invoiceData, pdfBase64, numFacture) {
+  var holder = document.getElementById('chorus-data-holder');
+  if (!holder) {
+    holder = document.createElement('div');
+    holder.id = 'chorus-data-holder';
+    holder.style.display = 'none';
+    document.body.appendChild(holder);
+  }
+  holder.dataset.invoice = JSON.stringify(invoiceData);
+  holder.dataset.pdf = pdfBase64 || '';
+  holder.dataset.numFacture = numFacture || '';
+  holder.dataset.timestamp = Date.now().toString();
+  console.log('[Chorus] Données déposées dans #chorus-data-holder', invoiceData);
+}
+
 function buildF76Payload(f) {
   var rdvLie = rdvs.find(function(r) { return r.factureId === f.id; });
   var isMairieF = MAIRIE_TYPES.indexOf(f.clientType) >= 0;
@@ -4654,9 +4826,23 @@ async function declarerFacture(factureId) {
     return;
   }
 
-  // Chorus : aucune transmission, l'extension Scriptus prend le relais.
-  console.log('[Chorus] Ouverture simple (aucune donnée transmise)');
+  // Chorus : ouvrir le portail (dans le contexte du clic, pour éviter le
+  // blocage popup), puis déposer les données + le PDF pour Scriptus, qui
+  // détecte la page de l'app via son hostname et lit #chorus-data-holder.
+  console.log('[Chorus] Ouverture du portail');
   window.open(DECL_URLS.chorus, '_blank');
+
+  try {
+    var chorusData = buildChorusPayload(f);
+    await loadJsPDF();
+    var pdfC = generatePDFTexte(f, settings);
+    var pdfBase64C = pdfC.output('datauristring');
+    // Normalisation du préfixe (jsPDF insère parfois ";filename=generated.pdf")
+    pdfBase64C = pdfBase64C.replace(/^data:application\/pdf;[^,]*base64,/, 'data:application/pdf;base64,');
+    depositChorusData(chorusData, pdfBase64C, f.num);
+  } catch (e) {
+    console.error('[Chorus] Dépôt des données échoué :', e);
+  }
 }
 
 // Dépose le PDF (base64) + numéro de facture dans un élément caché du DOM.
@@ -4961,12 +5147,7 @@ function generatePDFTexte(f, s) {
   }
   var paiL   = { virement:'Virement bancaire', cheque:'Chèque', espece:'Espèces' };
 
-  var bdcVal = f.syndicBdc || '';
-  // Le Havre : BC propre à la facture (saisi après l'intervention)
-  if (!bdcVal && (f.clientType === 'Le Havre' || f.clientType === 'CU') && f.bdcLeHavre) bdcVal = f.bdcLeHavre;
-  if (!bdcVal && f.clientType === 'Montivilliers' && s.bdcMontivilliers) bdcVal = s.bdcMontivilliers;
-  if (!bdcVal && f.clientType === 'Gonfreville'   && s.bdcGonfreville)   bdcVal = s.bdcGonfreville;
-  if (!bdcVal && f.clientType === 'Saint-Martin-du-Manoir' && s.bdcSMM)  bdcVal = s.bdcSMM;
+  var bdcVal = getBdcEffectif(f);
 
   var dateStr = f.dateStr || (f.date ? new Date(f.date+'T12:00:00').toLocaleDateString('fr-FR') : '');
 
@@ -5211,7 +5392,7 @@ function generatePDFTexte(f, s) {
   if (f.signature) {
     y+=8; pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor.apply(pdf,GRIS);
     pdf.text('Signature du client :', M, y); y+=3;
-    try { pdf.addImage(f.signature,'PNG',M,y,50,20); } catch(e) {}
+    try { pdf.addImage(f.signature, detectImgFormat(f.signature), M, y, 50, 20); } catch(e) {}
   }
 
   // Métadonnées
@@ -5542,6 +5723,18 @@ function renderSettings() {
   // SMS de suivi client (publicité)
   el = document.getElementById('s-pub-tel');      if (el) el.value = settings.pubTel || settings.tel || '';
   el = document.getElementById('s-pub-facebook'); if (el) el.value = settings.pubFacebook || '';
+  // Chorus Pro — identifiants par mairie (SIRET, code service, engagement, marché)
+  [
+    ['monti', 'Monti'], ['gonf', 'Gonf'], ['havre', 'Havre'], ['smm', 'Smm'],
+    ['octe', 'Octe'], ['harfleur', 'Harfleur'], ['cu', 'Cu']
+  ].forEach(function(pair) {
+    var htmlKey = pair[0], settingsKey = pair[1];
+    ['siret','service','engagement','marche'].forEach(function(champ) {
+      var suffix = champ === 'siret' ? 'Siret' : champ === 'service' ? 'Service' : champ === 'engagement' ? 'Engagement' : 'Marche';
+      var elC = document.getElementById('s-chorus-' + htmlKey + '-' + champ);
+      if (elC) elC.value = settings['chorus' + settingsKey + suffix] || '';
+    });
+  });
   document.getElementById('s-aide-depart-pct').value = settings.aideDepartPct !== undefined ? settings.aideDepartPct : 30;
   document.getElementById('s-aide-seine-pct').value = settings.aideSeinePct !== undefined ? settings.aideSeinePct : 30;
   var sbUrl = document.getElementById('s-sb-url');
@@ -5667,7 +5860,20 @@ function saveSettings() {
   var preserved = {
     villesCustom: settings.villesCustom || []
   };
-  settings = Object.assign({}, preserved, {
+  // Identifiants Chorus Pro (28 champs, construits en boucle pour éviter la répétition)
+  var chorusFields = {};
+  [
+    ['monti', 'Monti'], ['gonf', 'Gonf'], ['havre', 'Havre'], ['smm', 'Smm'],
+    ['octe', 'Octe'], ['harfleur', 'Harfleur'], ['cu', 'Cu']
+  ].forEach(function(pair) {
+    var htmlKey = pair[0], settingsKey = pair[1];
+    ['siret','service','engagement','marche'].forEach(function(champ) {
+      var suffix = champ === 'siret' ? 'Siret' : champ === 'service' ? 'Service' : champ === 'engagement' ? 'Engagement' : 'Marche';
+      var elC = document.getElementById('s-chorus-' + htmlKey + '-' + champ);
+      chorusFields['chorus' + settingsKey + suffix] = elC ? elC.value.trim() : '';
+    });
+  });
+  settings = Object.assign({}, preserved, chorusFields, {
     nom: document.getElementById('s-nom').value.trim(),
     siret: document.getElementById('s-siret').value.trim(),
     adresse: document.getElementById('s-adresse').value.trim(),
